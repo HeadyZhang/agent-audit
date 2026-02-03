@@ -4,8 +4,8 @@ import pytest
 import json
 from datetime import datetime
 
-from agent_core.models.finding import Finding, Remediation
-from agent_core.models.risk import Severity, Category, Location
+from agent_audit.models.finding import Finding, Remediation
+from agent_audit.models.risk import Severity, Category, Location
 from agent_audit.cli.formatters.json import format_json, JSONFormatter
 from agent_audit.cli.formatters.sarif import SARIFFormatter
 

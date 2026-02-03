@@ -8,7 +8,7 @@ from agent_audit.scanners.mcp_inspector import (
     MCPInspectionResult,
 )
 from agent_audit.utils.mcp_client import TransportType
-from agent_core.models.tool import PermissionType
+from agent_audit.models.tool import PermissionType
 
 
 class TestMCPInspector:

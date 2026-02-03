@@ -4,7 +4,7 @@ import pytest
 from pathlib import Path
 
 from agent_audit.scanners.python_scanner import PythonScanner
-from agent_core.models.tool import PermissionType
+from agent_audit.models.tool import PermissionType
 
 
 class TestPythonScanner:

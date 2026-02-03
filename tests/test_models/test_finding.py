@@ -3,8 +3,8 @@
 import pytest
 from datetime import datetime
 
-from agent_core.models.finding import Finding, Remediation
-from agent_core.models.risk import Severity, Category, Location
+from agent_audit.models.finding import Finding, Remediation
+from agent_audit.models.risk import Severity, Category, Location
 
 
 class TestFinding:

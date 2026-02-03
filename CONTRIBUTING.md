@@ -14,19 +14,14 @@ Thank you for your interest in contributing to Agent Audit! This document provid
 1. **Fork and clone the repository**
 
 ```bash
-git clone https://github.com/YOUR-USERNAME/agent-security-suite.git
-cd agent-security-suite
+git clone https://github.com/YOUR-USERNAME/agent-audit.git
+cd agent-audit
 ```
 
 2. **Install dependencies**
 
 ```bash
-# Install core package
-cd packages/core
-poetry install
-
-# Install audit package (includes core as dependency)
-cd ../audit
+cd packages/audit
 poetry install
 ```
 
@@ -40,19 +35,16 @@ poetry run agent-audit scan .
 ## Project Structure
 
 ```
-agent-security-suite/
+agent-audit/
 ├── packages/
-│   ├── core/           # Core scanning engine
-│   │   ├── agent_core/
-│   │   │   ├── scanners/    # AST, MCP, Secret scanners
-│   │   │   ├── models/      # Data models (Finding, Severity, etc.)
-│   │   │   └── rules/       # Detection rules
-│   │   └── pyproject.toml
-│   │
-│   └── audit/          # CLI and output formatters
+│   └── audit/              # Main package
 │       ├── agent_audit/
-│       │   ├── cli/         # Click CLI commands
-│       │   └── formatters/  # Output formatters (JSON, SARIF, etc.)
+│       │   ├── cli/        # Click CLI commands
+│       │   ├── config/     # Configuration handling
+│       │   ├── models/     # Data models (Finding, Severity, etc.)
+│       │   ├── rules/      # Rule engine
+│       │   ├── scanners/   # AST, MCP, Secret scanners
+│       │   └── utils/      # Utilities
 │       └── pyproject.toml
 │
 ├── tests/              # Integration tests
@@ -71,7 +63,7 @@ cd packages/audit
 poetry run pytest tests/ -v
 
 # Run with coverage
-poetry run pytest tests/ -v --cov=agent_core --cov=agent_audit --cov-report=html
+poetry run pytest tests/ -v --cov=agent_audit --cov-report=html
 
 # Run specific test file
 poetry run pytest tests/test_scanners.py -v
@@ -103,9 +95,9 @@ poetry run mypy . --ignore-missing-imports
 
 ### Adding a New Scanner
 
-1. Create a new scanner in `packages/core/agent_core/scanners/`
-2. Implement the `Scanner` interface
-3. Register the scanner in the scan orchestrator
+1. Create a new scanner in `packages/audit/agent_audit/scanners/`
+2. Implement the `Scanner` interface from `base.py`
+3. Register the scanner in the scan command
 4. Add tests in `tests/`
 
 ### Adding a New Rule
@@ -116,7 +108,7 @@ poetry run mypy . --ignore-missing-imports
 
 ### Adding a New Output Format
 
-1. Create a formatter in `packages/audit/agent_audit/formatters/`
+1. Create a formatter in `packages/audit/agent_audit/cli/formatters/`
 2. Register it in the CLI
 3. Add tests
 

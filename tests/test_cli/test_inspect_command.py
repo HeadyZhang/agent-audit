@@ -12,7 +12,7 @@ from agent_audit.cli.commands.inspect import (
 )
 from agent_audit.scanners.mcp_inspector import MCPInspectionResult
 from agent_audit.utils.mcp_client import TransportType
-from agent_core.models.tool import RiskLevel
+from agent_audit.models.tool import RiskLevel
 
 
 class TestInspectCommand:

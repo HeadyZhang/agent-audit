@@ -5,8 +5,8 @@ import json
 import yaml
 from pathlib import Path
 
-from agent_core.models.finding import Finding
-from agent_core.models.risk import Severity, Category, Location
+from agent_audit.models.finding import Finding
+from agent_audit.models.risk import Severity, Category, Location
 from agent_audit.config.ignore import (
     IgnoreManager,
     IgnoreRule,

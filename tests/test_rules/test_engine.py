@@ -3,8 +3,8 @@
 import pytest
 from pathlib import Path
 
-from agent_core.rules.engine import RuleEngine, MatchContext
-from agent_core.models.risk import Severity, Category
+from agent_audit.rules.engine import RuleEngine, MatchContext
+from agent_audit.models.risk import Severity, Category
 
 
 class TestRuleEngine:
@@ -231,7 +231,7 @@ class TestPermissionScopeEvaluation:
 
     def test_detects_excessive_tools(self, engine):
         """Test detection of too many tools."""
-        from agent_core.models.tool import ToolDefinition
+        from agent_audit.models.tool import ToolDefinition
 
         tools = [
             ToolDefinition(
@@ -252,7 +252,7 @@ class TestPermissionScopeEvaluation:
 
     def test_acceptable_tool_count(self, engine):
         """Test that acceptable tool count doesn't trigger finding."""
-        from agent_core.models.tool import ToolDefinition
+        from agent_audit.models.tool import ToolDefinition
 
         tools = [
             ToolDefinition(
