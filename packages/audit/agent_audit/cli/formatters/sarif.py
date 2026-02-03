@@ -4,8 +4,8 @@ import json
 from typing import List, Dict, Any
 from pathlib import Path
 
-from agent_core.models.finding import Finding
-from agent_core.models.risk import Severity
+from agent_audit.models.finding import Finding
+from agent_audit.models.risk import Severity
 from agent_audit.version import __version__
 
 

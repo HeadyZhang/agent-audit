@@ -14,7 +14,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from contextlib import asynccontextmanager
 
-from agent_core.models.tool import ToolDefinition, PermissionType, RiskLevel, ToolParameter
+from agent_audit.models.tool import ToolDefinition, PermissionType, RiskLevel, ToolParameter
 from agent_audit.utils.mcp_client import (
     BaseMCPTransport, TransportType, create_client, infer_transport_type
 )

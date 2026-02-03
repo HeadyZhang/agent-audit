@@ -8,7 +8,7 @@ from typing import List, Set, Optional, Dict, Any
 from dataclasses import dataclass, field
 
 from agent_audit.scanners.base import BaseScanner, ScanResult
-from agent_core.models.tool import ToolDefinition, PermissionType, ToolParameter
+from agent_audit.models.tool import ToolDefinition, PermissionType, ToolParameter
 
 logger = logging.getLogger(__name__)
 

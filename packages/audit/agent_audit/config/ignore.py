@@ -19,7 +19,7 @@ from datetime import datetime
 
 import yaml
 
-from agent_core.models.finding import Finding
+from agent_audit.models.finding import Finding
 
 logger = logging.getLogger(__name__)
 

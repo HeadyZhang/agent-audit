@@ -8,8 +8,8 @@ from rich.text import Text
 from rich.tree import Tree
 from rich import box
 
-from agent_core.models.finding import Finding
-from agent_core.models.risk import Severity
+from agent_audit.models.finding import Finding
+from agent_audit.models.risk import Severity
 
 console = Console()
 

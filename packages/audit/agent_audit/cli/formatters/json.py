@@ -5,7 +5,7 @@ from typing import List, Dict, Any
 from pathlib import Path
 from datetime import datetime
 
-from agent_core.models.finding import Finding
+from agent_audit.models.finding import Finding
 from agent_audit.version import __version__
 
 
@@ -94,7 +94,7 @@ class JSONFormatter:
 
     def _calculate_risk_score(self, findings: List[Finding]) -> float:
         """Calculate risk score."""
-        from agent_core.models.risk import Severity
+        from agent_audit.models.risk import Severity
 
         if not findings:
             return 0.0

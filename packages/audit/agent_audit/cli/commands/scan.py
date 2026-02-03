@@ -7,9 +7,9 @@ from typing import Optional, List
 import click
 from rich.console import Console
 
-from agent_core.models.finding import Finding
-from agent_core.models.risk import Severity
-from agent_core.rules.engine import RuleEngine, MatchContext
+from agent_audit.models.finding import Finding
+from agent_audit.models.risk import Severity
+from agent_audit.rules.engine import RuleEngine, MatchContext
 
 from agent_audit.scanners.python_scanner import PythonScanner
 from agent_audit.scanners.mcp_config_scanner import MCPConfigScanner
@@ -147,8 +147,8 @@ def run_scan(
     secret_results = secret_scanner.scan(path)
     for result in secret_results:
         for secret in result.secrets:
-            from agent_core.models.risk import Location, Category
-            from agent_core.models.finding import Remediation
+            from agent_audit.models.risk import Location, Category
+            from agent_audit.models.finding import Remediation
 
             finding = Finding(
                 rule_id="AGENT-004",
