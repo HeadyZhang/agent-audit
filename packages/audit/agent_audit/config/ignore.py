@@ -81,8 +81,10 @@ class IgnoreManager:
 
         Searches for config in:
         1. The scan target directory (project_path)
-        2. Current working directory (if different)
-        3. Parent directories up to filesystem root
+        2. Parent directories of project_path up to filesystem root
+
+        Note: Does NOT search CWD if it's outside the scan target's path hierarchy.
+        This prevents loading unrelated configs when scanning external directories.
 
         Args:
             project_path: Root path of the project to scan
@@ -92,7 +94,6 @@ class IgnoreManager:
         """
         # Resolve to absolute path
         project_path = project_path.resolve()
-        cwd = Path.cwd().resolve()
 
         # Collect search paths (deduplicated, ordered)
         search_paths: List[Path] = []
@@ -100,11 +101,7 @@ class IgnoreManager:
         # 1. Scan target directory
         search_paths.append(project_path)
 
-        # 2. CWD if different from target
-        if cwd != project_path:
-            search_paths.append(cwd)
-
-        # 3. Parent directories of project_path up to root
+        # 2. Parent directories of project_path up to root
         parent = project_path.parent
         while parent != parent.parent:
             if parent not in search_paths:
@@ -137,9 +134,10 @@ class IgnoreManager:
             if not data:
                 return False
 
-            # Parse ignore rules
+            # Parse ignore rules (handle None value from YAML when only comments exist)
             ignore_rules = []
-            for rule_data in data.get('ignore', []):
+            ignore_data = data.get('ignore') or []
+            for rule_data in ignore_data:
                 rule = IgnoreRule(
                     rule_id=rule_data.get('rule_id'),
                     paths=rule_data.get('paths', []),

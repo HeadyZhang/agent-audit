@@ -298,9 +298,13 @@ class SecretScanner(BaseScanner):
         - Example/placeholder values
         - Test fixtures
         - Documentation
+        - Variable/class/function names containing keywords
+        - Environment variable lookups
+        - Secure wrappers (SecretStr, etc.)
         """
         matched_text = match.group().lower()
         line_lower = line.lower()
+        stripped = line.strip()
 
         # Common placeholder patterns
         placeholders = [
@@ -320,6 +324,60 @@ class SecretScanner(BaseScanner):
         if any(p in path_str for p in ['test', 'example', 'fixture', 'mock', 'sample']):
             return True
 
+        # Skip class definitions (class FooTokenBar:)
+        if stripped.startswith('class '):
+            return True
+
+        # Skip function definitions (def get_api_key(...):)
+        if stripped.startswith('def '):
+            return True
+
+        # Skip import statements
+        if stripped.startswith('import ') or stripped.startswith('from '):
+            return True
+
+        # Skip type annotations (variable: SecretStr)
+        if re.search(r':\s*(Optional\[)?SecretStr', line):
+            return True
+
+        # Check for environment variable lookups - value is not hardcoded
+        env_patterns = [
+            r'os\.environ\.get\s*\(',
+            r'os\.environ\[',
+            r'os\.getenv\s*\(',
+            r'getenv\s*\(',
+            r'environ\.get\s*\(',
+            r'settings\.\w+',  # e.g., settings.API_KEY
+            r'config\.\w+',    # e.g., config.api_key
+            r'Config\.\w+',
+            r'get_from_\w+\s*\(',  # get_from_env, get_from_dict_or_env, etc.
+        ]
+        for pattern in env_patterns:
+            if re.search(pattern, line):
+                return True
+
+        # Check for secure wrappers - value is wrapped, not exposed
+        secure_wrappers = [
+            r'SecretStr\s*\(',
+            r'Secret\s*\(',
+            r'SecureString\s*\(',
+            r'Field\s*\([^)]*secret\s*=\s*True',
+        ]
+        for pattern in secure_wrappers:
+            if re.search(pattern, line, re.IGNORECASE):
+                return True
+
+        # For generic patterns (api_key=, token=, etc.), verify the right side
+        # is a string literal that looks like a real secret, not a variable
+        if self._is_generic_pattern_match(match):
+            if not self._has_literal_secret_value(line, match):
+                return True
+
+        # Check if match looks like a PascalCase class/type name (e.g., ConversationTokenBufferMemory)
+        matched_text_raw = match.group()
+        if self._looks_like_class_name(matched_text_raw, line):
+            return True
+
         # Environment variable references (not actual values)
         if '${' in line or '$(' in line:
             if matched_text in line[match.start():match.end()+5]:
@@ -329,6 +387,117 @@ class SecretScanner(BaseScanner):
                     return True
 
         return False
+
+    def _looks_like_class_name(self, matched_text: str, line: str) -> bool:
+        """
+        Check if the matched text looks like a class/type name rather than a secret.
+
+        PascalCase identifiers with multiple capital letters are likely class names,
+        not secrets. Real secrets don't follow PascalCase naming conventions.
+        """
+        # Check for PascalCase pattern: starts with capital, has multiple capitals
+        # Also allow all-alpha strings that follow PascalCase (no numbers, no special chars)
+        text_to_check = matched_text
+
+        # If match contains '=' (from AWS pattern [A-Za-z0-9/+=]), extract the part after '='
+        # This handles cases like 'factory=PairwiseStringResultOutputParser'
+        if '=' in matched_text:
+            parts = matched_text.split('=')
+            # Check if the part after = looks like a class name
+            text_to_check = parts[-1]
+
+        if re.match(r'^[A-Z][a-zA-Z]+$', text_to_check):
+            # Count capital letters - class names typically have several
+            capital_count = sum(1 for c in text_to_check if c.isupper())
+            if capital_count >= 2:
+                return True
+
+            # Check for common class name suffixes
+            class_suffixes = [
+                'Memory', 'Buffer', 'Parser', 'Handler', 'Manager',
+                'Factory', 'Builder', 'Wrapper', 'Provider', 'Service',
+                'Client', 'Server', 'Controller', 'Processor', 'Validator'
+            ]
+            if any(text_to_check.endswith(suffix) for suffix in class_suffixes):
+                return True
+
+        return False
+
+    def _is_generic_pattern_match(self, match: re.Match) -> bool:
+        """Check if this match is from a generic pattern (api_key=, token=, etc.)."""
+        pattern_str = match.re.pattern
+        # Generic patterns have the keyword group followed by = or :
+        generic_indicators = [
+            r'\(api[_-]?key|apikey\)',
+            r'\(secret|password|passwd|pwd\)',
+            r'\(token|auth[_-]?token\)',
+            r'jwt[_-]?secret',
+        ]
+        for indicator in generic_indicators:
+            if indicator in pattern_str.lower():
+                return True
+        return False
+
+    def _has_literal_secret_value(self, line: str, match: re.Match) -> bool:
+        """
+        Check if the matched assignment has a string literal value that looks like a secret.
+
+        Returns True if it looks like a real hardcoded secret, False if it's likely
+        a variable reference, function call, or non-secret value.
+        """
+        # Extract the part after the = or :
+        match_text = match.group()
+        eq_pos = -1
+        for sep in ['=', ':']:
+            pos = match_text.find(sep)
+            if pos != -1:
+                eq_pos = pos
+                break
+
+        if eq_pos == -1:
+            return True  # Not an assignment pattern, let other checks handle it
+
+        # Get the value part (after = or :)
+        value_part = match_text[eq_pos + 1:].strip()
+
+        # Remove leading quotes
+        if value_part.startswith('"') or value_part.startswith("'"):
+            value_part = value_part[1:]
+        if value_part.endswith('"') or value_part.endswith("'"):
+            value_part = value_part[:-1]
+
+        # Check if value is empty or too short
+        if len(value_part) < 8:
+            return False
+
+        # Check if value looks like a variable name (all lowercase/uppercase, underscores)
+        if re.match(r'^[a-z_][a-z0-9_]*$', value_part) and not any(c.isdigit() for c in value_part[-4:]):
+            return False
+
+        # Check if it's a common non-secret pattern
+        non_secret_patterns = [
+            r'^[A-Z_]+$',  # All caps constant name like API_KEY
+            r'^None$',
+            r'^null$',
+            r'^""$',
+            r"^''$",
+            r'^\.\.\.$',  # Ellipsis
+        ]
+        for pattern in non_secret_patterns:
+            if re.match(pattern, value_part, re.IGNORECASE):
+                return False
+
+        # Check for mixed characters (letters, numbers, special chars) typical of secrets
+        has_letters = bool(re.search(r'[a-zA-Z]', value_part))
+        has_numbers = bool(re.search(r'[0-9]', value_part))
+        has_special = bool(re.search(r'[-_/+=]', value_part))
+
+        # Real secrets typically have a mix of character types
+        char_types = sum([has_letters, has_numbers, has_special])
+        if char_types < 2 and len(value_part) < 20:
+            return False
+
+        return True
 
     def _mask_secret(self, line: str, match: re.Match) -> str:
         """Mask the secret value in a line for safe display."""
