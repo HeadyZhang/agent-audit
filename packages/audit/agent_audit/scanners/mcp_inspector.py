@@ -11,10 +11,9 @@ import sys
 import time
 from typing import Dict, Any, List, Optional, Set
 from dataclasses import dataclass, field
-from enum import Enum
 from contextlib import asynccontextmanager
 
-from agent_audit.models.tool import ToolDefinition, PermissionType, RiskLevel, ToolParameter
+from agent_audit.models.tool import ToolDefinition, PermissionType, ToolParameter
 from agent_audit.utils.mcp_client import (
     BaseMCPTransport, TransportType, create_client, infer_transport_type
 )
@@ -270,7 +269,6 @@ class MCPInspector:
         }
 
         properties = schema.get("properties", {})
-        required = set(schema.get("required", []))
 
         for param_name, param_def in properties.items():
             param_type = param_def.get("type", "string")
@@ -372,7 +370,7 @@ class MCPInspector:
                 findings.append({
                     "type": "high_risk_tool",
                     "tool": tool.name,
-                    "description": f"Tool name contains high-risk keyword",
+                    "description": "Tool name contains high-risk keyword",
                     "severity": "high"
                 })
 

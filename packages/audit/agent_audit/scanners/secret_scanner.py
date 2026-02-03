@@ -4,7 +4,7 @@ import fnmatch
 import re
 import logging
 from pathlib import Path
-from typing import List, Optional, Dict, Any, Pattern, Tuple
+from typing import List, Optional, Pattern, Tuple
 from dataclasses import dataclass, field
 
 from agent_audit.scanners.base import BaseScanner, ScanResult

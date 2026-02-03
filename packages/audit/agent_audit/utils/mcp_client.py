@@ -73,7 +73,6 @@ class StdioTransport(BaseMCPTransport):
     async def connect(self):
         """Start the MCP server process."""
         import os
-        import subprocess
 
         # Prepare environment
         process_env = os.environ.copy()

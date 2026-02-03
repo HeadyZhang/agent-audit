@@ -3,7 +3,7 @@
 import re
 import logging
 from pathlib import Path
-from typing import Dict, Any, List, Optional, Set
+from typing import Dict, Any, List, Optional
 from dataclasses import dataclass, field
 
 from agent_audit.models.finding import Finding, Remediation
@@ -103,7 +103,6 @@ class RuleEngine:
 
         for pattern in patterns:
             pattern_type = pattern.get('type', '')
-            func_name = pattern.get('function', '')
 
             if pattern_type == 'shell_true' or pattern_type == 'dangerous_function_call':
                 # Check if this matches AGENT-001 (Command Injection)

@@ -4,8 +4,6 @@ from typing import List, Dict
 from rich.console import Console
 from rich.panel import Panel
 from rich.text import Text
-from rich.tree import Tree
-from rich import box
 
 from agent_audit.models.finding import Finding
 from agent_audit.models.risk import Severity
@@ -81,7 +79,7 @@ class TerminalFormatter:
         header.append(f"Scanned: {scan_path}\n", style="dim")
         if scanned_files:
             header.append(f"Files analyzed: {scanned_files}\n", style="dim")
-        header.append(f"Risk Score: ", style="dim")
+        header.append("Risk Score: ", style="dim")
         header.append(f"{risk_score:.1f}/10", style=f"bold {risk_color}")
 
         console.print(Panel(header, border_style=risk_color))

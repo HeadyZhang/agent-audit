@@ -20,10 +20,10 @@ def cli(ctx: click.Context, verbose: bool, quiet: bool):
     ctx.obj['quiet'] = quiet
 
 
-# Register commands
-from agent_audit.cli.commands.inspect import inspect
-from agent_audit.cli.commands.scan import scan
-from agent_audit.cli.commands.init import init
+# Register commands - imports here to avoid circular imports
+from agent_audit.cli.commands.inspect import inspect  # noqa: E402
+from agent_audit.cli.commands.scan import scan  # noqa: E402
+from agent_audit.cli.commands.init import init  # noqa: E402
 
 cli.add_command(inspect)
 cli.add_command(scan)
