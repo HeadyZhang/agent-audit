@@ -28,7 +28,7 @@ class TestUUIDDetection:
         ("ghp_abcdefghij1234567890abcdefghij12", False, None),  # GitHub token
         ("hello world", False, None),
         ("short", False, None),
-        ("sk-TESTKEY1234567890abcdefghijklmnopqrs", False, None),  # API key format
+        ("sk-FAKE0TEST1KEY2abcd3efgh4ijkl5mnop6qrs", False, None),  # Test API key pattern
     ])
     def test_uuid_format_detection(
         self, value: str, expected_is_uuid: bool, expected_format: Optional[str]
@@ -53,9 +53,9 @@ class TestUUIDFalsePositiveReduction:
         ("scene_token", "abc123def456abc123def456abc12345", False, 0.10),
         ("data_id", "0d0700a2284e477db876c3ee1d864668", False, 0.10),
 
-        # Real API keys - should be reported with high confidence
-        ("api_key", "sk-proj-TESTKEYabcdefghijklmnopqrstuvwxyz1234567890ABCD", True, 1.0),
-        ("openai_key", "sk-TESTKEYabcdefghijklmnopqrstuvwxyz1234567890ABCDE", True, 1.0),
+        # Test API keys - should be reported with high confidence
+        ("api_key", "sk-proj-TESTKEY123456789abcdefghijklmnopqrstuvwxyz0123456789", True, 1.0),
+        ("openai_key", "sk-FAKEKEY9876543210zyxwvutsrqponmlkjihgfedcba01234567", True, 1.0),
     ])
     def test_uuid_confidence_adjustment(
         self,
@@ -132,16 +132,17 @@ class TestAgentPoisonBenchmark:
             assert result.confidence < 0.60, \
                 f"Sample token {token_value} has too high confidence: {result.confidence}"
 
-    def test_real_openai_keys_still_detected(self):
+    def test_openai_key_patterns_still_detected(self):
         """
-        Real OpenAI API keys should still be detected with high confidence.
+        OpenAI API key patterns should still be detected with high confidence.
+        Uses test keys that match the format but are obviously fake.
         """
-        real_keys = [
-            ("sk-TESTKEYabcdefghijklmnopqrstuvwxyz1234567890ABCDE", "config.py"),
-            ("sk-proj-TESTKEYabcdefghijklmnopqrstuvwxyz1234567890ABCD", "get_ada_v2_embedding.py"),
+        test_keys = [
+            ("sk-FAKEKEY9876543210zyxwvutsrqponmlkjihgfedcba01234567", "config.py"),
+            ("sk-proj-TESTKEY123456789abcdefghijklmnopqrstuvwxyz0123456789", "get_ada_v2_embedding.py"),
         ]
 
-        for key_value, filename in real_keys:
+        for key_value, filename in test_keys:
             result = self.analyzer.analyze_single_match(
                 identifier="api_key",
                 value=key_value,
@@ -156,9 +157,9 @@ class TestAgentPoisonBenchmark:
             # Should be detected with high confidence
             assert result.should_report is True
             assert result.tier == "BLOCK", \
-                f"Real OpenAI key not flagged as BLOCK: {result.tier}"
+                f"OpenAI key pattern not flagged as BLOCK: {result.tier}"
             assert result.confidence >= 0.90, \
-                f"Real OpenAI key has low confidence: {result.confidence}"
+                f"OpenAI key pattern has low confidence: {result.confidence}"
 
     def test_data_token_identifiers_reduce_confidence(self):
         """

@@ -3,13 +3,36 @@
 import fnmatch
 import re
 import logging
+from enum import IntEnum
 from pathlib import Path
-from typing import List, Optional, Pattern, Tuple
+from typing import List, Optional, Pattern, Tuple, Set
 from dataclasses import dataclass, field
 
 from agent_audit.scanners.base import BaseScanner, ScanResult
 
 logger = logging.getLogger(__name__)
+
+
+class PatternPriority(IntEnum):
+    """
+    Pattern priority levels for secret detection.
+    
+    Higher priority patterns are matched first. When a location is already
+    matched by a higher priority pattern, lower priority patterns are skipped
+    for that location to avoid duplicate/conflicting detections.
+    
+    Priority order (1 = highest, 5 = lowest):
+    1. CRITICAL: Private keys, connection strings (always real secrets)
+    2. HIGH: Known API key formats with verified prefixes (sk-proj-, ghp_, AKIA)
+    3. MEDIUM: Known service formats (Stripe, Slack, SendGrid, etc.)
+    4. LOW: Generic patterns with keyword context (api_key=, secret=)
+    5. GENERIC: Generalized high-entropy string patterns
+    """
+    CRITICAL = 1    # Private keys, connection strings
+    HIGH = 2        # Known API key formats (sk-proj-, ghp_, AKIA)
+    MEDIUM = 3      # Known service formats (Stripe, Slack, SendGrid)
+    LOW = 4         # Generic patterns (api_key=, secret=)
+    GENERIC = 5     # Generalized patterns (high-entropy strings)
 
 # Lazy import for semantic analyzer to avoid circular imports
 _semantic_analyzer = None
@@ -59,67 +82,116 @@ class SecretScanner(BaseScanner):
 
     name = "Secret Scanner"
 
-    # Secret patterns with severity levels
-    SECRET_PATTERNS: List[Tuple[Pattern, str, str]] = [
-        # AWS
-        (re.compile(r'AKIA[0-9A-Z]{16}'), "AWS Access Key ID", "critical"),
-        (re.compile(r'(?<![A-Za-z0-9/+=])[A-Za-z0-9/+=]{40}(?![A-Za-z0-9/+=])'),
-         "Potential AWS Secret Key", "high"),
+    # Legacy pattern structure for backward compatibility
+    # Format: (pattern, name, severity)
+    SECRET_PATTERNS: List[Tuple[Pattern, str, str]] = []  # Populated from V2 below
 
+    # v0.6.0: Priority-based pattern structure
+    # Format: (pattern, name, severity, priority)
+    # Patterns are matched in priority order; higher priority matches block lower ones
+    SECRET_PATTERNS_V2: List[Tuple[Pattern, str, str, PatternPriority]] = [
+        # === Priority 1: CRITICAL - Private keys, connection strings ===
+        (re.compile(r'-----BEGIN (?:RSA |DSA |EC |OPENSSH )?PRIVATE KEY-----'),
+         "Private Key Header", "critical", PatternPriority.CRITICAL),
+        (re.compile(r'-----BEGIN PGP PRIVATE KEY BLOCK-----'),
+         "PGP Private Key", "critical", PatternPriority.CRITICAL),
+        (re.compile(r'(?i)(?:mysql|postgres|postgresql|mongodb|redis)://[^\s"\']+:[^\s"\']+@'),
+         "Database Connection String with Credentials", "critical", PatternPriority.CRITICAL),
+
+        # === Priority 2: HIGH - Known API key formats with verified prefixes ===
         # OpenAI
-        (re.compile(r'sk-[a-zA-Z0-9]{48,}'), "OpenAI API Key", "critical"),
-        (re.compile(r'sk-proj-[a-zA-Z0-9]{48,}'), "OpenAI Project API Key", "critical"),
+        (re.compile(r'sk-proj-[a-zA-Z0-9]{48,}'),
+         "OpenAI Project API Key", "critical", PatternPriority.HIGH),
+        (re.compile(r'sk-[a-zA-Z0-9]{48,}'),
+         "OpenAI API Key", "critical", PatternPriority.HIGH),
 
         # Anthropic
-        (re.compile(r'sk-ant-[a-zA-Z0-9-]{40,}'), "Anthropic API Key", "critical"),
+        (re.compile(r'sk-ant-api\d{2}-[a-zA-Z0-9_-]{80,}'),
+         "Anthropic API Key", "critical", PatternPriority.HIGH),
+        (re.compile(r'sk-ant-[a-zA-Z0-9-]{40,}'),
+         "Anthropic API Key (Legacy)", "critical", PatternPriority.HIGH),
 
         # GitHub
-        (re.compile(r'ghp_[a-zA-Z0-9]{36}'), "GitHub Personal Access Token", "critical"),
-        (re.compile(r'gho_[a-zA-Z0-9]{36}'), "GitHub OAuth Token", "critical"),
-        (re.compile(r'ghs_[a-zA-Z0-9]{36}'), "GitHub App Token", "critical"),
-        (re.compile(r'ghr_[a-zA-Z0-9]{36}'), "GitHub Refresh Token", "critical"),
+        (re.compile(r'ghp_[a-zA-Z0-9]{36}'),
+         "GitHub Personal Access Token", "critical", PatternPriority.HIGH),
+        (re.compile(r'gho_[a-zA-Z0-9]{36}'),
+         "GitHub OAuth Token", "critical", PatternPriority.HIGH),
+        (re.compile(r'ghs_[a-zA-Z0-9]{36}'),
+         "GitHub App Token", "critical", PatternPriority.HIGH),
+        (re.compile(r'ghr_[a-zA-Z0-9]{36}'),
+         "GitHub Refresh Token", "critical", PatternPriority.HIGH),
+
+        # AWS
+        (re.compile(r'AKIA[0-9A-Z]{16}'),
+         "AWS Access Key ID", "critical", PatternPriority.HIGH),
 
         # Google
-        (re.compile(r'AIza[0-9A-Za-z\-_]{35}'), "Google API Key", "critical"),
+        (re.compile(r'AIza[0-9A-Za-z\-_]{35}'),
+         "Google API Key", "critical", PatternPriority.HIGH),
 
+        # Cohere
+        (re.compile(r'co-[a-zA-Z0-9]{32,}'),
+         "Cohere API Key", "critical", PatternPriority.HIGH),
+
+        # NPM
+        (re.compile(r'npm_[a-zA-Z0-9]{36}'),
+         "NPM Token", "critical", PatternPriority.HIGH),
+
+        # PyPI
+        (re.compile(r'pypi-[A-Za-z0-9_-]{150,}'),
+         "PyPI API Token", "critical", PatternPriority.HIGH),
+
+        # === Priority 3: MEDIUM - Known service formats ===
         # Stripe
-        (re.compile(r'sk_live_[a-zA-Z0-9]{24,}'), "Stripe Live Secret Key", "critical"),
-        (re.compile(r'sk_test_[a-zA-Z0-9]{24,}'), "Stripe Test Secret Key", "high"),
-        (re.compile(r'pk_live_[a-zA-Z0-9]{24,}'), "Stripe Live Publishable Key", "medium"),
-
-        # Generic patterns
-        (re.compile(r'(?i)(api[_-]?key|apikey)\s*[=:]\s*["\']?([a-zA-Z0-9_\-]{20,})["\']?'),
-         "Generic API Key", "high"),
-        (re.compile(r'(?i)(secret|password|passwd|pwd)\s*[=:]\s*["\']?([^\s"\']{8,})["\']?'),
-         "Generic Secret/Password", "high"),
-        (re.compile(r'(?i)(token|auth[_-]?token)\s*[=:]\s*["\']?([a-zA-Z0-9_\-]{20,})["\']?'),
-         "Generic Token", "high"),
-
-        # Private keys
-        (re.compile(r'-----BEGIN (?:RSA |DSA |EC |OPENSSH )?PRIVATE KEY-----'),
-         "Private Key Header", "critical"),
-        (re.compile(r'-----BEGIN PGP PRIVATE KEY BLOCK-----'),
-         "PGP Private Key", "critical"),
-
-        # Database connection strings
-        (re.compile(r'(?i)(?:mysql|postgres|postgresql|mongodb|redis)://[^\s"\']+:[^\s"\']+@'),
-         "Database Connection String with Credentials", "critical"),
-
-        # JWT secrets
-        (re.compile(r'(?i)jwt[_-]?secret\s*[=:]\s*["\']?([a-zA-Z0-9_\-]{16,})["\']?'),
-         "JWT Secret", "high"),
+        (re.compile(r'sk_live_[a-zA-Z0-9]{24,}'),
+         "Stripe Live Secret Key", "critical", PatternPriority.MEDIUM),
+        (re.compile(r'sk_test_[a-zA-Z0-9]{24,}'),
+         "Stripe Test Secret Key", "high", PatternPriority.MEDIUM),
+        (re.compile(r'pk_live_[a-zA-Z0-9]{24,}'),
+         "Stripe Live Publishable Key", "medium", PatternPriority.MEDIUM),
 
         # Slack
+        (re.compile(r'xoxb-[0-9]{10,13}-[0-9]{10,13}-[a-zA-Z0-9]{24}'),
+         "Slack Bot Token", "critical", PatternPriority.MEDIUM),
+        (re.compile(r'xoxp-[0-9]{10,13}-[0-9]{10,13}-[a-zA-Z0-9]{24}'),
+         "Slack User Token", "critical", PatternPriority.MEDIUM),
         (re.compile(r'xox[baprs]-[0-9]{10,13}-[0-9]{10,13}[a-zA-Z0-9-]*'),
-         "Slack Token", "critical"),
-
-        # Twilio
-        (re.compile(r'SK[a-f0-9]{32}'), "Twilio API Key", "critical"),
+         "Slack Token (Generic)", "critical", PatternPriority.MEDIUM),
 
         # SendGrid
         (re.compile(r'SG\.[a-zA-Z0-9_-]{22}\.[a-zA-Z0-9_-]{43}'),
-         "SendGrid API Key", "critical"),
+         "SendGrid API Key", "critical", PatternPriority.MEDIUM),
+
+        # Twilio
+        (re.compile(r'SK[a-f0-9]{32}'),
+         "Twilio API Key", "critical", PatternPriority.MEDIUM),
+
+        # AWS Secret Key (needs context, so lower than Access Key ID)
+        (re.compile(r'(?<![A-Za-z0-9/+=])[A-Za-z0-9/+=]{40}(?![A-Za-z0-9/+=])'),
+         "Potential AWS Secret Key", "high", PatternPriority.MEDIUM),
+
+        # === Priority 4: LOW - Generic patterns with keyword context ===
+        (re.compile(r'(?i)jwt[_-]?secret\s*[=:]\s*["\']?([a-zA-Z0-9_\-]{16,})["\']?'),
+         "JWT Secret", "high", PatternPriority.LOW),
+        (re.compile(r'(?i)(api[_-]?key|apikey)\s*[=:]\s*["\']?([a-zA-Z0-9_\-]{20,})["\']?'),
+         "Generic API Key", "high", PatternPriority.LOW),
+        (re.compile(r'(?i)(secret|password|passwd|pwd)\s*[=:]\s*["\']?([^\s"\']{8,})["\']?'),
+         "Generic Secret/Password", "high", PatternPriority.LOW),
+        (re.compile(r'(?i)(token|auth[_-]?token)\s*[=:]\s*["\']?([a-zA-Z0-9_\-]{20,})["\']?'),
+         "Generic Token", "high", PatternPriority.LOW),
+
+        # === Priority 5: GENERIC - Generalized patterns (currently empty) ===
+        # Reserved for future high-entropy string detection
     ]
+
+    @classmethod
+    def _init_legacy_patterns(cls):
+        """Initialize legacy SECRET_PATTERNS from V2 for backward compatibility."""
+        if not cls.SECRET_PATTERNS:
+            cls.SECRET_PATTERNS = [
+                (pattern, name, severity)
+                for pattern, name, severity, _ in cls.SECRET_PATTERNS_V2
+            ]
 
     # File extensions to scan
     SCANNABLE_EXTENSIONS = {
@@ -137,7 +209,8 @@ class SecretScanner(BaseScanner):
     def __init__(
         self,
         exclude_paths: Optional[List[str]] = None,
-        custom_patterns: Optional[List[Tuple[str, str, str]]] = None
+        custom_patterns: Optional[List[Tuple[str, str, str]]] = None,
+        use_priority_matching: bool = True,
     ):
         """
         Initialize the secret scanner.
@@ -145,14 +218,30 @@ class SecretScanner(BaseScanner):
         Args:
             exclude_paths: Path patterns to exclude
             custom_patterns: Additional patterns as (regex, name, severity) tuples
+            use_priority_matching: Use v0.6.0 priority-based pattern matching (default True)
         """
         self.exclude_paths = set(exclude_paths or [])
-        self.patterns = list(self.SECRET_PATTERNS)
+        self.use_priority_matching = use_priority_matching
 
-        # Add custom patterns
+        # Initialize patterns with priority
+        self.patterns_v2: List[Tuple[Pattern, str, str, PatternPriority]] = list(
+            self.SECRET_PATTERNS_V2
+        )
+
+        # Legacy patterns list for backward compatibility
+        self.patterns: List[Tuple[Pattern, str, str]] = [
+            (p, n, s) for p, n, s, _ in self.patterns_v2
+        ]
+
+        # Add custom patterns (default to LOW priority)
         if custom_patterns:
             for regex_str, name, severity in custom_patterns:
-                self.patterns.append((re.compile(regex_str), name, severity))
+                pattern = re.compile(regex_str)
+                self.patterns_v2.append((pattern, name, severity, PatternPriority.LOW))
+                self.patterns.append((pattern, name, severity))
+
+        # Sort V2 patterns by priority for efficient matching
+        self.patterns_v2.sort(key=lambda x: x[3].value)
 
     def scan(self, path: Path) -> List[SecretScanResult]:
         """
@@ -278,58 +367,172 @@ class SecretScanner(BaseScanner):
             if not stripped or stripped.startswith('#') or stripped.startswith('//'):
                 continue
 
-            # Check each pattern
-            for pattern, name, severity in self.patterns:
-                for match in pattern.finditer(line):
-                    # v0.5.0: Use semantic analyzer for enhanced FP detection
-                    analysis_result = self._analyze_with_semantic(
-                        match=match,
-                        line=line,
-                        line_num=line_num,
-                        file_path=file_path,
-                        pattern_name=name,
-                        content=content
-                    )
-
-                    # Skip if semantic analysis says it's not a real credential
-                    if analysis_result is not None and not analysis_result.should_report:
-                        logger.debug(
-                            f"Semantic filter: {file_path}:{line_num} - {analysis_result.reason}"
-                        )
-                        continue
-
-                    # Legacy fallback - use original FP detection if semantic fails
-                    if analysis_result is None:
-                        if self._is_false_positive(line, match, file_path):
-                            continue
-
-                    # Get confidence and tier from semantic analysis
-                    confidence = 1.0
-                    tier = "BLOCK"
-                    format_matched = None
-                    if analysis_result is not None:
-                        confidence = analysis_result.confidence
-                        tier = analysis_result.tier
-                        format_matched = analysis_result.format_matched
-
-                    secret = SecretMatch(
-                        pattern_name=name,
-                        line_number=line_num,
-                        line_content=self._mask_secret(line, match),
-                        matched_text=self._mask_match(match.group()),
-                        start_col=match.start(),
-                        end_col=match.end(),
-                        severity=severity,
-                        confidence=confidence,
-                        tier=tier,
-                        format_matched=format_matched,
-                    )
-                    secrets.append(secret)
+            # v0.6.0: Use priority-based pattern matching
+            if self.use_priority_matching:
+                line_secrets = self._scan_line_with_priority(
+                    line=line,
+                    line_num=line_num,
+                    file_path=file_path,
+                    content=content,
+                )
+                secrets.extend(line_secrets)
+            else:
+                # Legacy pattern matching
+                line_secrets = self._scan_line_legacy(
+                    line=line,
+                    line_num=line_num,
+                    file_path=file_path,
+                    content=content,
+                )
+                secrets.extend(line_secrets)
 
         return SecretScanResult(
             source_file=str(file_path),
             secrets=secrets
         )
+
+    def _scan_line_with_priority(
+        self,
+        line: str,
+        line_num: int,
+        file_path: Path,
+        content: str,
+    ) -> List[SecretMatch]:
+        """
+        Scan a line using priority-based pattern matching.
+        
+        Higher priority patterns are matched first. When a position is matched
+        by a higher priority pattern, lower priority patterns skip that position.
+        """
+        secrets: List[SecretMatch] = []
+        # Track matched positions: (start, end) -> (priority, pattern_name)
+        matched_positions: Set[Tuple[int, int]] = set()
+
+        # Patterns are already sorted by priority (lowest value = highest priority)
+        for pattern, name, severity, priority in self.patterns_v2:
+            for match in pattern.finditer(line):
+                pos_key = (match.start(), match.end())
+
+                # Check if this position overlaps with a higher priority match
+                skip = False
+                for (mstart, mend) in matched_positions:
+                    # Check for overlap
+                    if not (match.end() <= mstart or match.start() >= mend):
+                        # Overlap found with higher priority match, skip
+                        skip = True
+                        break
+
+                if skip:
+                    continue
+
+                # Mark this position as matched
+                matched_positions.add(pos_key)
+
+                # Apply semantic analysis
+                analysis_result = self._analyze_with_semantic(
+                    match=match,
+                    line=line,
+                    line_num=line_num,
+                    file_path=file_path,
+                    pattern_name=name,
+                    content=content,
+                )
+
+                # Skip if semantic analysis says it's not a real credential
+                if analysis_result is not None and not analysis_result.should_report:
+                    logger.debug(
+                        f"Semantic filter: {file_path}:{line_num} - {analysis_result.reason}"
+                    )
+                    continue
+
+                # Legacy fallback - use original FP detection if semantic fails
+                if analysis_result is None:
+                    if self._is_false_positive(line, match, file_path):
+                        continue
+
+                # Get confidence and tier from semantic analysis
+                confidence = 1.0
+                tier = "BLOCK"
+                format_matched = None
+                if analysis_result is not None:
+                    confidence = analysis_result.confidence
+                    tier = analysis_result.tier
+                    format_matched = analysis_result.format_matched
+
+                secret = SecretMatch(
+                    pattern_name=name,
+                    line_number=line_num,
+                    line_content=self._mask_secret(line, match),
+                    matched_text=self._mask_match(match.group()),
+                    start_col=match.start(),
+                    end_col=match.end(),
+                    severity=severity,
+                    confidence=confidence,
+                    tier=tier,
+                    format_matched=format_matched,
+                )
+                secrets.append(secret)
+
+        return secrets
+
+    def _scan_line_legacy(
+        self,
+        line: str,
+        line_num: int,
+        file_path: Path,
+        content: str,
+    ) -> List[SecretMatch]:
+        """Legacy line scanning without priority (backward compatibility)."""
+        secrets: List[SecretMatch] = []
+
+        for pattern, name, severity in self.patterns:
+            for match in pattern.finditer(line):
+                # v0.5.0: Use semantic analyzer for enhanced FP detection
+                analysis_result = self._analyze_with_semantic(
+                    match=match,
+                    line=line,
+                    line_num=line_num,
+                    file_path=file_path,
+                    pattern_name=name,
+                    content=content
+                )
+
+                # Skip if semantic analysis says it's not a real credential
+                if analysis_result is not None and not analysis_result.should_report:
+                    logger.debug(
+                        f"Semantic filter: {file_path}:{line_num} - {analysis_result.reason}"
+                    )
+                    continue
+
+                # Legacy fallback - use original FP detection if semantic fails
+                if analysis_result is None:
+                    if self._is_false_positive(line, match, file_path):
+                        continue
+
+                # Get confidence and tier from semantic analysis
+                confidence = 1.0
+                tier = "BLOCK"
+                format_matched = None
+                if analysis_result is not None:
+                    confidence = analysis_result.confidence
+                    tier = analysis_result.tier
+                    format_matched = analysis_result.format_matched
+
+                secret = SecretMatch(
+                    pattern_name=name,
+                    line_number=line_num,
+                    line_content=self._mask_secret(line, match),
+                    matched_text=self._mask_match(match.group()),
+                    start_col=match.start(),
+                    end_col=match.end(),
+                    severity=severity,
+                    confidence=confidence,
+                    tier=tier,
+                    format_matched=format_matched,
+                )
+                secrets.append(secret)
+
+        return secrets
 
     def _analyze_with_semantic(
         self,
