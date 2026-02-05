@@ -13,6 +13,12 @@ from agent_audit.models.tool import ToolDefinition, PermissionType, ToolParamete
 from agent_audit.analyzers.memory_context import MemoryContextAnalyzer, MemoryOpContext
 from agent_audit.analysis.dangerous_operation_analyzer import should_flag_tool_input
 from agent_audit.analysis.rule_context_config import is_localhost_url
+from agent_audit.analysis.tool_boundary_detector import (
+    is_tool_entry_point,
+    analyze_file_tool_context,
+    FileToolContext,
+)
+from agent_audit.analysis.memory_method_detector import is_agent_memory_method
 
 logger = logging.getLogger(__name__)
 
@@ -198,7 +204,7 @@ class PythonScanner(BaseScanner):
             logger.warning(f"Error parsing {file_path}: {e}")
             return None
 
-        visitor = PythonASTVisitor(file_path, source)
+        visitor = PythonASTVisitor(file_path, source, tree)
         visitor.visit(tree)
 
         return PythonScanResult(
@@ -285,10 +291,14 @@ class PythonASTVisitor(ast.NodeVisitor):
     }
 
     # Memory write functions for ASI-06 detection
+    # v0.11.0: Use whitelist from memory_method_detector
+    # Removed generic methods (put, set, store) that cause false positives
     MEMORY_WRITE_FUNCTIONS: Set[str] = {
         'add_documents', 'add_texts', 'upsert', 'insert',
         'persist', 'save_context', 'add_message', 'add_memory',
-        'store', 'put', 'set',
+        'add_messages', 'add_user_message', 'add_ai_message',
+        'add_to_memory', 'write_documents', 'insert_nodes',
+        'store_memory', 'persist_memory', 'save_memory', 'update_memory',
     }
 
     # Unbounded memory classes for ASI-06 detection
@@ -527,10 +537,12 @@ class PythonASTVisitor(ast.NodeVisitor):
         'add_document', 'message_sequence', 'chat_history',
     }
 
-    def __init__(self, file_path: Path, source: str):
+    def __init__(self, file_path: Path, source: str, tree: Optional[ast.AST] = None):
         self.file_path = file_path
         self.source = source
         self.source_lines = source.splitlines()
+        # v0.12.0: Store tree for lazy file tool context analysis
+        self._tree = tree
 
         self.tools: List[ToolDefinition] = []
         self.imports: List[str] = []
@@ -550,6 +562,28 @@ class PythonASTVisitor(ast.NodeVisitor):
         self._in_agent_framework_class: bool = False
         # v0.9.0: Track if file contains Agent context patterns (OpenAI API, etc.)
         self._has_agent_context: bool = self._detect_agent_context(source)
+        # v0.12.0: File-level tool context (lazy initialized)
+        self._file_tool_context: Optional[FileToolContext] = None
+
+    def _get_file_tool_context(self) -> Optional[FileToolContext]:
+        """
+        v0.12.0: Lazy getter for file-level tool context.
+
+        Analyzes the AST tree for OpenAI function calling patterns.
+        Returns None if tree is not available.
+        """
+        if self._file_tool_context is not None:
+            return self._file_tool_context
+
+        if self._tree is None:
+            return None
+
+        # Analyze file for OpenAI function calling patterns
+        self._file_tool_context = analyze_file_tool_context(
+            self._tree,
+            set(self.imports),
+        )
+        return self._file_tool_context
 
     def _detect_agent_context(self, source: str) -> bool:
         """
@@ -816,10 +850,12 @@ class PythonASTVisitor(ast.NodeVisitor):
             if unsanitized_finding:
                 self.dangerous_patterns.append(unsanitized_finding)
 
-            # v0.3.0 AGENT-034: Check for tool without input validation
-            no_validation_finding = self._check_tool_no_input_validation(node)
-            if no_validation_finding:
-                self.dangerous_patterns.append(no_validation_finding)
+        # v0.3.0 AGENT-034: Check for tool without input validation
+        # v0.12.0: Moved outside if is_tool block - uses its own is_tool_entry_point gate
+        # which includes OpenAI function calling detection, not just decorators
+        no_validation_finding = self._check_tool_no_input_validation(node)
+        if no_validation_finding:
+            self.dangerous_patterns.append(no_validation_finding)
 
         self.generic_visit(node)
 
@@ -1396,12 +1432,13 @@ class PythonASTVisitor(ast.NodeVisitor):
         """
         ASI-06: Detect unsanitized writes to vector databases or memory stores.
 
+        v0.11.0: Uses WHITELIST gate - only known Agent memory methods trigger this.
+        Python's set.add(), list.append() are NOT checked.
+
         Uses three-level filtering for false positive suppression:
         1. Framework allowlist - standard framework patterns get INFO severity
         2. Context analysis - determine data source and sanitization
         3. Confidence threshold - low confidence findings need review
-
-        v0.3.2: Added framework internal path check to suppress framework tests/source.
 
         Returns a finding dict if vulnerable, None otherwise.
         """
@@ -1417,8 +1454,14 @@ class PythonASTVisitor(ast.NodeVisitor):
         # Extract method name (last part after dot)
         method_name = func_name.split('.')[-1] if '.' in func_name else func_name
 
-        if method_name not in self.MEMORY_WRITE_FUNCTIONS:
-            return None
+        # === v0.11.0: GATE - Only check known Agent memory methods ===
+        # === v0.12.0: Pass imports for ambiguous method checking ===
+        is_memory, framework = is_agent_memory_method(
+            method_name,
+            file_imports=set(self.imports),
+        )
+        if not is_memory:
+            return None  # Not an Agent memory method - skip
 
         # Check if arguments contain variable references (potential user input)
         has_variable_input = False
@@ -2499,19 +2542,25 @@ class PythonASTVisitor(ast.NodeVisitor):
         """
         AGENT-034: Detect tool functions without input validation.
 
-        Checks if @tool decorated functions or tool-named functions accept
-        str/Any parameters without validation in the function body.
+        v0.11.0: Uses Tool entry point gate - only @tool decorated functions
+        or BaseTool methods are checked. No blacklists.
 
-        v0.4.1: Recognizes safe AST evaluation and parameterized SQL as mitigation.
-        v0.6.0: Uses dangerous operation analyzer to avoid flagging safe tools.
+        Checks if @tool decorated functions accept str/Any parameters
+        without validation in the function body.
 
         Returns a finding dict if vulnerable, None otherwise.
         """
-        # Check if it's a tool function
-        is_tool = self._has_tool_decorator(node) or 'tool' in node.name.lower()
+        # === v0.11.0: GATE - Is this a Tool entry point? ===
+        # === v0.12.0: Pass file_context for OpenAI function calling detection ===
+        boundary = is_tool_entry_point(
+            node,
+            parent_class=self._current_class,
+            parent_bases=getattr(self, '_current_class_bases', None),
+            file_context=self._get_file_tool_context(),
+        )
 
-        if not is_tool:
-            return None
+        if not boundary.is_tool_entry:
+            return None  # NOT a Tool entry point - skip ALL checks
 
         # Get string/Any parameters
         str_params: Set[str] = set()

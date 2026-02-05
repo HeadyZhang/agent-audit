@@ -4,10 +4,12 @@ Dangerous Operation Analysis for AGENT-034 False Positive Reduction.
 This module analyzes tool functions to determine if string parameters
 flow to dangerous operations (exec, subprocess, SQL, etc.).
 
+v0.11.0: Correct approach - use Tool entry point gate, not blacklists.
 Only trigger AGENT-034 when:
-1. Function has @tool decorator
+1. Function IS a Tool entry point (checked by tool_boundary_detector)
 2. Function accepts str/Any parameter
-3. Parameter is actually used in dangerous operation
+3. Parameter flows to dangerous operation
+4. No input validation detected
 """
 
 from __future__ import annotations
@@ -282,6 +284,9 @@ def should_flag_tool_input(
     Determine if a tool should be flagged for AGENT-034.
 
     This is the main entry point for AGENT-034 detection logic.
+
+    v0.11.0: Tool entry point check should be done BEFORE calling this function.
+    This function only analyzes dangerous operations within the tool body.
 
     Args:
         func_name: Name of the tool function

@@ -1,4 +1,9 @@
-"""Memory operation context analyzer for AGENT-018 false positive suppression."""
+"""Memory operation context analyzer for AGENT-018 false positive suppression.
+
+v0.11.0: Correct approach - use method whitelist gate, not variable name patterns.
+Only known Agent memory methods (add_message, add_texts, etc.) should trigger AGENT-018.
+Python's set.add(), list.append() are NOT in the whitelist.
+"""
 
 import ast
 import logging
@@ -139,6 +144,9 @@ class MemoryContextAnalyzer:
     ) -> MemoryOpContext:
         """
         Analyze a memory operation AST node.
+
+        v0.11.0: This is called AFTER the method whitelist gate.
+        Only known Agent memory methods reach this point.
 
         Args:
             node: AST node representing the memory operation
