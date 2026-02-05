@@ -1,0 +1,71 @@
+# Oracle Ground Truth for KNOWN-001
+# LangChain LLMMathChain eval() vulnerability (CVE-2023-29374)
+# Agent-Vuln-Bench v1.0
+
+metadata:
+  sample_id: "KNOWN-001"
+  source: "LangChain CVE-2023-29374"
+  commit: "langchain==0.0.64"
+  language: "python"
+  provenance: "cve"
+  license: "MIT"
+  date_collected: "2026-02-04"
+  cve_ref: "https://nvd.nist.gov/vuln/detail/CVE-2023-29374"
+
+taxonomy:
+  set_class: "A"
+  owasp_asi: "ASI-02"
+  cwe_id: "CWE-95"
+
+vulnerabilities:
+  - id: "VULN-001"
+    file: "llm_math_chain.py"
+    line: 87
+    rule_expected: "AGENT-034"
+    severity: "CRITICAL"
+    description: "eval() executes unsanitized LLM output, allowing arbitrary code execution"
+    taint:
+      source:
+        type: "llm_output"
+        location: "llm_math_chain.py:72"
+        code: "llm_output = self.llm.predict(prompt)"
+      propagation:
+        - step: 1
+          location: "llm_math_chain.py:75"
+          code: "expression = llm_output.strip()"
+        - step: 2
+          location: "llm_math_chain.py:79-81"
+          code: "expression = expression.strip(\"`\").strip()"
+      sink:
+        type: "code_execution"
+        location: "llm_math_chain.py:87"
+        code: "output = str(eval(expression))"
+      sanitizer: null
+    impact:
+      primary: "RCE"
+      secondary:
+        - "DataExfiltration"
+        - "PrivilegeEscalation"
+      blast_radius: "full_system"
+
+safe_patterns:
+  - id: "SAFE-001"
+    file: "llm_math_chain.py"
+    line: 14
+    code: "from typing import Any, Dict, List, Optional"
+    description: "Standard library import — not a vulnerability"
+    trap_type: "import_statement"
+
+  - id: "SAFE-002"
+    file: "llm_math_chain.py"
+    line: 48
+    code: "self.llm = llm"
+    description: "Instance attribute assignment — not injection"
+    trap_type: "attribute_assignment"
+
+  - id: "SAFE-003"
+    file: "llm_math_chain.py"
+    line: 67
+    code: "prompt = f\"\"\"Translate this math question..."
+    description: "Prompt template definition — not prompt injection itself"
+    trap_type: "template_definition"

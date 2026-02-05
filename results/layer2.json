@@ -1,0 +1,9 @@
+{
+  "owasp_coverage": 5,
+  "max_scan_time_seconds": 150.0,
+  "per_target": [
+    {"target_id": "T1", "target_name": "test1", "scan_duration_seconds": 150.0, "asi_count": 5, "findings_count": 20}
+  ],
+  "timestamp": "2026-02-04T12:00:00",
+  "tool_version": "0.5.0"
+}

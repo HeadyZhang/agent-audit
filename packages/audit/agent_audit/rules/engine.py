@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Dict, Any, List, Optional
 from dataclasses import dataclass, field
 
-from agent_audit.models.finding import Finding, Remediation
+from agent_audit.models.finding import Finding, Remediation, confidence_to_tier
 from agent_audit.models.risk import Severity, Category, Location
 from agent_audit.rules.loader import RuleLoader
 
@@ -43,18 +43,39 @@ class RuleEngine:
         'system_prompt_format': 'AGENT-010',
         'agent_without_input_guard': 'AGENT-011',
 
+        # ASI-01: Goal Hijack (v0.3.0 - LangChain)
+        'langchain_agent_executor_risk': 'AGENT-040',  # v0.3.1: Separate from AGENT-025 (monitoring)
+        'langchain_system_prompt_injectable': 'AGENT-027',
+
+        # ASI-02: Tool Misuse (v0.3.0 - MCP Config + LangChain)
+        'mcp_overly_broad_filesystem': 'AGENT-029',
+        'mcp_stdio_no_sandbox': 'AGENT-032',
+        'langchain_tool_input_unsanitized': 'AGENT-026',
+
+        # ASI-02: SQL Injection (v0.3.2)
+        'sql_fstring_injection': 'AGENT-041',
+        'sql_format_injection': 'AGENT-041',
+        'sql_concat_injection': 'AGENT-041',
+        'sql_percent_injection': 'AGENT-041',
+
+        # ASI-08: Cascading Failures (v0.3.0 - cross-framework)
+        'agent_max_iterations_unbounded': 'AGENT-028',
+
         # ASI-03: Identity & Privilege Abuse
         'hardcoded_credential_in_agent': 'AGENT-013',
         'excessive_tools': 'AGENT-014',
         'auto_approval': 'AGENT-014',
+        'mcp_excessive_servers': 'AGENT-042',  # v0.3.2: Excessive MCP servers
 
         # ASI-04: Supply Chain
         'npx_unfixed_version': 'AGENT-015',
         'unofficial_mcp_source': 'AGENT-015',
         'unvalidated_rag_ingestion': 'AGENT-016',
+        'mcp_unverified_server_source': 'AGENT-030',
 
-        # ASI-05: RCE
+        # ASI-05: RCE / Sensitive Exposure
         'unsandboxed_code_exec_in_tool': 'AGENT-017',
+        'mcp_sensitive_env_exposure': 'AGENT-031',
 
         # ASI-06: Memory Poisoning
         'unsanitized_memory_write': 'AGENT-018',
@@ -70,10 +91,59 @@ class RuleEngine:
 
         # ASI-09: Trust Exploitation
         'opaque_agent_output': 'AGENT-023',
+        'mcp_missing_auth': 'AGENT-033',
+        'missing_human_in_loop': 'AGENT-037',
+        'agent_impersonation_risk': 'AGENT-038',
+        'trust_boundary_violation': 'AGENT-039',
 
         # ASI-10: Rogue Agents
         'no_kill_switch': 'AGENT-024',
         'no_observability': 'AGENT-025',
+
+        # v0.3.0: ASI-02 Tool Misuse (expanded)
+        'tool_no_input_validation': 'AGENT-034',
+        'tool_unrestricted_execution': 'AGENT-035',
+        'tool_output_trusted_blindly': 'AGENT-036',
+
+        # v0.5.0: Expanded detection (all contexts)
+        'eval_exec_expanded': 'AGENT-034',       # Eval/exec outside @tool
+        'ssrf_expanded': 'AGENT-026',            # SSRF outside @tool
+        'subprocess_expanded': 'AGENT-034',      # Subprocess outside @tool
+        'network_request_hardcoded_url': 'AGENT-026',  # Hardcoded URL (low confidence)
+    }
+
+    # v0.3.0: MCP finding type to rule metadata
+    MCP_FINDING_RULES: Dict[str, Dict[str, Any]] = {
+        'mcp_overly_broad_filesystem': {
+            'id': 'AGENT-029',
+            'title': 'Overly Broad MCP Filesystem Access',
+            'category': 'tool_misuse',
+            'cwe_id': 'CWE-732',
+        },
+        'mcp_unverified_server_source': {
+            'id': 'AGENT-030',
+            'title': 'Unverified MCP Server Source',
+            'category': 'supply_chain_agentic',
+            'cwe_id': 'CWE-494',
+        },
+        'mcp_sensitive_env_exposure': {
+            'id': 'AGENT-031',
+            'title': 'Sensitive Environment Variable Exposure',
+            'category': 'credential_exposure',
+            'cwe_id': 'CWE-798',
+        },
+        'mcp_stdio_no_sandbox': {
+            'id': 'AGENT-032',
+            'title': 'MCP Server Without Sandbox Isolation',
+            'category': 'tool_misuse',
+            'cwe_id': 'CWE-250',
+        },
+        'mcp_missing_auth': {
+            'id': 'AGENT-033',
+            'title': 'MCP Server Without Authentication',
+            'category': 'trust_exploitation',
+            'cwe_id': 'CWE-306',
+        },
     }
 
     # Pre-compiled regex patterns for common detections
@@ -210,6 +280,7 @@ class RuleEngine:
                             snippet=self._mask_credential(line)
                         ),
                         cwe_id="CWE-798",
+                        owasp_id="ASI-04",  # Supply Chain Vulnerabilities
                         remediation=Remediation(
                             description="Use environment variables or a secrets manager",
                             code_example="api_key = os.environ.get('API_KEY')"
@@ -258,6 +329,7 @@ class RuleEngine:
                             snippet=f"server: {server_name}"
                         ),
                         cwe_id="CWE-494",
+                        owasp_id="ASI-04",  # Supply Chain Vulnerabilities
                         remediation=Remediation(
                             description="Use verified MCP servers from trusted registries",
                             reference_url="https://modelcontextprotocol.io/docs/security"
@@ -283,6 +355,7 @@ class RuleEngine:
                                     snippet=f"{key}=***REDACTED***"
                                 ),
                                 cwe_id="CWE-798",
+                                owasp_id="ASI-04",  # Supply Chain Vulnerabilities
                                 remediation=Remediation(
                                     description="Use environment variables from the host system"
                                 )
@@ -524,7 +597,10 @@ class RuleEngine:
         # Support both owasp_id and owasp_agentic_id
         owasp_id = rule.get('owasp_agentic_id') or rule.get('owasp_id')
 
-        return Finding(
+        confidence = match.get('confidence', 1.0)
+        tier = confidence_to_tier(confidence)
+
+        finding = Finding(
             rule_id=rule['id'],
             title=rule['title'],
             description=rule.get('description', ''),
@@ -539,8 +615,15 @@ class RuleEngine:
             cwe_id=rule.get('cwe_id'),
             owasp_id=owasp_id,
             remediation=remediation,
-            confidence=match.get('confidence', 1.0)
+            confidence=confidence,
+            tier=tier,
         )
+
+        # Add mitigation metadata if present
+        if match.get('mitigation_detected'):
+            finding.metadata['mitigation_detected'] = match['mitigation_detected']
+
+        return finding
 
     def _is_trusted_source(self, url: str) -> bool:
         """Check if a URL is from a trusted source."""

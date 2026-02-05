@@ -1,0 +1,44 @@
+# Oracle for WILD-003 — Agent self-modify
+metadata:
+  sample_id: "WILD-003"
+  source: "GitHub agent self-modify pattern"
+  commit: "n/a"
+  language: "python"
+  provenance: "wild"
+  date_collected: "2026-02-04"
+  collection_method: "Pattern extraction"
+
+taxonomy:
+  set_class: "A"
+  owasp_asi: "ASI-02"
+  cwe_id: "CWE-914"
+  attack_vector: "user_input → agent code/config"
+  impact_type: "RCE"
+
+vulnerabilities:
+  - id: "VULN-W003-001"
+    file: "agent_self_modify.py"
+    line: 10
+    rule_expected: "AGENT-050"
+    severity: "CRITICAL"
+    description: "Agent writes its own config from user input"
+    taint:
+      source:
+        type: "user_input"
+        location: "agent_self_modify.py:7"
+        code: "new_code: str"
+      sink:
+        type: "file_write"
+        location: "agent_self_modify.py:10"
+        code: "f.write(new_code)"
+      sanitizer: null
+    impact:
+      primary: "RCE"
+      blast_radius: "full_system"
+
+safe_patterns:
+  - id: "SAFE-W003-001"
+    file: "agent_self_modify.py"
+    line: 4
+    description: "import os"
+    trap_type: "import_statement"

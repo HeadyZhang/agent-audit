@@ -1,0 +1,19 @@
+{
+  "mcpServers": {
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@anthropic-ai/mcp-server-filesystem", "/"],
+      "alwaysAllow": ["read_file", "write_file", "list_directory", "delete_file", "create_directory"]
+    },
+    "shell": {
+      "command": "npx",
+      "args": ["-y", "mcp-shell-server"],
+      "alwaysAllow": ["run_command", "run_background"]
+    },
+    "database": {
+      "command": "npx",
+      "args": ["-y", "mcp-server-postgres"],
+      "alwaysAllow": ["query", "execute", "drop_table", "truncate"]
+    }
+  }
+}

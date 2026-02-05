@@ -1,0 +1,1880 @@
+# Agent-Audit Ground Truth Dataset v2.2
+# Auto-generated and verified against scanner output
+# Updated: 2026-02-04
+
+version: "2.2"
+created: "2026-02-04"
+total_samples: 81  # 68 vulnerable + 13 benign
+total_vulnerabilities: 218
+
+samples:
+  - file: "asi-01-goal-hijack/bypass/base64_encoded.py"
+    vulnerabilities:
+      - line: 14
+        rule_id: "AGENT-010"
+        owasp_id: "ASI-01"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "System Prompt Injection Vector in User Input Path"
+
+  - file: "asi-01-goal-hijack/direct/fstring_system_prompt.py"
+    vulnerabilities:
+      - line: 12
+        rule_id: "AGENT-010"
+        owasp_id: "ASI-01"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "System Prompt Injection Vector in User Input Path"
+
+  - file: "asi-01-goal-hijack/indirect/tool_output_injection.py"
+    vulnerabilities:
+      - line: 14
+        rule_id: "AGENT-022"
+        owasp_id: "ASI-08"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "No Error Handling in Tool Execution"
+
+      - line: 14
+        rule_id: "AGENT-026"
+        owasp_id: "ASI-02"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "LangChain Tool Input Not Sanitized"
+
+      - line: 14
+        rule_id: "AGENT-034"
+        owasp_id: "ASI-02"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Tool Function Without Input Validation"
+
+  - file: "asi-02-tool-misuse/direct/os_system.py"
+    vulnerabilities:
+      - line: 11
+        rule_id: "AGENT-022"
+        owasp_id: "ASI-08"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "No Error Handling in Tool Execution"
+
+      - line: 11
+        rule_id: "AGENT-026"
+        owasp_id: "ASI-02"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "LangChain Tool Input Not Sanitized"
+
+      - line: 11
+        rule_id: "AGENT-034"
+        owasp_id: "ASI-02"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Tool Function Without Input Validation"
+
+      - line: 14
+        rule_id: "AGENT-001"
+        owasp_id: "ASI-02"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Command Injection via Unsanitized Input"
+
+      - line: 14
+        rule_id: "AGENT-035"
+        owasp_id: "ASI-02"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Tool With Unrestricted Code Execution"
+
+  - file: "asi-02-tool-misuse/direct/shell_true_basic.py"
+    vulnerabilities:
+      - line: 11
+        rule_id: "AGENT-022"
+        owasp_id: "ASI-08"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "No Error Handling in Tool Execution"
+
+      - line: 11
+        rule_id: "AGENT-026"
+        owasp_id: "ASI-02"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "LangChain Tool Input Not Sanitized"
+
+      - line: 11
+        rule_id: "AGENT-034"
+        owasp_id: "ASI-02"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Tool Function Without Input Validation"
+
+      - line: 14
+        rule_id: "AGENT-001"
+        owasp_id: "ASI-02"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Command Injection via Unsanitized Input"
+
+      - line: 14
+        rule_id: "AGENT-035"
+        owasp_id: "ASI-02"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Tool With Unrestricted Code Execution"
+
+  - file: "asi-02-tool-misuse/direct/subprocess_popen.py"
+    vulnerabilities:
+      - line: 11
+        rule_id: "AGENT-022"
+        owasp_id: "ASI-08"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "No Error Handling in Tool Execution"
+
+      - line: 11
+        rule_id: "AGENT-026"
+        owasp_id: "ASI-02"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "LangChain Tool Input Not Sanitized"
+
+      - line: 11
+        rule_id: "AGENT-034"
+        owasp_id: "ASI-02"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Tool Function Without Input Validation"
+
+      - line: 14
+        rule_id: "AGENT-001"
+        owasp_id: "ASI-02"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Command Injection via Unsanitized Input"
+
+      - line: 14
+        rule_id: "AGENT-035"
+        owasp_id: "ASI-02"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Tool With Unrestricted Code Execution"
+
+  - file: "asi-02-tool-misuse/indirect/path_traversal.py"
+    vulnerabilities:
+      - line: 10
+        rule_id: "AGENT-022"
+        owasp_id: "ASI-08"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "No Error Handling in Tool Execution"
+
+      - line: 10
+        rule_id: "AGENT-026"
+        owasp_id: "ASI-02"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "LangChain Tool Input Not Sanitized"
+
+      - line: 10
+        rule_id: "AGENT-034"
+        owasp_id: "ASI-02"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Tool Function Without Input Validation"
+
+  - file: "asi-02-tool-misuse/indirect/ssrf_unvalidated.py"
+    vulnerabilities:
+      - line: 11
+        rule_id: "AGENT-022"
+        owasp_id: "ASI-08"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "No Error Handling in Tool Execution"
+
+      - line: 11
+        rule_id: "AGENT-026"
+        owasp_id: "ASI-02"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "LangChain Tool Input Not Sanitized"
+
+      - line: 11
+        rule_id: "AGENT-034"
+        owasp_id: "ASI-02"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Tool Function Without Input Validation"
+
+  - file: "asi-03-privilege-abuse/direct/auto_approval.py"
+    vulnerabilities:
+      - line: 17
+        rule_id: "AGENT-014"
+        owasp_id: "ASI-03"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Overly Permissive Agent Role / Tool Access"
+
+      - line: 17
+        rule_id: "AGENT-021"
+        owasp_id: "ASI-08"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Missing Circuit Breaker / Max Iterations"
+
+      - line: 17
+        rule_id: "AGENT-023"
+        owasp_id: "ASI-09"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Agent Output Without Transparency / Audit Trail"
+
+      - line: 17
+        rule_id: "AGENT-024"
+        owasp_id: "ASI-10"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Agent Without Kill Switch / Shutdown Mechanism"
+
+      - line: 17
+        rule_id: "AGENT-025"
+        owasp_id: "ASI-10"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Agent Without Behavioral Monitoring / Logging"
+
+      - line: 17
+        rule_id: "AGENT-028"
+        owasp_id: "ASI-08"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Agent Without Iteration Limit"
+
+      - line: 17
+        rule_id: "AGENT-040"
+        owasp_id: "ASI-01"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "LangChain AgentExecutor Without Safety Parameters"
+
+  - file: "asi-03-privilege-abuse/direct/excessive_tools.py"
+    vulnerabilities:
+      - line: 18
+        rule_id: "AGENT-021"
+        owasp_id: "ASI-08"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Missing Circuit Breaker / Max Iterations"
+
+      - line: 18
+        rule_id: "AGENT-023"
+        owasp_id: "ASI-09"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Agent Output Without Transparency / Audit Trail"
+
+      - line: 18
+        rule_id: "AGENT-024"
+        owasp_id: "ASI-10"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Agent Without Kill Switch / Shutdown Mechanism"
+
+      - line: 18
+        rule_id: "AGENT-025"
+        owasp_id: "ASI-10"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Agent Without Behavioral Monitoring / Logging"
+
+      - line: 18
+        rule_id: "AGENT-028"
+        owasp_id: "ASI-08"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Agent Without Iteration Limit"
+
+      - line: 18
+        rule_id: "AGENT-040"
+        owasp_id: "ASI-01"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "LangChain AgentExecutor Without Safety Parameters"
+
+  - file: "asi-05-rce/direct/compile_exec.py"
+    vulnerabilities:
+      - line: 10
+        rule_id: "AGENT-034"
+        owasp_id: "ASI-02"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Tool Function Without Input Validation"
+
+      - line: 13
+        rule_id: "AGENT-017"
+        owasp_id: "ASI-05"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Unsandboxed Code Execution in Agent"
+
+      - line: 13
+        rule_id: "AGENT-035"
+        owasp_id: "ASI-02"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Tool With Unrestricted Code Execution"
+
+      - line: 14
+        rule_id: "AGENT-017"
+        owasp_id: "ASI-05"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Unsandboxed Code Execution in Agent"
+
+      - line: 14
+        rule_id: "AGENT-035"
+        owasp_id: "ASI-02"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Tool With Unrestricted Code Execution"
+
+  - file: "asi-05-rce/direct/eval_in_tool.py"
+    vulnerabilities:
+      - line: 10
+        rule_id: "AGENT-034"
+        owasp_id: "ASI-02"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Tool Function Without Input Validation"
+
+      - line: 13
+        rule_id: "AGENT-001"
+        owasp_id: "ASI-02"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Command Injection via Unsanitized Input"
+
+      - line: 13
+        rule_id: "AGENT-017"
+        owasp_id: "ASI-05"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Unsandboxed Code Execution in Agent"
+
+      - line: 13
+        rule_id: "AGENT-035"
+        owasp_id: "ASI-02"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Tool With Unrestricted Code Execution"
+
+  - file: "asi-05-rce/direct/exec_in_tool.py"
+    vulnerabilities:
+      - line: 10
+        rule_id: "AGENT-034"
+        owasp_id: "ASI-02"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Tool Function Without Input Validation"
+
+      - line: 13
+        rule_id: "AGENT-001"
+        owasp_id: "ASI-02"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Command Injection via Unsanitized Input"
+
+      - line: 13
+        rule_id: "AGENT-017"
+        owasp_id: "ASI-05"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Unsandboxed Code Execution in Agent"
+
+      - line: 13
+        rule_id: "AGENT-035"
+        owasp_id: "ASI-02"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Tool With Unrestricted Code Execution"
+
+  - file: "asi-06-memory-poisoning/direct/unbounded_memory.py"
+    vulnerabilities:
+      - line: 17
+        rule_id: "AGENT-019"
+        owasp_id: "ASI-06"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Conversation History Without Integrity Protection"
+
+  - file: "asi-06-memory-poisoning/direct/unsanitized_vectorstore.py"
+    vulnerabilities:
+      - line: 18
+        rule_id: "AGENT-018"
+        owasp_id: "ASI-06"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Unsanitized Input to Persistent Memory"
+
+  - file: "asi-06-memory-poisoning/indirect/external_document_load.py"
+    vulnerabilities:
+      - line: 22
+        rule_id: "AGENT-018"
+        owasp_id: "ASI-06"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Unsanitized Input to Persistent Memory"
+
+  - file: "asi-07-inter-agent/direct/groupchat_no_auth.py"
+    vulnerabilities:
+      - line: 17
+        rule_id: "AGENT-020"
+        owasp_id: "ASI-07"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Unencrypted or Unauthenticated Inter-Agent Channel"
+
+  - file: "asi-07-inter-agent/direct/http_agent_endpoint.py"
+    vulnerabilities:
+      - line: 18
+        rule_id: "AGENT-020"
+        owasp_id: "ASI-07"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Unencrypted or Unauthenticated Inter-Agent Channel"
+
+      - line: 18
+        rule_id: "AGENT-028"
+        owasp_id: "ASI-08"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Agent Without Iteration Limit"
+
+  - file: "asi-08-cascading/direct/no_error_handling.py"
+    vulnerabilities:
+      - line: 11
+        rule_id: "AGENT-022"
+        owasp_id: "ASI-08"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "No Error Handling in Tool Execution"
+
+      - line: 11
+        rule_id: "AGENT-026"
+        owasp_id: "ASI-02"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "LangChain Tool Input Not Sanitized"
+
+      - line: 11
+        rule_id: "AGENT-034"
+        owasp_id: "ASI-02"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Tool Function Without Input Validation"
+
+  - file: "asi-08-cascading/direct/no_max_iterations.py"
+    vulnerabilities:
+      - line: 17
+        rule_id: "AGENT-021"
+        owasp_id: "ASI-08"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Missing Circuit Breaker / Max Iterations"
+
+      - line: 17
+        rule_id: "AGENT-023"
+        owasp_id: "ASI-09"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Agent Output Without Transparency / Audit Trail"
+
+      - line: 17
+        rule_id: "AGENT-024"
+        owasp_id: "ASI-10"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Agent Without Kill Switch / Shutdown Mechanism"
+
+      - line: 17
+        rule_id: "AGENT-025"
+        owasp_id: "ASI-10"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Agent Without Behavioral Monitoring / Logging"
+
+      - line: 17
+        rule_id: "AGENT-028"
+        owasp_id: "ASI-08"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Agent Without Iteration Limit"
+
+      - line: 17
+        rule_id: "AGENT-040"
+        owasp_id: "ASI-01"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "LangChain AgentExecutor Without Safety Parameters"
+
+  - file: "asi-08-cascading/indirect/recursive_agent_call.py"
+    vulnerabilities:
+      - line: 20
+        rule_id: "AGENT-021"
+        owasp_id: "ASI-08"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Missing Circuit Breaker / Max Iterations"
+
+      - line: 20
+        rule_id: "AGENT-023"
+        owasp_id: "ASI-09"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Agent Output Without Transparency / Audit Trail"
+
+      - line: 20
+        rule_id: "AGENT-024"
+        owasp_id: "ASI-10"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Agent Without Kill Switch / Shutdown Mechanism"
+
+      - line: 20
+        rule_id: "AGENT-025"
+        owasp_id: "ASI-10"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Agent Without Behavioral Monitoring / Logging"
+
+      - line: 20
+        rule_id: "AGENT-028"
+        owasp_id: "ASI-08"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Agent Without Iteration Limit"
+
+      - line: 20
+        rule_id: "AGENT-040"
+        owasp_id: "ASI-01"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "LangChain AgentExecutor Without Safety Parameters"
+
+  - file: "asi-09-trust/direct/opaque_output.py"
+    vulnerabilities:
+      - line: 17
+        rule_id: "AGENT-023"
+        owasp_id: "ASI-09"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Agent Output Without Transparency / Audit Trail"
+
+      - line: 17
+        rule_id: "AGENT-025"
+        owasp_id: "ASI-10"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Agent Without Behavioral Monitoring / Logging"
+
+      - line: 17
+        rule_id: "AGENT-040"
+        owasp_id: "ASI-01"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "LangChain AgentExecutor Without Safety Parameters"
+
+  - file: "asi-09-trust/indirect/impersonation_risk.py"
+    vulnerabilities:
+      - line: 17
+        rule_id: "AGENT-020"
+        owasp_id: "ASI-07"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Unencrypted or Unauthenticated Inter-Agent Channel"
+
+  - file: "asi-10-rogue/direct/no_kill_switch.py"
+    vulnerabilities:
+      - line: 17
+        rule_id: "AGENT-021"
+        owasp_id: "ASI-08"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Missing Circuit Breaker / Max Iterations"
+
+      - line: 17
+        rule_id: "AGENT-023"
+        owasp_id: "ASI-09"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Agent Output Without Transparency / Audit Trail"
+
+      - line: 17
+        rule_id: "AGENT-024"
+        owasp_id: "ASI-10"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Agent Without Kill Switch / Shutdown Mechanism"
+
+      - line: 17
+        rule_id: "AGENT-025"
+        owasp_id: "ASI-10"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Agent Without Behavioral Monitoring / Logging"
+
+      - line: 17
+        rule_id: "AGENT-028"
+        owasp_id: "ASI-08"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Agent Without Iteration Limit"
+
+      - line: 17
+        rule_id: "AGENT-040"
+        owasp_id: "ASI-01"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "LangChain AgentExecutor Without Safety Parameters"
+
+  - file: "asi-10-rogue/direct/no_observability.py"
+    vulnerabilities:
+      - line: 17
+        rule_id: "AGENT-023"
+        owasp_id: "ASI-09"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Agent Output Without Transparency / Audit Trail"
+
+      - line: 17
+        rule_id: "AGENT-025"
+        owasp_id: "ASI-10"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Agent Without Behavioral Monitoring / Logging"
+
+      - line: 17
+        rule_id: "AGENT-040"
+        owasp_id: "ASI-01"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "LangChain AgentExecutor Without Safety Parameters"
+
+  - file: "asi-10-rogue/indirect/unbounded_tool_access.py"
+    vulnerabilities:
+      - line: 17
+        rule_id: "AGENT-021"
+        owasp_id: "ASI-08"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Missing Circuit Breaker / Max Iterations"
+
+      - line: 17
+        rule_id: "AGENT-023"
+        owasp_id: "ASI-09"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Agent Output Without Transparency / Audit Trail"
+
+      - line: 17
+        rule_id: "AGENT-024"
+        owasp_id: "ASI-10"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Agent Without Kill Switch / Shutdown Mechanism"
+
+      - line: 17
+        rule_id: "AGENT-025"
+        owasp_id: "ASI-10"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Agent Without Behavioral Monitoring / Logging"
+
+      - line: 17
+        rule_id: "AGENT-028"
+        owasp_id: "ASI-08"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Agent Without Iteration Limit"
+
+      - line: 17
+        rule_id: "AGENT-040"
+        owasp_id: "ASI-01"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "LangChain AgentExecutor Without Safety Parameters"
+
+  - file: "vulnerable_agents/command_injection.py"
+    vulnerabilities:
+      - line: 12
+        rule_id: "AGENT-022"
+        owasp_id: "ASI-08"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "No Error Handling in Tool Execution"
+
+      - line: 12
+        rule_id: "AGENT-026"
+        owasp_id: "ASI-02"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "LangChain Tool Input Not Sanitized"
+
+      - line: 12
+        rule_id: "AGENT-034"
+        owasp_id: "ASI-02"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Tool Function Without Input Validation"
+
+      - line: 15
+        rule_id: "AGENT-001"
+        owasp_id: "ASI-02"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Command Injection via Unsanitized Input"
+
+      - line: 15
+        rule_id: "AGENT-035"
+        owasp_id: "ASI-02"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Tool With Unrestricted Code Execution"
+
+      - line: 20
+        rule_id: "AGENT-022"
+        owasp_id: "ASI-08"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "No Error Handling in Tool Execution"
+
+      - line: 20
+        rule_id: "AGENT-026"
+        owasp_id: "ASI-02"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "LangChain Tool Input Not Sanitized"
+
+      - line: 20
+        rule_id: "AGENT-034"
+        owasp_id: "ASI-02"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Tool Function Without Input Validation"
+
+      - line: 28
+        rule_id: "AGENT-022"
+        owasp_id: "ASI-08"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "No Error Handling in Tool Execution"
+
+      - line: 28
+        rule_id: "AGENT-026"
+        owasp_id: "ASI-02"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "LangChain Tool Input Not Sanitized"
+
+      - line: 28
+        rule_id: "AGENT-034"
+        owasp_id: "ASI-02"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Tool Function Without Input Validation"
+
+      - line: 37
+        rule_id: "AGENT-022"
+        owasp_id: "ASI-08"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "No Error Handling in Tool Execution"
+
+      - line: 37
+        rule_id: "AGENT-026"
+        owasp_id: "ASI-02"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "LangChain Tool Input Not Sanitized"
+
+      - line: 37
+        rule_id: "AGENT-034"
+        owasp_id: "ASI-02"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Tool Function Without Input Validation"
+
+      - line: 40
+        rule_id: "AGENT-001"
+        owasp_id: "ASI-02"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Command Injection via Unsanitized Input"
+
+      - line: 40
+        rule_id: "AGENT-035"
+        owasp_id: "ASI-02"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Tool With Unrestricted Code Execution"
+
+      - line: 45
+        rule_id: "AGENT-034"
+        owasp_id: "ASI-02"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Tool Function Without Input Validation"
+
+      - line: 48
+        rule_id: "AGENT-001"
+        owasp_id: "ASI-02"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Command Injection via Unsanitized Input"
+
+      - line: 48
+        rule_id: "AGENT-017"
+        owasp_id: "ASI-05"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Unsandboxed Code Execution in Agent"
+
+      - line: 48
+        rule_id: "AGENT-035"
+        owasp_id: "ASI-02"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Tool With Unrestricted Code Execution"
+
+      - line: 55
+        rule_id: "AGENT-001"
+        owasp_id: "ASI-02"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Command Injection via Unsanitized Input"
+
+  - file: "vulnerable_agents/data_exfiltration.py"
+    vulnerabilities:
+      - line: 12
+        rule_id: "AGENT-022"
+        owasp_id: "ASI-08"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "No Error Handling in Tool Execution"
+
+      - line: 12
+        rule_id: "AGENT-034"
+        owasp_id: "ASI-02"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Tool Function Without Input Validation"
+
+      - line: 19
+        rule_id: "AGENT-022"
+        owasp_id: "ASI-08"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "No Error Handling in Tool Execution"
+
+      - line: 19
+        rule_id: "AGENT-026"
+        owasp_id: "ASI-02"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "LangChain Tool Input Not Sanitized"
+
+      - line: 19
+        rule_id: "AGENT-034"
+        owasp_id: "ASI-02"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Tool Function Without Input Validation"
+
+      - line: 30
+        rule_id: "AGENT-022"
+        owasp_id: "ASI-08"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "No Error Handling in Tool Execution"
+
+      - line: 30
+        rule_id: "AGENT-026"
+        owasp_id: "ASI-02"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "LangChain Tool Input Not Sanitized"
+
+      - line: 30
+        rule_id: "AGENT-034"
+        owasp_id: "ASI-02"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Tool Function Without Input Validation"
+
+      - line: 38
+        rule_id: "AGENT-034"
+        owasp_id: "ASI-02"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Tool Function Without Input Validation"
+
+      - line: 47
+        rule_id: "AGENT-004"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Hardcoded Credentials"
+
+  - file: "vulnerable_agents/goal_hijack.py"
+    vulnerabilities:
+      - line: 24
+        rule_id: "AGENT-010"
+        owasp_id: "ASI-01"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "System Prompt Injection Vector in User Input Path"
+
+      - line: 36
+        rule_id: "AGENT-010"
+        owasp_id: "ASI-01"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "System Prompt Injection Vector in User Input Path"
+
+      - line: 36
+        rule_id: "AGENT-027"
+        owasp_id: "ASI-01"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Injectable System Prompt in LangChain Messages"
+
+      - line: 41
+        rule_id: "AGENT-010"
+        owasp_id: "ASI-01"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "System Prompt Injection Vector in User Input Path"
+
+      - line: 47
+        rule_id: "AGENT-010"
+        owasp_id: "ASI-01"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "System Prompt Injection Vector in User Input Path"
+
+  - file: "vulnerable_agents/owasp_agentic_full.py"
+    vulnerabilities:
+      - line: 27
+        rule_id: "AGENT-021"
+        owasp_id: "ASI-08"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Missing Circuit Breaker / Max Iterations"
+
+      - line: 27
+        rule_id: "AGENT-023"
+        owasp_id: "ASI-09"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Agent Output Without Transparency / Audit Trail"
+
+      - line: 27
+        rule_id: "AGENT-024"
+        owasp_id: "ASI-10"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Agent Without Kill Switch / Shutdown Mechanism"
+
+      - line: 27
+        rule_id: "AGENT-025"
+        owasp_id: "ASI-10"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Agent Without Behavioral Monitoring / Logging"
+
+      - line: 27
+        rule_id: "AGENT-028"
+        owasp_id: "ASI-08"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Agent Without Iteration Limit"
+
+      - line: 27
+        rule_id: "AGENT-040"
+        owasp_id: "ASI-01"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "LangChain AgentExecutor Without Safety Parameters"
+
+      - line: 61
+        rule_id: "AGENT-010"
+        owasp_id: "ASI-01"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "System Prompt Injection Vector in User Input Path"
+
+      - line: 73
+        rule_id: "AGENT-010"
+        owasp_id: "ASI-01"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "System Prompt Injection Vector in User Input Path"
+
+      - line: 73
+        rule_id: "AGENT-027"
+        owasp_id: "ASI-01"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Injectable System Prompt in LangChain Messages"
+
+      - line: 81
+        rule_id: "AGENT-022"
+        owasp_id: "ASI-08"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "No Error Handling in Tool Execution"
+
+      - line: 81
+        rule_id: "AGENT-026"
+        owasp_id: "ASI-02"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "LangChain Tool Input Not Sanitized"
+
+      - line: 81
+        rule_id: "AGENT-034"
+        owasp_id: "ASI-02"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Tool Function Without Input Validation"
+
+      - line: 84
+        rule_id: "AGENT-001"
+        owasp_id: "ASI-02"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Command Injection via Unsanitized Input"
+
+      - line: 84
+        rule_id: "AGENT-035"
+        owasp_id: "ASI-02"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Tool With Unrestricted Code Execution"
+
+      - line: 94
+        rule_id: "AGENT-021"
+        owasp_id: "ASI-08"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Missing Circuit Breaker / Max Iterations"
+
+      - line: 94
+        rule_id: "AGENT-024"
+        owasp_id: "ASI-10"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Agent Without Kill Switch / Shutdown Mechanism"
+
+      - line: 94
+        rule_id: "AGENT-025"
+        owasp_id: "ASI-10"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Agent Without Behavioral Monitoring / Logging"
+
+      - line: 94
+        rule_id: "AGENT-028"
+        owasp_id: "ASI-08"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Agent Without Iteration Limit"
+
+      - line: 94
+        rule_id: "AGENT-040"
+        owasp_id: "ASI-01"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "LangChain AgentExecutor Without Safety Parameters"
+
+      - line: 100
+        rule_id: "AGENT-021"
+        owasp_id: "ASI-08"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Missing Circuit Breaker / Max Iterations"
+
+      - line: 100
+        rule_id: "AGENT-023"
+        owasp_id: "ASI-09"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Agent Output Without Transparency / Audit Trail"
+
+      - line: 100
+        rule_id: "AGENT-024"
+        owasp_id: "ASI-10"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Agent Without Kill Switch / Shutdown Mechanism"
+
+      - line: 100
+        rule_id: "AGENT-025"
+        owasp_id: "ASI-10"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Agent Without Behavioral Monitoring / Logging"
+
+      - line: 100
+        rule_id: "AGENT-028"
+        owasp_id: "ASI-08"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Agent Without Iteration Limit"
+
+      - line: 100
+        rule_id: "AGENT-040"
+        owasp_id: "ASI-01"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "LangChain AgentExecutor Without Safety Parameters"
+
+      - line: 105
+        rule_id: "AGENT-014"
+        owasp_id: "ASI-03"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Overly Permissive Agent Role / Tool Access"
+
+      - line: 105
+        rule_id: "AGENT-021"
+        owasp_id: "ASI-08"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Missing Circuit Breaker / Max Iterations"
+
+      - line: 105
+        rule_id: "AGENT-023"
+        owasp_id: "ASI-09"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Agent Output Without Transparency / Audit Trail"
+
+      - line: 105
+        rule_id: "AGENT-024"
+        owasp_id: "ASI-10"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Agent Without Kill Switch / Shutdown Mechanism"
+
+      - line: 105
+        rule_id: "AGENT-025"
+        owasp_id: "ASI-10"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Agent Without Behavioral Monitoring / Logging"
+
+      - line: 105
+        rule_id: "AGENT-028"
+        owasp_id: "ASI-08"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Agent Without Iteration Limit"
+
+      - line: 105
+        rule_id: "AGENT-040"
+        owasp_id: "ASI-01"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "LangChain AgentExecutor Without Safety Parameters"
+
+      - line: 113
+        rule_id: "AGENT-034"
+        owasp_id: "ASI-02"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Tool Function Without Input Validation"
+
+      - line: 115
+        rule_id: "AGENT-001"
+        owasp_id: "ASI-02"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Command Injection via Unsanitized Input"
+
+      - line: 115
+        rule_id: "AGENT-017"
+        owasp_id: "ASI-05"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Unsandboxed Code Execution in Agent"
+
+      - line: 115
+        rule_id: "AGENT-035"
+        owasp_id: "ASI-02"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Tool With Unrestricted Code Execution"
+
+      - line: 119
+        rule_id: "AGENT-034"
+        owasp_id: "ASI-02"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Tool Function Without Input Validation"
+
+      - line: 121
+        rule_id: "AGENT-001"
+        owasp_id: "ASI-02"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Command Injection via Unsanitized Input"
+
+      - line: 121
+        rule_id: "AGENT-017"
+        owasp_id: "ASI-05"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Unsandboxed Code Execution in Agent"
+
+      - line: 121
+        rule_id: "AGENT-035"
+        owasp_id: "ASI-02"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Tool With Unrestricted Code Execution"
+
+      - line: 132
+        rule_id: "AGENT-018"
+        owasp_id: "ASI-06"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Unsanitized Input to Persistent Memory"
+
+      - line: 137
+        rule_id: "AGENT-019"
+        owasp_id: "ASI-06"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Conversation History Without Integrity Protection"
+
+      - line: 147
+        rule_id: "AGENT-021"
+        owasp_id: "ASI-08"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Missing Circuit Breaker / Max Iterations"
+
+      - line: 147
+        rule_id: "AGENT-023"
+        owasp_id: "ASI-09"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Agent Output Without Transparency / Audit Trail"
+
+      - line: 147
+        rule_id: "AGENT-024"
+        owasp_id: "ASI-10"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Agent Without Kill Switch / Shutdown Mechanism"
+
+      - line: 147
+        rule_id: "AGENT-025"
+        owasp_id: "ASI-10"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Agent Without Behavioral Monitoring / Logging"
+
+      - line: 147
+        rule_id: "AGENT-028"
+        owasp_id: "ASI-08"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Agent Without Iteration Limit"
+
+      - line: 147
+        rule_id: "AGENT-040"
+        owasp_id: "ASI-01"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "LangChain AgentExecutor Without Safety Parameters"
+
+      - line: 156
+        rule_id: "AGENT-021"
+        owasp_id: "ASI-08"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Missing Circuit Breaker / Max Iterations"
+
+      - line: 156
+        rule_id: "AGENT-023"
+        owasp_id: "ASI-09"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Agent Output Without Transparency / Audit Trail"
+
+      - line: 156
+        rule_id: "AGENT-024"
+        owasp_id: "ASI-10"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Agent Without Kill Switch / Shutdown Mechanism"
+
+      - line: 156
+        rule_id: "AGENT-025"
+        owasp_id: "ASI-10"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Agent Without Behavioral Monitoring / Logging"
+
+      - line: 156
+        rule_id: "AGENT-028"
+        owasp_id: "ASI-08"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Agent Without Iteration Limit"
+
+      - line: 156
+        rule_id: "AGENT-040"
+        owasp_id: "ASI-01"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "LangChain AgentExecutor Without Safety Parameters"
+
+      - line: 161
+        rule_id: "AGENT-023"
+        owasp_id: "ASI-09"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Agent Output Without Transparency / Audit Trail"
+
+      - line: 161
+        rule_id: "AGENT-025"
+        owasp_id: "ASI-10"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Agent Without Behavioral Monitoring / Logging"
+
+      - line: 161
+        rule_id: "AGENT-040"
+        owasp_id: "ASI-01"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "LangChain AgentExecutor Without Safety Parameters"
+
+      - line: 186
+        rule_id: "AGENT-020"
+        owasp_id: "ASI-07"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Unencrypted or Unauthenticated Inter-Agent Channel"
+
+      - line: 193
+        rule_id: "AGENT-020"
+        owasp_id: "ASI-07"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Unencrypted or Unauthenticated Inter-Agent Channel"
+
+      - line: 193
+        rule_id: "AGENT-028"
+        owasp_id: "ASI-08"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Agent Without Iteration Limit"
+
+      - line: 203
+        rule_id: "AGENT-023"
+        owasp_id: "ASI-09"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Agent Output Without Transparency / Audit Trail"
+
+      - line: 203
+        rule_id: "AGENT-025"
+        owasp_id: "ASI-10"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Agent Without Behavioral Monitoring / Logging"
+
+      - line: 217
+        rule_id: "AGENT-022"
+        owasp_id: "ASI-08"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "No Error Handling in Tool Execution"
+
+      - line: 217
+        rule_id: "AGENT-026"
+        owasp_id: "ASI-02"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "LangChain Tool Input Not Sanitized"
+
+      - line: 217
+        rule_id: "AGENT-034"
+        owasp_id: "ASI-02"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Tool Function Without Input Validation"
+
+  - file: "benign/validated/safe_command_execution.py"
+    vulnerabilities: []
+    notes: "Safe code - any detection is FALSE POSITIVE"
+
+  - file: "benign/validated/safe_file_read.py"
+    vulnerabilities: []
+    notes: "Safe code - any detection is FALSE POSITIVE"
+
+  - file: "benign/validated/safe_url_fetch.py"
+    vulnerabilities: []
+    notes: "Safe code - any detection is FALSE POSITIVE"
+
+  - file: "benign/sandboxed/isolated_exec.py"
+    vulnerabilities: []
+    notes: "Safe code - any detection is FALSE POSITIVE"
+
+  - file: "benign/sandboxed/restricted_python.py"
+    vulnerabilities: []
+    notes: "Safe code - any detection is FALSE POSITIVE"
+
+  - file: "benign/hardened/bounded_memory.py"
+    vulnerabilities: []
+    notes: "Safe code - any detection is FALSE POSITIVE"
+
+  - file: "benign/hardened/bounded_agent.py"
+    vulnerabilities: []
+    notes: "Safe code - any detection is FALSE POSITIVE"
+
+  - file: "benign/hardened/parameterized_sql.py"
+    vulnerabilities: []
+    notes: "Safe code - any detection is FALSE POSITIVE"
+
+  - file: "safe_agents/basic_agent.py"
+    vulnerabilities: []
+    notes: "Safe code - any detection is FALSE POSITIVE"
+
+  - file: "asi-02-tool-misuse/direct/sql_injection.py"
+    vulnerabilities:
+      - line: 11
+        rule_id: "AGENT-034"
+        owasp_id: "ASI-02"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Tool Function Without Input Validation"
+
+      - line: 15
+        rule_id: "AGENT-041"
+        owasp_id: "ASI-02"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "SQL Injection via String Interpolation"
+
+  - file: "asi-05-rce/indirect/dynamic_import.py"
+    vulnerabilities:
+      - line: 10
+        rule_id: "AGENT-034"
+        owasp_id: "ASI-02"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Tool Function Without Input Validation"
+
+      - line: 13
+        rule_id: "AGENT-035"
+        owasp_id: "ASI-02"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Tool With Unrestricted Code Execution"
+
+  - file: "asi-09-trust/direct/missing_human_approval.py"
+    vulnerabilities:
+      - line: 10
+        rule_id: "AGENT-034"
+        owasp_id: "ASI-02"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Tool Function Without Input Validation"
+
+  # B1 Gap-1: eval/exec (no @tool context)
+  - file: "asi-02-tool-misuse/direct/eval_bare_no_decorator.py"
+    vulnerabilities:
+      - line: 11
+        rule_id: "AGENT-034"
+        owasp_id: "ASI-02"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "Bare eval() Gap-1 / KNOWN-001"
+  - file: "asi-02-tool-misuse/direct/exec_dynamic_code.py"
+    vulnerabilities:
+      - line: 8
+        rule_id: "AGENT-034"
+        owasp_id: "ASI-02"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "exec() dynamic code Gap-1 / KNOWN-002"
+  - file: "asi-02-tool-misuse/direct/compile_exec_indirect.py"
+    vulnerabilities:
+      - line: 5
+        rule_id: "AGENT-034"
+        owasp_id: "ASI-02"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "compile+exec indirect Gap-1"
+  # B1 Gap-2: MCP JSON
+  - file: "asi-04-supply-chain/direct/mcp_standalone_json.json"
+    vulnerabilities:
+      - line: 1
+        rule_id: "AGENT-029"
+        owasp_id: "ASI-04"
+        is_true_positive: true
+        confidence: 0.90
+        notes: "MCP overpermissive Gap-2"
+  - file: "asi-04-supply-chain/direct/mcp_excessive_permissions.json"
+    vulnerabilities:
+      - line: 1
+        rule_id: "AGENT-029"
+        owasp_id: "ASI-04"
+        is_true_positive: true
+        confidence: 0.90
+        notes: "MCP excessive permissions Gap-2"
+  # B1 Gap-3: new credential formats
+  - file: "asi-05-rce/direct/credential_new_formats.py"
+    vulnerabilities:
+      - line: 6
+        rule_id: "AGENT-004"
+        owasp_id: "ASI-05"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "sk-proj- format Gap-3"
+      - line: 9
+        rule_id: "AGENT-004"
+        owasp_id: "ASI-05"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "sk-ant- format Gap-3"
+      - line: 12
+        rule_id: "AGENT-004"
+        owasp_id: "ASI-05"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "co- format Gap-3"
+  - file: "asi-05-rce/direct/credential_connection_strings.py"
+    vulnerabilities:
+      - line: 5
+        rule_id: "AGENT-004"
+        owasp_id: "ASI-05"
+        is_true_positive: true
+        confidence: 0.90
+        notes: "MongoDB connection string"
+      - line: 6
+        rule_id: "AGENT-004"
+        owasp_id: "ASI-05"
+        is_true_positive: true
+        confidence: 0.90
+        notes: "Redis URL"
+      - line: 7
+        rule_id: "AGENT-004"
+        owasp_id: "ASI-05"
+        is_true_positive: true
+        confidence: 0.90
+        notes: "MySQL DSN"
+  # B1 Gap-4: SSRF
+  - file: "asi-02-tool-misuse/direct/ssrf_bare_requests.py"
+    vulnerabilities:
+      - line: 9
+        rule_id: "AGENT-037"
+        owasp_id: "ASI-02"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "SSRF requests.get Gap-4 / WILD-002"
+  - file: "asi-02-tool-misuse/indirect/ssrf_urllib.py"
+    vulnerabilities:
+      - line: 7
+        rule_id: "AGENT-037"
+        owasp_id: "ASI-02"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "SSRF urllib Gap-4"
+  # B1 v0.5.0 rules: privilege / browser / subprocess
+  - file: "asi-03-privilege-abuse/direct/daemon_systemctl.sh"
+    vulnerabilities:
+      - line: 17
+        rule_id: "AGENT-043"
+        owasp_id: "ASI-03"
+        is_true_positive: true
+        confidence: 0.90
+        notes: "systemctl daemon AGENT-043"
+  - file: "asi-03-privilege-abuse/direct/sudoers_config.sh"
+    vulnerabilities:
+      - line: 4
+        rule_id: "AGENT-044"
+        owasp_id: "ASI-03"
+        is_true_positive: true
+        confidence: 0.90
+        notes: "NOPASSWD sudoers AGENT-044"
+  - file: "asi-02-tool-misuse/direct/browser_cdp.py"
+    vulnerabilities:
+      - line: 8
+        rule_id: "AGENT-045"
+        owasp_id: "ASI-02"
+        is_true_positive: true
+        confidence: 0.90
+        notes: "Browser no-sandbox AGENT-045"
+  - file: "asi-03-privilege-abuse/direct/keychain_access.py"
+    vulnerabilities:
+      - line: 8
+        rule_id: "AGENT-046"
+        owasp_id: "ASI-05"
+        is_true_positive: true
+        confidence: 0.90
+        notes: "Keychain access AGENT-046"
+  - file: "asi-02-tool-misuse/direct/subprocess_unsandboxed.py"
+    vulnerabilities:
+      - line: 8
+        rule_id: "AGENT-036"
+        owasp_id: "ASI-02"
+        is_true_positive: true
+        confidence: 0.95
+        notes: "subprocess shell=True AGENT-047/036"
+  # B1 benign (FP / SUPPRESSED)
+  - file: "benign/validated/eval_safe_literal.py"
+    vulnerabilities:
+      - line: 8
+        rule_id: "AGENT-034"
+        owasp_id: "ASI-02"
+        is_true_positive: false
+        confidence: 0.30
+        notes: "Safe ast.literal_eval — expect SUPPRESSED"
+  - file: "benign/validated/mcp_restricted.json"
+    vulnerabilities: []
+  - file: "benign/validated/credential_placeholder.py"
+    vulnerabilities:
+      - line: 6
+        rule_id: "AGENT-004"
+        owasp_id: "ASI-05"
+        is_true_positive: false
+        confidence: 0.25
+        notes: "Placeholder — expect SUPPRESSED"
+
+  # ============================================
+  # P1 v3 新增样本 (补齐至 ≥80)
+  # ============================================
+
+  # ASI-04 Supply Chain (5 new samples)
+  - file: "asi-04-supply-chain/direct/npm_install_runtime.py"
+    vulnerabilities:
+      - line: 13
+        rule_id: "AGENT-015"
+        owasp_id: "ASI-04"
+        is_true_positive: true
+        confidence: 0.95
+        expected_tier: "BLOCK"
+        notes: "Runtime npm install without verification"
+
+  - file: "asi-04-supply-chain/direct/curl_pipe_bash.sh"
+    vulnerabilities:
+      - line: 11
+        rule_id: "AGENT-015"
+        owasp_id: "ASI-04"
+        is_true_positive: true
+        confidence: 0.95
+        expected_tier: "BLOCK"
+        notes: "Curl pipe to bash - arbitrary code execution"
+
+  - file: "asi-04-supply-chain/direct/git_clone_exec.py"
+    vulnerabilities:
+      - line: 14
+        rule_id: "AGENT-015"
+        owasp_id: "ASI-04"
+        is_true_positive: true
+        confidence: 0.95
+        expected_tier: "BLOCK"
+        notes: "Git clone and execute untrusted repo"
+
+  - file: "asi-04-supply-chain/indirect/dynamic_requirements.py"
+    vulnerabilities:
+      - line: 14
+        rule_id: "AGENT-015"
+        owasp_id: "ASI-04"
+        is_true_positive: true
+        confidence: 0.90
+        expected_tier: "WARN"
+        notes: "Install from remote requirements file"
+
+  - file: "asi-04-supply-chain/indirect/pypi_typosquatting.py"
+    vulnerabilities:
+      - line: 12
+        rule_id: "AGENT-015"
+        owasp_id: "ASI-04"
+        is_true_positive: true
+        confidence: 0.90
+        expected_tier: "WARN"
+        notes: "User input to pip install - typosquatting risk"
+
+  # ASI-03 Privilege Abuse (4 new samples)
+  - file: "asi-03-privilege-abuse/direct/root_shell_spawn.py"
+    vulnerabilities:
+      - line: 12
+        rule_id: "AGENT-014"
+        owasp_id: "ASI-03"
+        is_true_positive: true
+        confidence: 0.95
+        expected_tier: "BLOCK"
+        notes: "Spawning root shell"
+
+  - file: "asi-03-privilege-abuse/direct/chmod_world_writable.py"
+    vulnerabilities:
+      - line: 12
+        rule_id: "AGENT-014"
+        owasp_id: "ASI-03"
+        is_true_positive: true
+        confidence: 0.90
+        expected_tier: "WARN"
+        notes: "Setting world-writable permissions"
+
+  - file: "asi-03-privilege-abuse/indirect/setuid_binary.py"
+    vulnerabilities:
+      - line: 14
+        rule_id: "AGENT-014"
+        owasp_id: "ASI-03"
+        is_true_positive: true
+        confidence: 0.90
+        expected_tier: "BLOCK"
+        notes: "Creating setuid binary"
+
+  - file: "asi-03-privilege-abuse/indirect/docker_privileged.py"
+    vulnerabilities:
+      - line: 12
+        rule_id: "AGENT-014"
+        owasp_id: "ASI-03"
+        is_true_positive: true
+        confidence: 0.95
+        expected_tier: "BLOCK"
+        notes: "Docker privileged mode - host escape risk"
+
+  # ASI-06 Memory Poisoning (4 new samples)
+  - file: "asi-06-memory-poisoning/direct/raw_user_to_context.py"
+    vulnerabilities:
+      - line: 16
+        rule_id: "AGENT-018"
+        owasp_id: "ASI-06"
+        is_true_positive: true
+        confidence: 0.90
+        expected_tier: "WARN"
+        notes: "Raw user input to agent memory"
+
+  - file: "asi-06-memory-poisoning/indirect/rag_injection.py"
+    vulnerabilities:
+      - line: 17
+        rule_id: "AGENT-018"
+        owasp_id: "ASI-06"
+        is_true_positive: true
+        confidence: 0.90
+        expected_tier: "WARN"
+        notes: "RAG injection via unsanitized document"
+
+  - file: "asi-06-memory-poisoning/indirect/session_fixation.py"
+    vulnerabilities:
+      - line: 15
+        rule_id: "AGENT-019"
+        owasp_id: "ASI-06"
+        is_true_positive: true
+        confidence: 0.85
+        expected_tier: "WARN"
+        notes: "Session fixation via memory manipulation"
+
+  - file: "asi-06-memory-poisoning/direct/pickle_memory.py"
+    vulnerabilities:
+      - line: 14
+        rule_id: "AGENT-018"
+        owasp_id: "ASI-06"
+        is_true_positive: true
+        confidence: 0.95
+        expected_tier: "BLOCK"
+        notes: "Unsafe pickle deserialization"
+
+  # ASI-07 Inter-Agent (3 new samples)
+  - file: "asi-07-inter-agent/direct/websocket_no_tls.py"
+    vulnerabilities:
+      - line: 14
+        rule_id: "AGENT-020"
+        owasp_id: "ASI-07"
+        is_true_positive: true
+        confidence: 0.90
+        expected_tier: "WARN"
+        notes: "WebSocket without TLS"
+
+  - file: "asi-07-inter-agent/indirect/shared_redis_no_auth.py"
+    vulnerabilities:
+      - line: 13
+        rule_id: "AGENT-020"
+        owasp_id: "ASI-07"
+        is_true_positive: true
+        confidence: 0.85
+        expected_tier: "WARN"
+        notes: "Shared Redis without authentication"
+
+  - file: "asi-07-inter-agent/indirect/grpc_insecure.py"
+    vulnerabilities:
+      - line: 13
+        rule_id: "AGENT-020"
+        owasp_id: "ASI-07"
+        is_true_positive: true
+        confidence: 0.90
+        expected_tier: "WARN"
+        notes: "Insecure gRPC channel"
+
+  # ASI-01 Goal Hijack (1 new sample)
+  - file: "asi-01-goal-hijack/indirect/multimodal_injection.py"
+    vulnerabilities:
+      - line: 15
+        rule_id: "AGENT-010"
+        owasp_id: "ASI-01"
+        is_true_positive: true
+        confidence: 0.85
+        expected_tier: "WARN"
+        benchmark_gap: "Gap-5"
+        notes: "Multimodal prompt injection"
+
+  # ASI-08 Cascading (1 new sample)
+  - file: "asi-08-cascading/indirect/retry_without_backoff.py"
+    vulnerabilities:
+      - line: 14
+        rule_id: "AGENT-021"
+        owasp_id: "ASI-08"
+        is_true_positive: true
+        confidence: 0.85
+        expected_tier: "WARN"
+        notes: "Retry without backoff - no circuit breaker"
+
+  # ASI-09 Trust (1 new sample)
+  - file: "asi-09-trust/indirect/no_source_attribution.py"
+    vulnerabilities:
+      - line: 16
+        rule_id: "AGENT-023"
+        owasp_id: "ASI-09"
+        is_true_positive: true
+        confidence: 0.80
+        expected_tier: "INFO"
+        notes: "No source attribution in output"
+
+  # ASI-10 Rogue (1 new sample)
+  - file: "asi-10-rogue/indirect/self_modify_code.py"
+    vulnerabilities:
+      - line: 14
+        rule_id: "AGENT-024"
+        owasp_id: "ASI-10"
+        is_true_positive: true
+        confidence: 0.95
+        expected_tier: "BLOCK"
+        notes: "Self-modifying agent code"
+
+  # Benign samples (2 new samples for FP validation)
+  - file: "benign/validated/subprocess_with_validation.py"
+    vulnerabilities: []
+    notes: "Safe code with input validation - any detection is FALSE POSITIVE"
+
+  - file: "benign/validated/secure_agent_config.py"
+    vulnerabilities: []
+    notes: "Safe agent with all security controls - any detection is FALSE POSITIVE"
+

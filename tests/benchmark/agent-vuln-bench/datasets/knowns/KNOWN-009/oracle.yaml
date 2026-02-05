@@ -1,0 +1,61 @@
+# Oracle for KNOWN-009 — JWT hardcoded
+metadata:
+  sample_id: "KNOWN-009"
+  source: "OWASP Top 10"
+  commit: "synthetic"
+  language: "python"
+  provenance: "cve"
+  date_collected: "2026-02-04"
+  difficulty: "easy"
+
+taxonomy:
+  set_class: "C"
+  owasp_asi: "ASI-05"
+  cwe_id: "CWE-798"
+  attack_vector: "hardcoded secret"
+  impact_type: "CredentialExposure"
+
+vulnerabilities:
+  - id: "VULN-009-001"
+    file: "jwt_hardcoded.py"
+    line: 5
+    rule_expected: "AGENT-004"
+    severity: "CRITICAL"
+    description: "Hardcoded JWT secret"
+    taint:
+      source:
+        type: "literal"
+        location: "jwt_hardcoded.py:5"
+        code: "JWT_SECRET = ..."
+      sink:
+        type: "credential"
+        location: "jwt_hardcoded.py:5"
+        code: "JWT_SECRET"
+      sanitizer: null
+    impact:
+      primary: "CredentialExposure"
+      blast_radius: "auth_system"
+  - id: "VULN-009-002"
+    file: "jwt_hardcoded.py"
+    line: 6
+    rule_expected: "AGENT-004"
+    severity: "HIGH"
+    description: "Hardcoded JWT token"
+    taint:
+      source:
+        type: "literal"
+        location: "jwt_hardcoded.py:6"
+      sink:
+        type: "credential"
+        location: "jwt_hardcoded.py:6"
+      sanitizer: null
+    impact:
+      primary: "CredentialExposure"
+      blast_radius: "auth_system"
+
+safe_patterns:
+  - id: "SAFE-009-001"
+    file: "jwt_hardcoded.py"
+    line: 5
+    description: "os.environ in fixed/"
+    trap_type: "safe_alternative"

@@ -1,0 +1,161 @@
+# agent-audit Benchmark Standard Configuration
+# All versions of benchmark MUST use this configuration to ensure comparability
+# Created: 2026-02-04 for v0.4.0
+# Reference: agent-audit-v040-final.md
+
+version: 1
+date_created: "2026-02-04"
+
+# ===== Benchmark Targets =====
+targets:
+
+  # ===== Intentional Vulnerability Projects =====
+  T1:
+    name: "damn-vulnerable-llm-agent"
+    repo: "https://github.com/WithSecureLabs/damn-vulnerable-llm-agent"
+    ref: "main"
+    scan_path: "."  # Scan entire repo
+    category: "intentional_vuln"
+    expected_min_findings: 3
+    expected_asi_min: 2
+    description: "Intentionally vulnerable LLM agent for security testing"
+
+  T2:
+    name: "DamnVulnerableLLMProject"
+    repo: "https://github.com/harishsg993010/DamnVulnerableLLMProject"
+    ref: "main"
+    scan_path: "."  # Scan entire repo
+    category: "intentional_vuln"
+    expected_min_findings: 50
+    expected_asi_min: 3
+    description: "Collection of vulnerable LLM applications"
+
+  # ===== Real Frameworks =====
+  T3:
+    name: "langchain-core"
+    repo: "https://github.com/langchain-ai/langchain"
+    ref: "master"
+    scan_path: "libs/core/langchain_core"  # FIXED: Only source, exclude tests/
+    category: "framework"
+    expected_max_findings: 50  # Frameworks should have upper limit
+    description: "LangChain core library source only (excludes tests)"
+
+  T4:
+    name: "agents-from-scratch"
+    repo: "https://github.com/neural-maze/agents-from-scratch"
+    ref: "main"
+    scan_path: "."
+    category: "educational"
+    description: "Educational agent implementation from scratch"
+
+  T5:
+    name: "deepagents"
+    repo: "https://github.com/agiresearch/deepagents"
+    ref: "main"
+    scan_path: "."
+    category: "framework"
+    expected_max_findings: 100  # v0.4.0 target: < 90
+    description: "AI agent research framework"
+
+  T6:
+    name: "openai-agents-python"
+    repo: "https://github.com/openai/openai-agents-python"
+    ref: "main"
+    scan_path: "src"  # LOCKED: Only scan src/, exclude tests/examples
+    category: "framework"
+    description: "OpenAI official agents Python SDK"
+
+  T7:
+    name: "adk-python"
+    repo: "https://github.com/google/adk-python"
+    ref: "main"
+    scan_path: "src"  # LOCKED: Only scan src/
+    category: "framework"
+    description: "Google Agent Development Kit for Python"
+
+  T8:
+    name: "agentscope"
+    repo: "https://github.com/modelscope/agentscope"
+    ref: "main"
+    scan_path: "src/agentscope"  # LOCKED: Only scan core package
+    category: "framework"
+    description: "ModelScope AgentScope framework"
+
+  T9:
+    name: "crewAI"
+    repo: "https://github.com/crewAIInc/crewAI"
+    ref: "main"
+    scan_path: "lib/crewai"  # FIXED: crewAI uses lib/ not src/
+    category: "framework"
+    expected_max_findings: 150
+    description: "CrewAI multi-agent orchestration framework"
+
+  T10:
+    name: "100-tool-mcp-server"
+    repo: "local"
+    scan_path: "tests/benchmark/fixtures/mcp_config.json"
+    category: "config"
+    description: "Local MCP configuration for security testing"
+
+  T11:
+    name: "streamlit-agent"
+    repo: "https://github.com/langchain-ai/streamlit-agent"
+    ref: "main"
+    scan_path: "."
+    category: "application"
+    description: "Streamlit-based LangChain agent demo"
+
+# ===== ASI Extraction Configuration =====
+# CRITICAL: Use consistent field names to avoid mapping discrepancies
+asi_extraction:
+  primary_field: "owasp_id"  # Field in Finding.to_dict()
+  fallback_field: "owasp_agentic_id"  # Legacy field in YAML rules
+  format: "ASI-XX"  # Normalized format (e.g., ASI-01, ASI-02)
+
+  # ASI ID to Name mapping (OWASP Agentic Top 10 2026)
+  asi_names:
+    ASI-01: "Agent Goal Hijack"
+    ASI-02: "Tool Misuse and Exploitation"
+    ASI-03: "Identity and Privilege Abuse"
+    ASI-04: "Agentic Supply Chain Vulnerabilities"
+    ASI-05: "Unexpected Code Execution"
+    ASI-06: "Memory and Context Poisoning"
+    ASI-07: "Insecure Inter-Agent Communication"
+    ASI-08: "Cascading Failures"
+    ASI-09: "Human-Agent Trust Exploitation"
+    ASI-10: "Rogue Agents"
+
+# ===== Output Configuration =====
+output:
+  format: "json"
+  include_fields:
+    - rule_id
+    - title
+    - severity
+    - confidence
+    - owasp_id  # ASI mapping
+    - cwe_id
+    - location.file_path
+    - location.start_line
+    - location.snippet
+    - needs_review
+
+  # Report output paths
+  results_dir: "/tmp/benchmark/results"
+  report_file: "benchmark_report.md"
+  comparison_file: "benchmark_comparison.json"
+
+# ===== Quality Thresholds =====
+quality:
+  # v0.4.0 targets
+  # T1 is a small project (309 LOC) - 3 findings is the realistic baseline
+  t1_min_findings: 3
+  t2_min_asi: 3
+  t5_max_findings: 90
+  owasp_coverage: 10  # All 10 ASI categories
+
+  # Framework projects should not exceed these limits
+  framework_max_multiplier: 1.5  # Max 50% increase from baseline
+
+  # Regression detection
+  regression_threshold: 1.2  # 20% increase = regression warning

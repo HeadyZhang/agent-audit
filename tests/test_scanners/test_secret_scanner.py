@@ -171,18 +171,28 @@ enabled = True
         secret = results[0].secrets[0]
         assert secret.line_number == 4  # Line with the secret
 
-    def test_excludes_test_files(self, scanner, tmp_path):
-        """Test that files in test directories are excluded by default."""
-        # Test directory should be excluded
+    def test_test_files_have_reduced_confidence(self, scanner, tmp_path):
+        """Test that files in test directories have reduced confidence.
+
+        v0.5.0: Changed from complete exclusion to reduced confidence.
+        v0.5.1: Further reduced test file multiplier to 0.55 to reduce FPs
+        in real-world scans (e.g., openclaw had 21 test file findings).
+        Known formats in test files now typically reach INFO tier.
+        """
         test_dir = tmp_path / "tests"
         test_dir.mkdir(parents=True)
         (test_dir / "config.py").write_text('AWS_KEY = "AKIAIOSFODNN7PRODUCTION"')
 
         results = scanner.scan(test_dir)
 
-        # Should not find secrets in test files (filtered as false positive)
+        # v0.5.1: Known credential formats are still reported in test files
+        # but with significantly reduced confidence (INFO tier vs BLOCK/WARN)
         total_secrets = sum(len(r.secrets) for r in results)
-        assert total_secrets == 0
+        assert total_secrets == 1
+        secret = results[0].secrets[0]
+        # Confidence should be reduced (0.95 * 0.55 ≈ 0.52)
+        assert secret.confidence < 0.6
+        assert secret.tier in ("INFO", "WARN")  # INFO is expected, WARN acceptable
 
     def test_excludes_placeholder_values(self, scanner, production_dir):
         """Test exclusion of common false positive patterns."""

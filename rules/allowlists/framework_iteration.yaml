@@ -1,0 +1,67 @@
+# AGENT-028 Framework Allowlist (v0.3.1)
+# These frameworks have internal iteration control mechanisms.
+# Suppress AGENT-028 for internal framework code (tests, source).
+
+crewai:
+  modules:
+    - "crewai.agent"
+    - "crewai.crew"
+    - "crewai.task"
+    - "crewai.tools"
+    - "crewai.utilities"
+    - "crewai.agents"
+    - "crewai.flow"
+    - "crewai.memory"
+  path_patterns:
+    - "*/crewai/src/*"
+    - "*/crewai/lib/*"
+    - "*/tests/*"  # Framework tests
+    - "*/test_*"   # Test files
+  rationale: "crewAI has internal max_iter attribute and CrewBase iteration control"
+
+deepagents:
+  modules:
+    - "deepagents.agents"
+    - "deepagents.tools"
+    - "deepagents.workflows"
+  path_patterns:
+    - "*/deepagents/libs/*"
+    - "*/deepagents/src/*"
+    - "*/tests/*"
+  rationale: "deepagents framework has internal execution control"
+
+langchain:
+  modules:
+    - "langchain.agents.agent"
+    - "langchain.agents.executor"
+    - "langchain_core.agents"
+  path_patterns:
+    - "*/langchain/libs/*"
+    - "*/site-packages/langchain/*"
+  rationale: "LangChain AgentExecutor has max_iterations default"
+
+autogen:
+  modules:
+    - "autogen.agentchat"
+    - "autogen.coding"
+  path_patterns:
+    - "*/autogen/src/*"
+    - "*/site-packages/autogen/*"
+  rationale: "AutoGen has max_consecutive_auto_reply control"
+
+agentscope:
+  modules:
+    - "agentscope.agents"
+    - "agentscope.pipelines"
+  path_patterns:
+    - "*/agentscope/src/*"
+  rationale: "AgentScope has internal execution control"
+
+# General test file patterns
+test_files:
+  path_patterns:
+    - "*/tests/*"
+    - "*/test_*.py"
+    - "*_test.py"
+    - "*/conftest.py"
+  rationale: "Test files often instantiate agents for testing purposes"

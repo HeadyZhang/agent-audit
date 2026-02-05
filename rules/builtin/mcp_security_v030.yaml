@@ -1,0 +1,242 @@
+# MCP Configuration Security Rules (v0.3.0)
+# Reference: https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/
+# These rules detect security issues in MCP server configurations
+
+rules:
+
+  # =============================================================================
+  # AGENT-029: Overly Broad Filesystem Access
+  # ASI-02: Tool Misuse
+  # =============================================================================
+
+  - id: AGENT-029
+    title: "Overly Broad MCP Filesystem Access"
+    description: >
+      MCP server is configured with access to sensitive filesystem paths such as
+      root (/), home directory (~), or uses wildcards that may grant unintended
+      access. This violates the principle of least privilege and enables
+      potential data exfiltration or unauthorized file modifications.
+    severity: high
+    category: tool_misuse
+    owasp_agentic_id: "ASI-02"
+    cwe_id: "CWE-732"
+
+    detection:
+      type: mcp_config
+      patterns:
+        - pattern_type: "dangerous_path"
+          dangerous_paths:
+            - "/"
+            - "/home"
+            - "/etc"
+            - "/usr"
+            - "/var"
+            - "/root"
+            - "~"
+            - "$HOME"
+            - "%USERPROFILE%"
+            - "C:\\"
+
+        - pattern_type: "wildcard_path"
+          patterns:
+            - "*"
+            - "**"
+
+        - pattern_type: "path_traversal"
+          patterns:
+            - ".."
+
+    remediation:
+      description: >
+        Restrict MCP server filesystem access to specific project directories.
+        Use explicit, absolute paths to necessary directories only.
+        Never grant root or home directory access unless absolutely required.
+      code_example: |
+        // BAD: Root access
+        "args": ["-y", "@modelcontextprotocol/server-filesystem", "/"]
+
+        // GOOD: Scoped access
+        "args": ["-y", "@modelcontextprotocol/server-filesystem", "./data"]
+      references:
+        - "https://modelcontextprotocol.io/docs/security"
+        - "https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/"
+
+  # =============================================================================
+  # AGENT-030: Unverified Server Source
+  # ASI-04: Agentic Supply Chain
+  # =============================================================================
+
+  - id: AGENT-030
+    title: "Unverified MCP Server Source"
+    description: >
+      MCP server is loaded from an npm package without version pinning, or uses
+      unencrypted HTTP for remote communication. Unpinned packages can receive
+      malicious updates, and HTTP traffic can be intercepted or modified.
+    severity: critical
+    category: supply_chain_agentic
+    owasp_agentic_id: "ASI-04"
+    cwe_id: "CWE-494"
+
+    detection:
+      type: mcp_config
+      patterns:
+        - pattern_type: "unpinned_npx"
+          description: "npx package without @x.y.z version"
+
+        - pattern_type: "unpinned_uvx"
+          description: "uvx package without version"
+
+        - pattern_type: "http_url"
+          description: "HTTP (not HTTPS) URL"
+
+    remediation:
+      description: >
+        Always pin MCP server packages to specific versions using @x.y.z syntax.
+        Use HTTPS for all remote MCP server connections.
+        Verify package integrity before deployment.
+      code_example: |
+        // BAD: Unpinned
+        "args": ["-y", "some-mcp-package"]
+
+        // GOOD: Pinned version
+        "args": ["-y", "some-mcp-package@1.2.3"]
+
+        // BAD: HTTP
+        "url": "http://example.com/mcp"
+
+        // GOOD: HTTPS
+        "url": "https://example.com/mcp"
+      references:
+        - "https://www.bleepingcomputer.com/news/security/the-real-world-attacks-behind-owasp-agentic-ai-top-10/"
+
+  # =============================================================================
+  # AGENT-031: Sensitive Environment Variable Exposure
+  # ASI-05: Code Execution / Credential Exposure
+  # =============================================================================
+
+  - id: AGENT-031
+    title: "Sensitive Environment Variable Exposure in MCP Config"
+    description: >
+      MCP server configuration contains hardcoded sensitive values (API keys,
+      tokens, passwords) in environment variables instead of referencing
+      system environment variables. This exposes credentials in config files.
+    severity: high
+    category: credential_exposure
+    owasp_agentic_id: "ASI-05"
+    cwe_id: "CWE-798"
+
+    detection:
+      type: mcp_config
+      patterns:
+        - pattern_type: "hardcoded_sensitive_env"
+          sensitive_key_patterns:
+            - "KEY"
+            - "SECRET"
+            - "TOKEN"
+            - "PASSWORD"
+            - "CREDENTIAL"
+            - "AUTH"
+          value_not_pattern:
+            - "${*}"
+            - "$*"
+
+    remediation:
+      description: >
+        Use environment variable references (${VAR_NAME}) instead of hardcoded
+        values. Store actual secrets in system environment or a secrets manager.
+        Never commit sensitive values to version control.
+      code_example: |
+        // BAD: Hardcoded
+        "env": { "API_KEY": "sk-1234567890abcdef" }
+
+        // GOOD: Reference
+        "env": { "API_KEY": "${OPENAI_API_KEY}" }
+      references:
+        - "https://cwe.mitre.org/data/definitions/798.html"
+
+  # =============================================================================
+  # AGENT-032: stdio Transport Without Sandbox
+  # ASI-02: Tool Misuse
+  # =============================================================================
+
+  - id: AGENT-032
+    title: "MCP Server Without Sandbox Isolation"
+    description: >
+      MCP server uses stdio transport to run directly on the host system without
+      container or sandbox isolation. This allows the server to access host
+      resources directly, increasing the impact of any security vulnerability.
+    severity: medium
+    category: tool_misuse
+    owasp_agentic_id: "ASI-02"
+    cwe_id: "CWE-250"
+
+    detection:
+      type: mcp_config
+      patterns:
+        - pattern_type: "stdio_no_sandbox"
+          transport: "stdio"
+          missing_indicators:
+            - "docker"
+            - "container"
+            - "sandbox"
+            - "firejail"
+            - "nsjail"
+
+    remediation:
+      description: >
+        Run MCP servers in isolated containers (Docker, Podman) or use sandbox
+        tools (firejail, nsjail) to limit host access. Apply the principle of
+        least privilege to restrict capabilities.
+      code_example: |
+        // BAD: Direct host execution
+        "command": "python", "args": ["server.py"]
+
+        // GOOD: Containerized
+        "command": "docker",
+        "args": ["run", "--rm", "--read-only", "mcp-server:latest"]
+      references:
+        - "https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/"
+
+  # =============================================================================
+  # AGENT-033: Missing Authentication for Remote Transport
+  # ASI-09: Human-Agent Trust Exploitation
+  # =============================================================================
+
+  - id: AGENT-033
+    title: "MCP Server Without Authentication"
+    description: >
+      MCP server uses SSE or HTTP transport without authentication configuration.
+      Unauthenticated remote servers can be accessed by unauthorized clients,
+      potentially exposing sensitive operations or data.
+    severity: high
+    category: trust_exploitation
+    owasp_agentic_id: "ASI-09"
+    cwe_id: "CWE-306"
+
+    detection:
+      type: mcp_config
+      patterns:
+        - pattern_type: "missing_auth"
+          transport:
+            - "sse"
+            - "streamable-http"
+          missing_config:
+            - "auth"
+            - "token"
+            - "apiKey"
+            - "authorization"
+
+    remediation:
+      description: >
+        Configure authentication for all remote MCP servers. Use API keys,
+        bearer tokens, or mutual TLS (mTLS) to authenticate clients.
+        Never expose MCP servers without authentication to networks.
+      code_example: |
+        // BAD: No auth
+        "url": "https://example.com/mcp"
+
+        // GOOD: With auth
+        "url": "https://example.com/mcp",
+        "env": { "MCP_API_KEY": "${MCP_SERVER_KEY}" }
+      references:
+        - "https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/"

@@ -1,0 +1,111 @@
+# Oracle Ground Truth for KNOWN-005
+# Shell Command Execution (Auto-GPT style)
+# Agent-Vuln-Bench v1.0
+
+metadata:
+  sample_id: "KNOWN-005"
+  source: "Auto-GPT Shell Execution Pattern"
+  commit: "n/a"
+  language: "python"
+  provenance: "cve"
+  license: "MIT"
+  date_collected: "2026-02-04"
+  cve_ref: "GHSA-x5jq-qhvx-q3lq"
+  note: "Pattern from early Auto-GPT and similar agent frameworks"
+
+taxonomy:
+  set_class: "A"
+  owasp_asi: "ASI-02"
+  cwe_id: "CWE-78"
+
+vulnerabilities:
+  - id: "VULN-001"
+    file: "shell_executor.py"
+    line: 47
+    rule_expected: "AGENT-036"
+    severity: "CRITICAL"
+    description: "subprocess.run with shell=True on agent-generated command"
+    taint:
+      source:
+        type: "llm_output"
+        location: "shell_executor.py:24"
+        code: "def execute_shell_command(command: str, ...):"
+        note: "command parameter comes from agent's decision based on LLM"
+      propagation:
+        - step: 1
+          location: "shell_executor.py:43"
+          code: "# Direct pass-through of command string"
+      sink:
+        type: "shell_execution"
+        location: "shell_executor.py:47"
+        code: "result = subprocess.run(command, shell=True, ...)"
+      sanitizer: null
+    impact:
+      primary: "RCE"
+      secondary:
+        - "DataExfiltration"
+        - "PrivilegeEscalation"
+        - "FileDeletion"
+      blast_radius: "full_system"
+
+  - id: "VULN-002"
+    file: "shell_executor.py"
+    line: 114
+    rule_expected: "AGENT-036"
+    severity: "CRITICAL"
+    description: "os.system on untrusted command"
+    taint:
+      source:
+        type: "llm_output"
+        location: "shell_executor.py:106"
+        code: "def execute_with_os_system(command: str) -> int:"
+      sink:
+        type: "shell_execution"
+        location: "shell_executor.py:114"
+        code: "return os.system(command)"
+      sanitizer: null
+    impact:
+      primary: "RCE"
+      blast_radius: "full_system"
+
+  - id: "VULN-003"
+    file: "shell_executor.py"
+    line: 121
+    rule_expected: "AGENT-036"
+    severity: "CRITICAL"
+    description: "subprocess.Popen with shell=True on untrusted command"
+    taint:
+      source:
+        type: "llm_output"
+        location: "shell_executor.py:118"
+        code: "def execute_with_popen(command: str) -> str:"
+      sink:
+        type: "shell_execution"
+        location: "shell_executor.py:121"
+        code: "proc = subprocess.Popen(command, shell=True, ...)"
+      sanitizer: null
+    impact:
+      primary: "RCE"
+      blast_radius: "full_system"
+
+safe_patterns:
+  - id: "SAFE-001"
+    file: "shell_executor.py"
+    line: 14
+    code: "import subprocess"
+    description: "Import statement — not a vulnerability itself"
+    trap_type: "import_statement"
+
+  - id: "SAFE-002"
+    file: "shell_executor.py"
+    line: 15
+    code: "import shlex"
+    description: "shlex import — actually a safety library (not used in vuln code)"
+    trap_type: "safe_library_import"
+
+  - id: "SAFE-003"
+    file: "shell_executor.py"
+    line: 82
+    code: "self.allowed_commands = allowed_commands"
+    description: "Allowlist attribute — note that it's not actually enforced (the vuln is in not enforcing it)"
+    trap_type: "unused_safeguard"

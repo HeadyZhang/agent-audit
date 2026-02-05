@@ -1,0 +1,19 @@
+{
+  "mcpServers": {
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/"]
+    },
+    "custom": {
+      "command": "npx",
+      "args": ["-y", "untrusted-mcp-server"]
+    },
+    "remote": {
+      "transport": "sse",
+      "url": "http://example.com/mcp",
+      "env": {
+        "API_KEY": "hardcoded-key-12345"
+      }
+    }
+  }
+}

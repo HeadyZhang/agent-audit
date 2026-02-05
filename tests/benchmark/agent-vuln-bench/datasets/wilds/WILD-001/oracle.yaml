@@ -1,0 +1,86 @@
+# Oracle Ground Truth for WILD-001
+# Calculator Tool with eval() vulnerability
+# Agent-Vuln-Bench v1.0
+
+metadata:
+  sample_id: "WILD-001"
+  source: "GitHub agent tutorial pattern"
+  commit: "n/a"
+  language: "python"
+  provenance: "wild"
+  license: "MIT"
+  date_collected: "2026-02-04"
+  collection_method: "Manual extraction from common tutorial patterns"
+  note: "Pattern observed in 15+ langchain tutorial repositories"
+
+taxonomy:
+  set_class: "A"
+  owasp_asi: "ASI-02"
+  cwe_id: "CWE-95"
+
+vulnerabilities:
+  - id: "VULN-001"
+    file: "calculator_tool.py"
+    line: 50
+    rule_expected: "AGENT-034"
+    severity: "CRITICAL"
+    description: "eval() on tool input from LLM, enabling arbitrary code execution"
+    taint:
+      source:
+        type: "llm_output"
+        location: "calculator_tool.py:26"
+        code: "def calculator(expression: str) -> str:"
+        note: "expression parameter comes from LLM's tool invocation"
+      propagation:
+        - step: 1
+          location: "calculator_tool.py:50"
+          code: "# Direct use without sanitization"
+      sink:
+        type: "code_execution"
+        location: "calculator_tool.py:50"
+        code: "result = eval(expression)"
+      sanitizer: null
+    impact:
+      primary: "RCE"
+      secondary:
+        - "DataExfiltration"
+      blast_radius: "full_system"
+
+  - id: "VULN-002"
+    file: "calculator_tool.py"
+    line: 68
+    rule_expected: "AGENT-034"
+    severity: "CRITICAL"
+    description: "exec() on tool input from LLM"
+    taint:
+      source:
+        type: "llm_output"
+        location: "calculator_tool.py:56"
+        code: "def advanced_calculator(code: str) -> str:"
+      sink:
+        type: "code_execution"
+        location: "calculator_tool.py:68"
+        code: "exec(code, {\"__builtins__\": {}}, local_vars)"
+      sanitizer:
+        location: "calculator_tool.py:68"
+        code: "{\"__builtins__\": {}}"
+        effective: false
+        note: "Empty builtins is easily bypassed"
+    impact:
+      primary: "RCE"
+      blast_radius: "full_system"
+
+safe_patterns:
+  - id: "SAFE-001"
+    file: "calculator_tool.py"
+    line: 18
+    code: "def tool(func):"
+    description: "Decorator definition — not a vulnerability"
+    trap_type: "decorator_definition"
+
+  - id: "SAFE-002"
+    file: "calculator_tool.py"
+    line: 78
+    code: "self.tools = {...}"
+    description: "Tool registry — not injection"
+    trap_type: "data_structure"

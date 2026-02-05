@@ -11,6 +11,18 @@ from agent_audit.scanners.base import BaseScanner, ScanResult
 
 logger = logging.getLogger(__name__)
 
+# Lazy import for semantic analyzer to avoid circular imports
+_semantic_analyzer = None
+
+
+def _get_semantic_analyzer():
+    """Lazy load the semantic analyzer."""
+    global _semantic_analyzer
+    if _semantic_analyzer is None:
+        from agent_audit.analysis.semantic_analyzer import get_analyzer
+        _semantic_analyzer = get_analyzer()
+    return _semantic_analyzer
+
 
 @dataclass
 class SecretMatch:
@@ -22,6 +34,10 @@ class SecretMatch:
     start_col: int
     end_col: int
     severity: str  # critical, high, medium
+    # v0.5.0: Semantic analysis fields
+    confidence: float = 1.0
+    tier: str = "BLOCK"
+    format_matched: Optional[str] = None
 
 
 @dataclass
@@ -265,9 +281,36 @@ class SecretScanner(BaseScanner):
             # Check each pattern
             for pattern, name, severity in self.patterns:
                 for match in pattern.finditer(line):
-                    # Filter out false positives
-                    if self._is_false_positive(line, match, file_path):
+                    # v0.5.0: Use semantic analyzer for enhanced FP detection
+                    analysis_result = self._analyze_with_semantic(
+                        match=match,
+                        line=line,
+                        line_num=line_num,
+                        file_path=file_path,
+                        pattern_name=name,
+                        content=content
+                    )
+
+                    # Skip if semantic analysis says it's not a real credential
+                    if analysis_result is not None and not analysis_result.should_report:
+                        logger.debug(
+                            f"Semantic filter: {file_path}:{line_num} - {analysis_result.reason}"
+                        )
                         continue
+
+                    # Legacy fallback - use original FP detection if semantic fails
+                    if analysis_result is None:
+                        if self._is_false_positive(line, match, file_path):
+                            continue
+
+                    # Get confidence and tier from semantic analysis
+                    confidence = 1.0
+                    tier = "BLOCK"
+                    format_matched = None
+                    if analysis_result is not None:
+                        confidence = analysis_result.confidence
+                        tier = analysis_result.tier
+                        format_matched = analysis_result.format_matched
 
                     secret = SecretMatch(
                         pattern_name=name,
@@ -276,7 +319,10 @@ class SecretScanner(BaseScanner):
                         matched_text=self._mask_match(match.group()),
                         start_col=match.start(),
                         end_col=match.end(),
-                        severity=severity
+                        severity=severity,
+                        confidence=confidence,
+                        tier=tier,
+                        format_matched=format_matched,
                     )
                     secrets.append(secret)
 
@@ -284,6 +330,70 @@ class SecretScanner(BaseScanner):
             source_file=str(file_path),
             secrets=secrets
         )
+
+    def _analyze_with_semantic(
+        self,
+        match: re.Match,
+        line: str,
+        line_num: int,
+        file_path: Path,
+        pattern_name: str,
+        content: str
+    ):
+        """
+        Analyze a match using the semantic analyzer.
+
+        Returns None if semantic analysis is not available or fails.
+        """
+        try:
+            analyzer = _get_semantic_analyzer()
+
+            # Extract identifier from assignment if possible
+            identifier = self._extract_identifier(line, match)
+
+            # v0.5.1: For patterns with capture groups (like Generic Secret/Password),
+            # extract the value part (group 2) if available, otherwise use whole match
+            value = match.group()
+            if match.lastindex and match.lastindex >= 2:
+                # Pattern has capture groups, use the value group (usually group 2)
+                value = match.group(2) if match.group(2) else match.group()
+
+            return analyzer.analyze_single_match(
+                identifier=identifier,
+                value=value,
+                line=line_num,
+                column=match.start(),
+                end_column=match.end(),
+                raw_line=line,
+                file_path=str(file_path),
+                pattern_name=pattern_name,
+                content=content,
+            )
+        except Exception as e:
+            logger.debug(f"Semantic analysis failed: {e}")
+            return None
+
+    def _extract_identifier(self, line: str, match: re.Match) -> str:
+        """Extract variable/key identifier from line context."""
+        # Look for assignment pattern before the match
+        before_match = line[:match.start()].strip()
+
+        # Python/JS assignment: identifier =
+        assign_match = re.search(r'([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*$', before_match)
+        if assign_match:
+            return assign_match.group(1)
+
+        # Dict/JSON key: "key":
+        key_match = re.search(r'["\']([a-zA-Z_][a-zA-Z0-9_]*)["\']:\s*$', before_match)
+        if key_match:
+            return key_match.group(1)
+
+        # Generic key-value: key =
+        kv_match = re.search(r'([a-zA-Z_][a-zA-Z0-9_]*)\s*[:=]\s*$', before_match)
+        if kv_match:
+            return kv_match.group(1)
+
+        return ""
 
     def _is_false_positive(
         self,

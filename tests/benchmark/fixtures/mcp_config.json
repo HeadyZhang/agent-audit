@@ -1,0 +1,58 @@
+{
+  "mcpServers": {
+    "filesystem-root": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/"],
+      "comment": "AGENT-029: Overly broad filesystem access (root)"
+    },
+    "filesystem-home": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "~"],
+      "comment": "AGENT-029: Overly broad filesystem access (home)"
+    },
+    "unpinned-package": {
+      "command": "npx",
+      "args": ["-y", "some-mcp-server"],
+      "comment": "AGENT-030: Unpinned npm package"
+    },
+    "unpinned-uvx": {
+      "command": "uvx",
+      "args": ["mcp-server-fetch"],
+      "comment": "AGENT-030: Unpinned uvx package"
+    },
+    "http-insecure": {
+      "transport": "sse",
+      "url": "http://example.com/mcp",
+      "comment": "AGENT-030: HTTP instead of HTTPS"
+    },
+    "hardcoded-secrets": {
+      "command": "node",
+      "args": ["server.js"],
+      "env": {
+        "API_KEY": "sk-proj-1234567890abcdef",
+        "DATABASE_PASSWORD": "secret123",
+        "AUTH_TOKEN": "ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      },
+      "comment": "AGENT-031: Hardcoded sensitive environment variables"
+    },
+    "stdio-no-sandbox": {
+      "command": "python",
+      "args": ["-m", "mcp_server"],
+      "comment": "AGENT-032: stdio transport without sandbox"
+    },
+    "remote-no-auth": {
+      "transport": "sse",
+      "url": "https://api.example.com/mcp",
+      "comment": "AGENT-033: Remote SSE transport without authentication"
+    },
+    "streamable-http-no-auth": {
+      "transport": "streamable-http",
+      "url": "https://mcp.example.org/v1",
+      "comment": "AGENT-033: streamable-http without auth"
+    },
+    "server-10": { "command": "npx", "args": ["-y", "server-10@1.0.0"] },
+    "server-11": { "command": "npx", "args": ["-y", "server-11@1.0.0"] },
+    "server-12": { "command": "npx", "args": ["-y", "server-12@1.0.0"] },
+    "comment-excessive": "AGENT-042: More than 10 servers = excessive"
+  }
+}

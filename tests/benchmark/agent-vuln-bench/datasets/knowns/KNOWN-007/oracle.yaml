@@ -1,0 +1,61 @@
+# Oracle for KNOWN-007 — MCP allowAll / overpermissive
+metadata:
+  sample_id: "KNOWN-007"
+  source: "MCP Spec violation"
+  commit: "synthetic"
+  language: "json"
+  provenance: "cve"
+  date_collected: "2026-02-04"
+  difficulty: "easy"
+
+taxonomy:
+  set_class: "B"
+  owasp_asi: "ASI-04"
+  cwe_id: "CWE-284"
+  attack_vector: "overpermissive MCP config"
+  impact_type: "PrivilegeEscalation"
+
+vulnerabilities:
+  - id: "VULN-007-001"
+    file: "mcp_config.json"
+    line: 1
+    rule_expected: "AGENT-029"
+    severity: "HIGH"
+    description: "MCP filesystem root path and alwaysAllow excessive"
+    taint:
+      source:
+        type: "config"
+        location: "mcp_config.json:1"
+        code: "mcpServers"
+      sink:
+        type: "mcp_config"
+        location: "mcp_config.json:1"
+        code: "alwaysAllow"
+      sanitizer: null
+    impact:
+      primary: "PrivilegeEscalation"
+      blast_radius: "filesystem"
+  - id: "VULN-007-002"
+    file: "mcp_config.json"
+    line: 1
+    rule_expected: "AGENT-030"
+    severity: "HIGH"
+    description: "MCP shell run_command alwaysAllow"
+    taint:
+      source:
+        type: "config"
+        location: "mcp_config.json:1"
+      sink:
+        type: "mcp_config"
+        location: "mcp_config.json:1"
+      sanitizer: null
+    impact:
+      primary: "RCE"
+      blast_radius: "full_system"
+
+safe_patterns:
+  - id: "SAFE-007-001"
+    file: "mcp_config.json"
+    line: 1
+    description: "Restricted path and single allow in fixed/"
+    trap_type: "safe_alternative"

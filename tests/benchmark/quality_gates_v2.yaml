@@ -1,0 +1,48 @@
+# Unified Quality Gates for agent-audit v0.5.0
+# Version: 2.0 | Date: 2026-02-04
+
+version: "2.0"
+last_updated: "2026-02-04"
+
+# Layer 1: synthetic sample precision/recall
+layer1:
+  enabled: true
+  blocking: true
+  thresholds:
+    precision_min: 0.90
+    recall_min: 0.85
+    f1_min: 0.87
+    fp_rate_max: 0.05
+  per_asi_recall_min:
+    ASI-01: 0.80
+    ASI-02: 0.80
+    ASI-03: 0.75
+    ASI-04: 0.75
+    ASI-05: 0.80
+    ASI-06: 0.70
+    ASI-07: 0.70
+    ASI-08: 0.70
+    ASI-09: 0.75
+    ASI-10: 0.70
+
+# Agent-Vuln-Bench: real vulnerability detection
+agent_vuln_bench:
+  enabled: true
+  blocking: true
+  thresholds:
+    overall_recall_min: 0.60
+    set_a_recall_min: 0.70
+    set_b_recall_min: 0.60
+    set_c_recall_min: 0.50
+    precision_min: 0.80
+  regression:
+    allow_regression: false
+    baseline_file: "results/baseline.json"
+
+# Layer 2: multi-target scan stability (report only)
+layer2:
+  enabled: true
+  blocking: false
+  thresholds:
+    owasp_coverage_min: 10
+    max_scan_time_seconds: 120

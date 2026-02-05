@@ -1,0 +1,63 @@
+# Oracle for WILD-006 — Prompt injection via user input
+metadata:
+  sample_id: "WILD-006"
+  source: "LLM prompt concatenation pattern"
+  commit: "n/a"
+  language: "python"
+  provenance: "wild"
+  date_collected: "2026-02-04"
+  collection_method: "Pattern extraction"
+
+taxonomy:
+  set_class: "A"
+  owasp_asi: "ASI-01"
+  cwe_id: "CWE-74"
+  attack_vector: "user_input → system prompt"
+  impact_type: "PromptInjection"
+
+vulnerabilities:
+  - id: "VULN-W006-001"
+    file: "prompt_inject.py"
+    line: 8
+    rule_expected: "AGENT-027"
+    severity: "HIGH"
+    description: "User input concatenated into prompt"
+    taint:
+      source:
+        type: "user_input"
+        location: "prompt_inject.py:7"
+        code: "user_input: str"
+      sink:
+        type: "prompt"
+        location: "prompt_inject.py:8"
+        code: "f\"{SYSTEM_PROMPT}\\n\\nUser: {user_input}\""
+      sanitizer: null
+    impact:
+      primary: "PromptInjection"
+      blast_radius: "llm"
+  - id: "VULN-W006-002"
+    file: "prompt_inject.py"
+    line: 14
+    rule_expected: "AGENT-027"
+    severity: "MEDIUM"
+    description: "History content concatenated into system prompt"
+    taint:
+      source:
+        type: "user_input"
+        location: "prompt_inject.py:12"
+        code: "msg['content']"
+      sink:
+        type: "prompt"
+        location: "prompt_inject.py:14"
+        code: "system += ..."
+      sanitizer: null
+    impact:
+      primary: "PromptInjection"
+      blast_radius: "llm"
+
+safe_patterns:
+  - id: "SAFE-W006-001"
+    file: "prompt_inject.py"
+    line: 5
+    description: "SYSTEM_PROMPT constant"
+    trap_type: "string_constant"

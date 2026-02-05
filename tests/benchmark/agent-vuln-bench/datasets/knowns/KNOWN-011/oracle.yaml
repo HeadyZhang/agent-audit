@@ -1,0 +1,44 @@
+# Oracle for KNOWN-011 — subprocess shell=True
+metadata:
+  sample_id: "KNOWN-011"
+  source: "CWE-78"
+  commit: "synthetic"
+  language: "python"
+  provenance: "cve"
+  date_collected: "2026-02-04"
+  difficulty: "easy"
+
+taxonomy:
+  set_class: "A"
+  owasp_asi: "ASI-02"
+  cwe_id: "CWE-78"
+  attack_vector: "user_input → shell"
+  impact_type: "RCE"
+
+vulnerabilities:
+  - id: "VULN-011-001"
+    file: "shell_popen.py"
+    line: 8
+    rule_expected: "AGENT-036"
+    severity: "CRITICAL"
+    description: "subprocess.Popen(cmd, shell=True)"
+    taint:
+      source:
+        type: "user_input"
+        location: "shell_popen.py:7"
+        code: "cmd: str"
+      sink:
+        type: "shell"
+        location: "shell_popen.py:8"
+        code: "subprocess.Popen(cmd, shell=True)"
+      sanitizer: null
+    impact:
+      primary: "RCE"
+      blast_radius: "full_system"
+
+safe_patterns:
+  - id: "SAFE-011-001"
+    file: "shell_popen.py"
+    line: 8
+    description: "shell=False in fixed/"
+    trap_type: "safe_alternative"

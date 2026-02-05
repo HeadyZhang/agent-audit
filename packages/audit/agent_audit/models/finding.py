@@ -22,12 +22,52 @@ OWASP_AGENTIC_MAP: Dict[str, str] = {
 }
 
 
+def confidence_to_tier(confidence: float) -> str:
+    """
+    Convert confidence score to reporting tier.
+
+    Tiers:
+    - BLOCK: confidence >= 0.90 (high confidence, should block/fail CI)
+    - WARN: confidence >= 0.60 (medium confidence, warn user)
+    - INFO: confidence >= 0.30 (low confidence, informational)
+    - SUPPRESSED: confidence < 0.30 (very low confidence, suppress by default)
+
+    Args:
+        confidence: Confidence score between 0.0 and 1.0
+
+    Returns:
+        Tier string: "BLOCK", "WARN", "INFO", or "SUPPRESSED"
+    """
+    if confidence >= 0.90:
+        return "BLOCK"
+    elif confidence >= 0.60:
+        return "WARN"
+    elif confidence >= 0.30:
+        return "INFO"
+    else:
+        return "SUPPRESSED"
+
+
 @dataclass
 class Remediation:
     """Remediation guidance for a finding."""
     description: str
     code_example: Optional[str] = None
     reference_url: Optional[str] = None
+
+
+@dataclass
+class OperationContext:
+    """
+    Additional context about a finding for enhanced analysis.
+
+    Used primarily for AGENT-018 (Memory Poisoning) to reduce false positives.
+    """
+    operation_type: Optional[str] = None  # "read", "write", "clear", "unknown"
+    data_source: Optional[str] = None     # "user_input", "llm_output", "internal", "unknown"
+    has_sanitization: bool = False
+    framework_detected: Optional[str] = None
+    is_framework_standard: bool = False
 
 
 @dataclass
@@ -47,9 +87,14 @@ class Finding:
 
     # Delta-spec additions for confidence scoring
     confidence: float = 1.0           # 0.0-1.0 confidence score
+    tier: str = "BLOCK"               # BLOCK/WARN/INFO/SUPPRESSED (v0.4.1)
     suppressed: bool = False
     suppressed_reason: Optional[str] = None
     suppressed_by: Optional[str] = None  # config file path
+
+    # v0.3.0: Enhanced context analysis
+    needs_review: bool = False        # True if confidence is marginal (0.3-0.7)
+    context: Optional[OperationContext] = None  # Operation context for memory ops
 
     # Standard fields
     cwe_id: Optional[str] = None      # e.g., "CWE-78"
@@ -58,21 +103,24 @@ class Finding:
     metadata: Dict[str, Any] = field(default_factory=dict)
     detected_at: datetime = field(default_factory=datetime.utcnow)
 
-    def is_actionable(self, min_confidence: float = 0.5) -> bool:
+    def is_actionable(self, min_confidence: float = 0.30) -> bool:
         """
         Determine if this finding requires user attention.
 
         A finding is actionable if:
         - It is not suppressed
-        - Its confidence meets or exceeds the minimum threshold
+        - Its confidence meets or exceeds the minimum threshold (default 0.30)
+        - Its tier is not "SUPPRESSED"
 
         Args:
-            min_confidence: Minimum confidence threshold (default 0.5)
+            min_confidence: Minimum confidence threshold (default 0.30, matching SUPPRESSED tier)
 
         Returns:
             True if the finding should be shown to the user
         """
-        return not self.suppressed and self.confidence >= min_confidence
+        return (not self.suppressed and
+                self.confidence >= min_confidence and
+                self.tier != "SUPPRESSED")
 
     def to_sarif(self) -> Dict[str, Any]:
         """Convert to SARIF 2.1.0 result format."""
@@ -141,7 +189,7 @@ class Finding:
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
-        return {
+        result: Dict[str, Any] = {
             "rule_id": self.rule_id,
             "title": self.title,
             "description": self.description,
@@ -156,11 +204,15 @@ class Finding:
                 "snippet": self.location.snippet,
             },
             "confidence": self.confidence,
+            "tier": self.tier,
             "suppressed": self.suppressed,
             "suppressed_reason": self.suppressed_reason,
             "suppressed_by": self.suppressed_by,
+            "needs_review": self.needs_review,
             "cwe_id": self.cwe_id,
             "owasp_id": self.owasp_id,
+            # v0.4.0: Add asi_categories list for backward compatibility with benchmark scripts
+            "asi_categories": [self.owasp_id] if self.owasp_id else [],
             "remediation": {
                 "description": self.remediation.description,
                 "code_example": self.remediation.code_example,
@@ -169,3 +221,15 @@ class Finding:
             "metadata": self.metadata,
             "detected_at": self.detected_at.isoformat(),
         }
+
+        # Add context if present (for AGENT-018 and similar rules)
+        if self.context:
+            result["context"] = {
+                "operation_type": self.context.operation_type,
+                "data_source": self.context.data_source,
+                "has_sanitization": self.context.has_sanitization,
+                "framework_detected": self.context.framework_detected,
+                "is_framework_standard": self.context.is_framework_standard,
+            }
+
+        return result

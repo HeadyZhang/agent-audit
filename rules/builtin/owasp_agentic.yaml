@@ -1,5 +1,6 @@
 # OWASP Agentic Security Rules
 # Core rules for agent security scanning
+# Updated v0.3.1: Migrated to ASI-XX format (OWASP Agentic Top 10 2026)
 
 rules:
   - id: AGENT-001
@@ -8,7 +9,7 @@ rules:
     severity: critical
     category: command_injection
     cwe_id: CWE-78
-    owasp_id: OWASP-AGENT-02
+    owasp_agentic_id: "ASI-02"  # Tool Misuse and Exploitation
 
     detection:
       patterns:
@@ -44,7 +45,7 @@ rules:
     severity: medium
     category: excessive_permission
     cwe_id: CWE-250
-    owasp_id: OWASP-AGENT-01
+    owasp_agentic_id: "ASI-03"  # Excessive Agency and Privilege Escalation
 
     detection:
       conditions:
@@ -62,7 +63,7 @@ rules:
     severity: high
     category: data_exfiltration
     cwe_id: CWE-200
-    owasp_id: OWASP-AGENT-05
+    owasp_agentic_id: "ASI-05"  # Improper Output Handling
 
     detection:
       operation_chain:
@@ -84,7 +85,7 @@ rules:
     severity: critical
     category: credential_exposure
     cwe_id: CWE-798
-    owasp_id: OWASP-AGENT-03
+    owasp_agentic_id: "ASI-04"  # Supply Chain Vulnerabilities
 
     detection:
       patterns:
@@ -110,7 +111,7 @@ rules:
     severity: high
     category: supply_chain
     cwe_id: CWE-494
-    owasp_id: OWASP-AGENT-04
+    owasp_agentic_id: "ASI-04"  # Supply Chain Vulnerabilities
 
     detection:
       mcp_server:

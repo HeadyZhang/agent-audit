@@ -1,0 +1,44 @@
+# Oracle for KNOWN-010 — SSRF requests.get
+metadata:
+  sample_id: "KNOWN-010"
+  source: "CWE-918"
+  commit: "synthetic"
+  language: "python"
+  provenance: "cve"
+  date_collected: "2026-02-04"
+  difficulty: "medium"
+
+taxonomy:
+  set_class: "A"
+  owasp_asi: "ASI-02"
+  cwe_id: "CWE-918"
+  attack_vector: "user_input → requests.get"
+  impact_type: "SSRF"
+
+vulnerabilities:
+  - id: "VULN-010-001"
+    file: "ssrf_requests.py"
+    line: 8
+    rule_expected: "AGENT-037"
+    severity: "HIGH"
+    description: "requests.get(user_url) without validation"
+    taint:
+      source:
+        type: "user_input"
+        location: "ssrf_requests.py:7"
+        code: "url: str"
+      sink:
+        type: "http_request"
+        location: "ssrf_requests.py:8"
+        code: "requests.get(url)"
+      sanitizer: null
+    impact:
+      primary: "SSRF"
+      blast_radius: "network"
+
+safe_patterns:
+  - id: "SAFE-010-001"
+    file: "ssrf_requests.py"
+    line: 8
+    description: "URL allowlist in fixed/"
+    trap_type: "safe_alternative"

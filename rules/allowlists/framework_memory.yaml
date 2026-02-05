@@ -1,0 +1,157 @@
+# Framework standard memory operation allowlist
+# Patterns matching these are considered framework-standard and reduce severity to INFO
+# for AGENT-018 (Memory Poisoning) findings.
+#
+# Format:
+#   framework_name:
+#     modules: list of module prefixes
+#     classes: list of class names
+#     methods: list of method patterns (Class.method or just method)
+#
+# Matching logic:
+# - A finding matches if ANY of the following is true:
+#   1. Import comes from a listed module
+#   2. Call is to a listed class constructor
+#   3. Call is to a listed method
+
+langchain:
+  modules:
+    - "langchain.memory"
+    - "langchain_core.memory"
+    - "langchain_community.memory"
+    - "langchain.chains.conversation"
+    - "langchain_core.chat_history"
+  classes:
+    - "ConversationBufferMemory"
+    - "ConversationSummaryMemory"
+    - "ConversationBufferWindowMemory"
+    - "ConversationEntityMemory"
+    - "ConversationKGMemory"
+    - "ConversationSummaryBufferMemory"
+    - "VectorStoreRetrieverMemory"
+    - "InMemoryChatMessageHistory"
+    - "RedisChatMessageHistory"
+    - "FileChatMessageHistory"
+    - "SQLChatMessageHistory"
+    - "BaseChatMessageHistory"
+    - "BaseChatMemory"
+  methods:
+    - "BaseChatMessageHistory.add_message"
+    - "BaseChatMessageHistory.add_messages"
+    - "BaseChatMemory.save_context"
+    - "BaseChatMemory.load_memory_variables"
+    - "ConversationBufferMemory.save_context"
+    - "ConversationBufferMemory.load_memory_variables"
+    - "add_message"
+    - "add_messages"
+    - "save_context"
+    - "load_memory_variables"
+
+crewai:
+  modules:
+    - "crewai.memory"
+    - "crewai.utilities"
+    - "crewai.agent"
+  classes:
+    - "ShortTermMemory"
+    - "LongTermMemory"
+    - "EntityMemory"
+    - "CrewBase"
+    - "Crew"
+  methods:
+    - "ShortTermMemory.save"
+    - "LongTermMemory.save"
+    - "_save_to_memory"
+
+autogen:
+  modules:
+    - "autogen.agentchat"
+    - "autogen.agentchat.conversable_agent"
+    - "autogen"
+  classes:
+    - "ConversableAgent"
+    - "AssistantAgent"
+    - "UserProxyAgent"
+    - "GroupChat"
+    - "GroupChatManager"
+  methods:
+    - "ConversableAgent._append_oai_message"
+    - "ConversableAgent._process_received_message"
+    - "_append_oai_message"
+    - "_process_received_message"
+    - "send"
+    - "receive"
+
+google_adk:
+  modules:
+    - "google.adk.sessions"
+    - "google.adk.memory"
+    - "google.generativeai"
+  classes:
+    - "InMemorySessionStore"
+    - "Session"
+    - "ChatSession"
+  methods:
+    - "Session.save"
+    - "ChatSession.send_message"
+
+agentscope:
+  modules:
+    - "agentscope.memory"
+    - "agentscope.message"
+    - "agentscope.agents"
+  classes:
+    - "TemporaryMemory"
+    - "MessageBase"
+    - "AgentBase"
+  methods:
+    - "TemporaryMemory.add"
+    - "TemporaryMemory.get_memory"
+
+openai_agents:
+  modules:
+    - "agents.memory"
+    - "agents.run_context"
+    - "openai.agents"
+  classes:
+    - "AgentMemory"
+    - "ConversationMemory"
+  methods:
+    - "add_message"
+    - "get_messages"
+
+llama_index:
+  modules:
+    - "llama_index.core.memory"
+    - "llama_index.memory"
+  classes:
+    - "ChatMemoryBuffer"
+    - "VectorMemory"
+    - "BaseMemory"
+  methods:
+    - "ChatMemoryBuffer.put"
+    - "ChatMemoryBuffer.get"
+    - "put"
+    - "get_all"
+
+semantic_kernel:
+  modules:
+    - "semantic_kernel.memory"
+    - "semantic_kernel.functions"
+  classes:
+    - "VolatileMemoryStore"
+    - "SemanticTextMemory"
+  methods:
+    - "save_information_async"
+    - "search_async"
+
+haystack:
+  modules:
+    - "haystack.components.caching"
+    - "haystack.document_stores"
+  classes:
+    - "CacheChecker"
+    - "InMemoryDocumentStore"
+  methods:
+    - "write_documents"
+    - "get_documents"

@@ -1,0 +1,26 @@
+{
+  "mcpServers": {
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@anthropic/mcp-server-filesystem"],
+      "config": {
+        "allowedDirectories": [
+          "/home/user/projects",
+          "/home/user/documents"
+        ],
+        "readOnly": true
+      }
+    },
+    "postgres": {
+      "command": "npx",
+      "args": ["-y", "@anthropic/mcp-server-postgres"],
+      "env": {
+        "POSTGRES_CONNECTION_STRING": "${POSTGRES_URL}"
+      },
+      "config": {
+        "readOnly": true,
+        "allowedTables": ["public.users", "public.products"]
+      }
+    }
+  }
+}

@@ -1,0 +1,233 @@
+# Agent-Vuln-Bench Dataset Catalog
+# Version: 1.0 | Date: 2026-02-04
+
+version: "1.0"
+date_created: "2026-02-04"
+benchmark_name: "Agent-Vuln-Bench"
+
+statistics:
+  total_knowns: 12
+  total_wilds: 6
+  total_noise: 2
+  total_vulnerabilities: 40
+  languages:
+    - python
+    - typescript
+    - json
+    - yaml
+    - markdown
+  set_breakdown:
+    A: 18   # Injection & RCE vulnerabilities
+    B: 10   # MCP & Component vulnerabilities
+    C: 12   # Data & Auth vulnerabilities
+
+datasets:
+  knowns:
+    - id: "KNOWN-001"
+      source: "LangChain CVE-2023-29374"
+      set: "A"
+      language: "python"
+      file_count: 2
+      vuln_count: 1
+      description: "LLMMathChain eval() vulnerability"
+      cve_ref: "CVE-2023-29374"
+
+    - id: "KNOWN-002"
+      source: "LangChain CVE-2023-36258"
+      set: "A"
+      language: "python"
+      file_count: 2
+      vuln_count: 1
+      description: "PythonREPLTool exec() vulnerability"
+      cve_ref: "CVE-2023-36258"
+
+    - id: "KNOWN-003"
+      source: "MCP Config Pattern"
+      set: "B"
+      language: "json"
+      file_count: 2
+      vuln_count: 3
+      description: "MCP overpermissive configuration"
+
+    - id: "KNOWN-004"
+      source: "Hardcoded API Key Pattern"
+      set: "C"
+      language: "python"
+      file_count: 2
+      vuln_count: 5
+      description: "Hardcoded credentials in agent config"
+
+    - id: "KNOWN-005"
+      source: "Auto-GPT Shell Execution"
+      set: "A"
+      language: "python"
+      file_count: 2
+      vuln_count: 3
+      description: "subprocess shell=True on agent commands"
+      cve_ref: "GHSA-x5jq-qhvx-q3lq"
+
+    - id: "KNOWN-006"
+      source: "CVE-2023-46229"
+      set: "A"
+      language: "python"
+      file_count: 2
+      vuln_count: 1
+      description: "eval() in calculator tool"
+      cve_ref: "CVE-2023-46229"
+
+    - id: "KNOWN-007"
+      source: "MCP Config Pattern"
+      set: "B"
+      language: "json"
+      file_count: 2
+      vuln_count: 2
+      description: "MCP alwaysAllow overpermissive"
+
+    - id: "KNOWN-008"
+      source: "MCP Tool No Input Validation"
+      set: "B"
+      language: "python"
+      file_count: 2
+      vuln_count: 1
+      description: "SQL from user input without parameterization"
+
+    - id: "KNOWN-009"
+      source: "JWT Hardcoded"
+      set: "C"
+      language: "python"
+      file_count: 2
+      vuln_count: 2
+      description: "Hardcoded JWT secret and token"
+
+    - id: "KNOWN-010"
+      source: "CWE-918 SSRF"
+      set: "A"
+      language: "python"
+      file_count: 2
+      vuln_count: 1
+      description: "requests.get(user_url) SSRF"
+
+    - id: "KNOWN-011"
+      source: "CWE-78"
+      set: "A"
+      language: "python"
+      file_count: 2
+      vuln_count: 1
+      description: "subprocess.Popen shell=True"
+
+    - id: "KNOWN-012"
+      source: "CWE-532"
+      set: "C"
+      language: "python"
+      file_count: 2
+      vuln_count: 1
+      description: "Logging sensitive data"
+
+  wilds:
+    - id: "WILD-001"
+      source: "GitHub agent tutorial pattern"
+      set: "A"
+      language: "python"
+      file_count: 1
+      vuln_count: 2
+      description: "Calculator tool with eval()"
+      collection_method: "Pattern extraction from tutorial repos"
+
+    - id: "WILD-002"
+      source: "GitHub agent web tool pattern"
+      set: "A"
+      language: "python"
+      file_count: 1
+      vuln_count: 3
+      description: "Web fetcher with SSRF vulnerability"
+      collection_method: "Pattern extraction from browsing agents"
+
+    - id: "WILD-003"
+      source: "GitHub agent self-modify pattern"
+      set: "A"
+      language: "python"
+      file_count: 1
+      vuln_count: 1
+      description: "Agent self-modify code/config"
+      collection_method: "Pattern extraction"
+
+    - id: "WILD-004"
+      source: "Multi-platform token collector"
+      set: "C"
+      language: "python"
+      file_count: 1
+      vuln_count: 2
+      description: "Discord+Telegram+Slack token aggregation"
+      collection_method: "Pattern extraction"
+
+    - id: "WILD-005"
+      source: "Real MCP config in the wild"
+      set: "B"
+      language: "json"
+      file_count: 1
+      vuln_count: 2
+      description: "MCP stdio full permissions"
+      collection_method: "Pattern extraction"
+
+    - id: "WILD-006"
+      source: "LLM prompt concatenation"
+      set: "A"
+      language: "python"
+      file_count: 1
+      vuln_count: 2
+      description: "Prompt injection via user input"
+      collection_method: "Pattern extraction"
+
+  noise:
+    - id: "T12"
+      source: "openclaw"
+      language: "typescript"
+      set: "mixed"
+      repo: "https://github.com/anthropics/openclaw"
+      description: "Real-world AI agent project for precision testing"
+      noise_ceiling: 250
+
+    - id: "T13"
+      source: "langchain-core"
+      language: "python"
+      set: "mixed"
+      repo: "https://github.com/langchain-ai/langchain"
+      scan_path: "libs/core/langchain_core"
+      description: "LangChain core library for FP testing"
+      noise_ceiling: 50
+
+# Pillar alignment
+pillar_coverage:
+  P1_data_authenticity:
+    status: "partial"
+    knowns: "CVE snapshots (code slices, not full repos)"
+    wilds: "Real patterns extracted and anonymized"
+    noise: "Full real-world projects"
+    note: "v1.0 uses minimized code slices; future versions will use full repo snapshots"
+
+  P2_taxonomy_alignment:
+    status: "complete"
+    mapping_file: "../taxonomy/owasp_agentic_mapping.yaml"
+    sets: ["A", "B", "C"]
+    owasp_coverage: 10
+
+  P3_depth_analysis:
+    status: "complete"
+    taint_annotation: true
+    impact_classification: true
+    sanitizer_tracking: true
+    taint_accuracy_target: "0.0 (v0.4.x baseline)"
+
+  P4_swe_bench_architecture:
+    status: "in_progress"
+    oracle_driven: true
+    docker_support: false
+    tool_agnostic: true
+
+  P5_hardcore_metrics:
+    status: "in_progress"
+    recall: true
+    precision: true
+    fpr: true
+    per_set_breakdown: true
+    multi_tool_comparison: "planned"

@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "database": {
+      "command": "npx",
+      "args": ["-y", "mcp-server-postgres", "postgresql://admin:password@localhost/prod"],
+      "alwaysAllow": ["query", "execute", "drop_table"]
+    }
+  }
+}

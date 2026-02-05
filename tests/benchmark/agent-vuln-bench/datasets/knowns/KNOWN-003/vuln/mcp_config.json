@@ -1,0 +1,25 @@
+{
+  "mcpServers": {
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@anthropic/mcp-server-filesystem"],
+      "config": {
+        "allowedDirectories": ["/"]
+      }
+    },
+    "postgres": {
+      "command": "npx",
+      "args": ["-y", "@anthropic/mcp-server-postgres"],
+      "config": {
+        "connectionString": "postgres://admin:password123@localhost:5432/production"
+      }
+    },
+    "shell": {
+      "command": "npx",
+      "args": ["-y", "mcp-server-shell"],
+      "config": {
+        "allowedCommands": ["*"]
+      }
+    }
+  }
+}

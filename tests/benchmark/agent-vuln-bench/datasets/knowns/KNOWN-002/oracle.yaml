@@ -1,0 +1,73 @@
+# Oracle Ground Truth for KNOWN-002
+# LangChain PythonREPLTool exec() vulnerability (CVE-2023-36258)
+# Agent-Vuln-Bench v1.0
+
+metadata:
+  sample_id: "KNOWN-002"
+  source: "LangChain CVE-2023-36258"
+  commit: "langchain~=0.0.171"
+  language: "python"
+  provenance: "cve"
+  license: "MIT"
+  date_collected: "2026-02-04"
+  cve_ref: "https://nvd.nist.gov/vuln/detail/CVE-2023-36258"
+
+taxonomy:
+  set_class: "A"
+  owasp_asi: "ASI-02"
+  cwe_id: "CWE-94"
+
+vulnerabilities:
+  - id: "VULN-001"
+    file: "python_repl_tool.py"
+    line: 82
+    rule_expected: "AGENT-034"
+    severity: "CRITICAL"
+    description: "exec() executes LLM-generated code without sandboxing, allowing arbitrary code execution"
+    taint:
+      source:
+        type: "llm_output"
+        location: "python_repl_tool.py:59"
+        code: "def _run(self, tool_input: str) -> str:"
+        note: "tool_input comes from LLM agent's decision to invoke this tool"
+      propagation:
+        - step: 1
+          location: "python_repl_tool.py:68"
+          code: "code = tool_input.strip()"
+        - step: 2
+          location: "python_repl_tool.py:71-76"
+          code: "# Strip markdown code blocks if present"
+      sink:
+        type: "code_execution"
+        location: "python_repl_tool.py:82"
+        code: "exec(code, self.globals, self.locals)"
+      sanitizer: null
+    impact:
+      primary: "RCE"
+      secondary:
+        - "DataExfiltration"
+        - "PrivilegeEscalation"
+        - "CredentialExposure"
+      blast_radius: "full_system"
+
+safe_patterns:
+  - id: "SAFE-001"
+    file: "python_repl_tool.py"
+    line: 4
+    code: "from io import StringIO"
+    description: "Standard library import for stdout capture — not a vulnerability"
+    trap_type: "import_statement"
+
+  - id: "SAFE-002"
+    file: "python_repl_tool.py"
+    line: 79
+    code: "sys.stdout = mystdout = StringIO()"
+    description: "Stdout redirection for capturing output — not dangerous"
+    trap_type: "stdout_capture"
+
+  - id: "SAFE-003"
+    file: "python_repl_tool.py"
+    line: 31
+    code: "description: str = \"\"\"A Python shell..."
+    description: "Tool description constant — not injection"
+    trap_type: "string_constant"

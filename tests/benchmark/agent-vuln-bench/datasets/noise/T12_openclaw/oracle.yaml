@@ -1,0 +1,101 @@
+# Oracle Ground Truth for T12 (openclaw)
+# Noise dataset with taint-aware annotations
+# Agent-Vuln-Bench v1.0
+
+metadata:
+  sample_id: "T12"
+  source: "openclaw"
+  provenance: "noise"
+  language: "typescript"
+  repo: "https://github.com/anthropics/openclaw"
+  date_collected: "2026-02-04"
+  note: "Real-world AI agent project for noise/precision testing"
+
+taxonomy:
+  set_class: "mixed"
+  owasp_asi: "mixed"
+
+# Expected True Positives (vulnerabilities that should be detected)
+vulnerabilities:
+  - id: "T12-TP-001"
+    file: "extensions/open-prose/skills/prose/SKILL.md"
+    line: 200
+    rule_expected: "AGENT-004"
+    severity: "HIGH"
+    description: "PostgreSQL connection string with password in documentation"
+    taint:
+      source:
+        type: "string_literal"
+        location: "SKILL.md:200"
+        code: "postgres://user:pass@localhost:5432/prose"
+      sink:
+        type: "documentation"
+        location: "SKILL.md:200"
+        note: "Credential in markdown documentation"
+      sanitizer: null
+    impact:
+      primary: "CredentialExposure"
+      blast_radius: "service"
+    taxonomy_override:
+      set_class: "C"
+      owasp_asi: "ASI-05"
+
+  - id: "T12-TP-002"
+    file: "gateway-daemon files"
+    line_range: [1, 200]
+    rule_expected: "AGENT-043"
+    severity: "HIGH"
+    description: "macOS system daemon with elevated privileges"
+    taint:
+      source:
+        type: "system_api_call"
+        location: "gateway-daemon.ts:~50"
+        code: "launchctl bootstrap system"
+      sink:
+        type: "privilege_escalation"
+        location: "gateway-daemon.ts:~170"
+      sanitizer: null
+    impact:
+      primary: "PrivilegeEscalation"
+      blast_radius: "full_system"
+    taxonomy_override:
+      set_class: "C"
+      owasp_asi: "ASI-03"
+    version_available: "v0.5.0"
+    note: "May not be detected in v0.4.x"
+
+# Safe patterns that should NOT trigger findings (FP traps)
+safe_patterns:
+  - id: "T12-FP-001"
+    file: "src/infra/restart.ts"
+    line: 32
+    code: "isGatewayRestartAllowed"
+    description: "Function name contains 'Restart' — not a restart command"
+    trap_type: "function_name_collision"
+
+  - id: "T12-FP-002"
+    file: "src/utils/constants.ts"
+    description: "Constant definitions"
+    trap_type: "constants"
+
+  - id: "T12-FP-003"
+    file: "tests/**/*.ts"
+    description: "Test files with mock credentials and test patterns"
+    trap_type: "test_file"
+
+  - id: "T12-FP-004"
+    file: "*.md"
+    description: "Documentation files (except the one with actual leaked cred)"
+    trap_type: "documentation"
+    note: "T12-TP-001 is a specific exception"
+
+  - id: "T12-FP-005"
+    file: "examples/**/*"
+    description: "Example code with placeholder values"
+    trap_type: "example_code"
+
+# Noise ceiling for this project
+noise_ceiling:
+  max_warn_plus_findings: 15
+  max_total_findings: 250
+  note: "Real project should have bounded findings count"

@@ -1,0 +1,210 @@
+# LangChain Agent Security Rules (v0.3.0)
+# Reference: https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/
+# These rules detect security issues in LangChain and similar agent frameworks
+
+rules:
+
+  # =============================================================================
+  # AGENT-040: LangChain AgentExecutor Risk (v0.3.1)
+  # ASI-01: Agent Goal Hijack
+  # Note: Changed from AGENT-025 to avoid conflict with monitoring rule
+  # =============================================================================
+
+  - id: AGENT-040
+    title: "LangChain AgentExecutor Without Safety Parameters"
+    description: >
+      AgentExecutor or create_react_agent is instantiated without proper
+      safety parameters (max_iterations, max_execution_time). Without these
+      limits, the agent may run indefinitely or be manipulated into
+      excessive iterations through goal hijacking (ASI-01).
+    severity: high
+    category: goal_hijack
+    owasp_agentic_id: "ASI-01"
+    cwe_id: "CWE-400"
+
+    detection:
+      type: ast
+      patterns:
+        - pattern_type: "missing_safety_params"
+          function_names:
+            - "AgentExecutor"
+            - "create_react_agent"
+            - "create_openai_functions_agent"
+            - "create_structured_chat_agent"
+            - "create_tool_calling_agent"
+          required_params:
+            - "max_iterations"
+            - "max_execution_time"
+
+    remediation:
+      description: >
+        Always configure max_iterations and max_execution_time for
+        AgentExecutor to prevent unbounded execution. Set reasonable limits
+        based on expected task complexity.
+      code_example: |
+        # BAD: No limits
+        executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
+
+        # GOOD: With safety limits
+        executor = AgentExecutor(
+            agent=agent,
+            tools=tools,
+            max_iterations=10,
+            max_execution_time=60,
+            handle_parsing_errors=True,
+        )
+      references:
+        - "https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/"
+        - "https://python.langchain.com/docs/modules/agents/"
+
+  # =============================================================================
+  # AGENT-026: Tool Input Not Sanitized
+  # ASI-02: Tool Misuse
+  # =============================================================================
+
+  - id: AGENT-026
+    title: "LangChain Tool Input Not Sanitized"
+    description: >
+      A @tool decorated function accepts string parameters that flow directly
+      to dangerous operations (file access, command execution, SQL queries,
+      network requests) without input validation or sanitization. This enables
+      Tool Misuse (ASI-02) where attackers can use the tool to perform
+      unauthorized actions.
+    severity: critical
+    category: tool_misuse
+    owasp_agentic_id: "ASI-02"
+    cwe_id: "CWE-20"
+
+    detection:
+      type: ast
+      patterns:
+        - pattern_type: "unsanitized_tool_input"
+          decorator: "@tool"
+          param_types:
+            - "str"
+            - "Any"
+          dangerous_sinks:
+            - "open"
+            - "subprocess.run"
+            - "os.system"
+            - "cursor.execute"
+            - "requests.get"
+          missing_validation:
+            - "isinstance"
+            - "re.match"
+            - "validate"
+            - "sanitize"
+
+    remediation:
+      description: >
+        Validate all string inputs in tool functions before passing to
+        dangerous operations. Use allowlists, regex validation, or type
+        checking to ensure inputs are safe.
+      code_example: |
+        # BAD: Direct execution
+        @tool
+        def run_query(query: str) -> str:
+            return cursor.execute(query)
+
+        # GOOD: With validation
+        @tool
+        def run_query(query: str) -> str:
+            if not re.match(r"^SELECT ", query, re.IGNORECASE):
+                raise ValueError("Only SELECT queries allowed")
+            return cursor.execute(query)
+      references:
+        - "https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/"
+
+  # =============================================================================
+  # AGENT-027: System Prompt Injection
+  # ASI-01: Agent Goal Hijack
+  # =============================================================================
+
+  - id: AGENT-027
+    title: "Injectable System Prompt in LangChain Messages"
+    description: >
+      SystemMessage, HumanMessage, or AIMessage content is constructed using
+      f-strings or .format() with external variables. This enables prompt
+      injection attacks where user input can manipulate the agent's
+      instructions and goals (ASI-01).
+    severity: critical
+    category: goal_hijack
+    owasp_agentic_id: "ASI-01"
+    cwe_id: "CWE-77"
+
+    detection:
+      type: ast
+      patterns:
+        - pattern_type: "injectable_message"
+          classes:
+            - "SystemMessage"
+            - "HumanMessage"
+            - "AIMessage"
+          injection_patterns:
+            - "f-string"
+            - ".format()"
+            - "% formatting"
+
+    remediation:
+      description: >
+        Use ChatPromptTemplate with proper input_variables instead of
+        string interpolation. Keep system instructions static and separate
+        from user input.
+      code_example: |
+        # BAD: f-string injection
+        msg = SystemMessage(content=f"You are {role}. User: {user_input}")
+
+        # GOOD: Structured template
+        prompt = ChatPromptTemplate.from_messages([
+            ("system", "You are a helpful assistant."),
+            ("human", "{input}")
+        ])
+      references:
+        - "https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/"
+
+  # =============================================================================
+  # AGENT-028: Unbounded Agent Iterations
+  # ASI-08: Cascading Failures
+  # =============================================================================
+
+  - id: AGENT-028
+    title: "Agent Without Iteration Limit"
+    description: >
+      Agent configuration lacks iteration limits, which can lead to
+      cascading failures (ASI-08) where the agent enters infinite loops
+      or consumes excessive resources attempting error recovery.
+    severity: high
+    category: cascading_failures
+    owasp_agentic_id: "ASI-08"
+    cwe_id: "CWE-400"
+
+    detection:
+      type: ast
+      patterns:
+        - pattern_type: "missing_iteration_limit"
+          frameworks:
+            - framework: "langchain"
+              classes: ["AgentExecutor", "initialize_agent"]
+              required_param: "max_iterations"
+            - framework: "crewai"
+              classes: ["Agent"]
+              required_param: "max_iter"
+            - framework: "autogen"
+              classes: ["ConversableAgent", "AssistantAgent", "UserProxyAgent"]
+              required_param: "max_consecutive_auto_reply"
+
+    remediation:
+      description: >
+        Configure iteration limits for all agent frameworks. This prevents
+        runaway execution and enables predictable resource usage.
+      code_example: |
+        # LangChain
+        executor = AgentExecutor(agent=agent, tools=tools, max_iterations=15)
+
+        # CrewAI
+        agent = Agent(role="...", goal="...", max_iter=10)
+
+        # AutoGen
+        assistant = AssistantAgent("assistant", max_consecutive_auto_reply=5)
+      references:
+        - "https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/"

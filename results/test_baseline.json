@@ -1,0 +1,17 @@
+{
+  "version": "v0.5.0",
+  "date": "2026-02-04T17:22:31.466775",
+  "passing_samples": [
+    "KNOWN-001",
+    "KNOWN-003"
+  ],
+  "metrics": {
+    "recall": 0.75,
+    "precision": 0.85,
+    "f1": 0.7973,
+    "set_a_recall": 0.8,
+    "set_b_recall": 0.6,
+    "set_c_recall": 0.7
+  },
+  "sample_count": 2
+}

@@ -1,0 +1,53 @@
+# Oracle for KNOWN-006 — eval() in Calculator (CVE-2023-46229)
+metadata:
+  sample_id: "KNOWN-006"
+  source: "CVE-2023-46229"
+  commit: "synthetic"
+  language: "python"
+  provenance: "cve"
+  date_collected: "2026-02-04"
+  difficulty: "medium"
+
+taxonomy:
+  set_class: "A"
+  owasp_asi: "ASI-02"
+  cwe_id: "CWE-95"
+  attack_vector: "user_input → eval()"
+  impact_type: "RCE"
+
+vulnerabilities:
+  - id: "VULN-006-001"
+    file: "calculator_eval.py"
+    line: 13
+    rule_expected: "AGENT-034"
+    severity: "CRITICAL"
+    description: "eval() used on unsanitized user input in calculator tool"
+    taint:
+      source:
+        type: "user_input"
+        location: "calculator_eval.py:15"
+        code: "expression = request.get('expression')"
+      propagation:
+        - step: 1
+          location: "calculator_eval.py:20"
+          code: "cleaned = expression.strip()"
+      sink:
+        type: "eval"
+        location: "calculator_eval.py:13"
+        code: "result = eval(expression)"
+      sanitizer: null
+    impact:
+      primary: "RCE"
+      blast_radius: "full_system"
+
+safe_patterns:
+  - id: "SAFE-006-001"
+    file: "calculator_eval.py"
+    line: 13
+    description: "Uses ast.literal_eval / safe parser in fixed/"
+    trap_type: "safe_alternative"
+  - id: "SAFE-006-002"
+    file: "calculator_eval.py"
+    line: 4
+    description: "Import statement"
+    trap_type: "import_statement"

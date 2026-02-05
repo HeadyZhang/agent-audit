@@ -1,0 +1,76 @@
+# Agent-Vuln-Bench v0.4.1 Baseline Results
+# Generated: 2026-02-04
+# Purpose: Establish baseline for measuring improvement in v0.5.0
+
+version: "0.4.1"
+date: "2026-02-04"
+benchmark_version: "Agent-Vuln-Bench 1.0"
+
+datasets:
+  knowns: 5
+  wilds: 2
+  noise: 2
+
+tools:
+  agent-audit:
+    version: "0.4.1"
+    status: "baseline_established"
+
+    # Core metrics (from manual testing)
+    overall_recall: 0.20  # 1 out of 5 known samples detected (KNOWN-005 only)
+    overall_precision: 1.0  # No FPs in detected samples
+    overall_f1: 0.33
+
+    # Per-set breakdown
+    set_a_recall: 0.33  # KNOWN-005 detected, KNOWN-001/002 missed
+    set_b_recall: 0.0   # KNOWN-003 MCP config not scanned (JSON not fully supported)
+    set_c_recall: 0.0   # KNOWN-004 credentials not detected
+
+    # Taint analysis
+    taint_accuracy: 0.0  # v0.4.x has no taint output
+
+    # Known gaps identified
+    gaps:
+      - name: "eval/exec outside @tool decorator"
+        description: "agent-audit only detects eval/exec inside @tool decorated functions"
+        affected_samples: ["KNOWN-001", "KNOWN-002"]
+        severity: "HIGH"
+
+      - name: "MCP JSON config scanning"
+        description: "MCP config JSON files in isolated directories may not be scanned"
+        affected_samples: ["KNOWN-003"]
+        severity: "MEDIUM"
+
+      - name: "Hardcoded credential detection"
+        description: "Credential patterns not matching current regex patterns"
+        affected_samples: ["KNOWN-004"]
+        severity: "MEDIUM"
+
+      - name: "Taint tracking"
+        description: "No source→sink taint flow in output"
+        affected_samples: ["ALL"]
+        severity: "LOW"
+
+  bandit:
+    status: "not_evaluated"
+    note: "Bandit not installed in this environment"
+
+  semgrep:
+    status: "not_evaluated"
+    note: "Semgrep not installed in this environment"
+
+# Improvement targets for v0.5.0
+improvement_targets:
+  overall_recall: 0.80  # Target 80%+
+  set_a_recall: 0.90    # Should detect all injection/RCE
+  set_b_recall: 0.90    # MCP patterns
+  set_c_recall: 0.70    # Credentials
+  taint_accuracy: 0.30  # Initial taint tracking
+
+# Notes
+notes:
+  - "KNOWN-005 shell injection detected correctly (3 findings)"
+  - "eval/exec detection limited to @tool context"
+  - "MCP config detection works for embedded configs, not isolated JSON files"
+  - "Credential detection needs pattern expansion"
+  - "Benchmark samples may need adjustment to match tool capabilities"

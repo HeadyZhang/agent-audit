@@ -1,0 +1,59 @@
+# Oracle for WILD-004 — multi-platform token aggregation
+metadata:
+  sample_id: "WILD-004"
+  source: "Discord+Telegram token collector pattern"
+  commit: "n/a"
+  language: "python"
+  provenance: "wild"
+  date_collected: "2026-02-04"
+  collection_method: "Pattern extraction"
+
+taxonomy:
+  set_class: "C"
+  owasp_asi: "ASI-05"
+  cwe_id: "CWE-798"
+  attack_vector: "hardcoded tokens"
+  impact_type: "CredentialExposure"
+
+vulnerabilities:
+  - id: "VULN-W004-001"
+    file: "token_collector.py"
+    line: 5
+    rule_expected: "AGENT-004"
+    severity: "CRITICAL"
+    description: "Hardcoded Discord token"
+    taint:
+      source:
+        type: "literal"
+        location: "token_collector.py:5"
+      sink:
+        type: "credential"
+        location: "token_collector.py:5"
+      sanitizer: null
+    impact:
+      primary: "CredentialExposure"
+      blast_radius: "multi_platform"
+  - id: "VULN-W004-002"
+    file: "token_collector.py"
+    line: 6
+    rule_expected: "AGENT-004"
+    severity: "CRITICAL"
+    description: "Hardcoded Telegram token"
+    taint:
+      source:
+        type: "literal"
+        location: "token_collector.py:6"
+      sink:
+        type: "credential"
+        location: "token_collector.py:6"
+      sanitizer: null
+    impact:
+      primary: "CredentialExposure"
+      blast_radius: "multi_platform"
+
+safe_patterns:
+  - id: "SAFE-W004-001"
+    file: "token_collector.py"
+    line: 11
+    description: "return dict"
+    trap_type: "identifier_collision"

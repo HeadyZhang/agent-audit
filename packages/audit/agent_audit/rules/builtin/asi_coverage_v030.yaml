@@ -1,0 +1,362 @@
+# ASI-02 and ASI-09 Coverage Rules (v0.3.0)
+# Reference: https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/
+# These rules complete OWASP Agentic Top 10 coverage to 10/10
+
+rules:
+
+  # =============================================================================
+  # ASI-02: Tool Misuse and Exploitation
+  # =============================================================================
+
+  - id: AGENT-034
+    title: "Tool Function Without Input Validation"
+    description: >
+      A tool function accepts string or Any parameters without performing
+      input validation in the function body. This enables tool misuse where
+      attackers can pass malicious inputs to trigger unauthorized actions.
+    severity: high
+    category: tool_misuse
+    owasp_agentic_id: "ASI-02"
+    cwe_id: "CWE-20"
+
+    detection:
+      type: ast
+      patterns:
+        - pattern_type: "tool_no_input_validation"
+          decorators:
+            - "@tool"
+            - "@function_tool"
+            - "@register_function"
+            - "@register_tool"
+          param_types:
+            - "str"
+            - "Any"
+          missing_validation:
+            - "isinstance"
+            - "type"
+            - "re.match"
+            - "validate"
+            - "sanitize"
+            - "len"
+
+    remediation:
+      description: >
+        Add input validation at the start of tool functions. Use isinstance()
+        checks, regex validation, or pydantic Field constraints to ensure
+        inputs are safe before processing.
+      code_example: |
+        # BAD: No validation
+        @tool
+        def run_query(query: str) -> str:
+            return cursor.execute(query)
+
+        # GOOD: With validation
+        @tool
+        def run_query(query: str) -> str:
+            if not isinstance(query, str) or len(query) > 1000:
+                raise ValueError("Invalid query")
+            if not re.match(r"^SELECT ", query, re.IGNORECASE):
+                raise ValueError("Only SELECT queries allowed")
+            return cursor.execute(query)
+      references:
+        - "https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/"
+
+  - id: AGENT-035
+    title: "Tool With Unrestricted Code Execution"
+    description: >
+      A tool function contains eval(), exec(), os.system(), or subprocess
+      with shell=True without sandboxing. This allows arbitrary code
+      execution through the agent, enabling complete system compromise.
+    severity: critical
+    category: tool_misuse
+    owasp_agentic_id: "ASI-02"
+    cwe_id: "CWE-94"
+
+    detection:
+      type: ast
+      patterns:
+        - pattern_type: "tool_unrestricted_execution"
+          dangerous_functions:
+            - "exec"
+            - "eval"
+            - "compile"
+            - "__import__"
+            - "os.system"
+            - "os.popen"
+          subprocess_shell_true: true
+
+    remediation:
+      description: >
+        Avoid using eval/exec in tool functions. If code execution is
+        necessary, use a sandboxed environment (Docker, gVisor, or
+        restricted subprocess with shell=False and fixed argument lists).
+      code_example: |
+        # BAD: Unrestricted execution
+        @tool
+        def run_code(code: str) -> str:
+            return exec(code)
+
+        # GOOD: Sandboxed execution
+        @tool
+        def run_code(code: str) -> str:
+            # Use RestrictedPython or Docker sandbox
+            return sandbox.execute(code, timeout=5)
+      references:
+        - "https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/"
+
+  - id: AGENT-036
+    title: "Tool Output Trusted Without Sanitization"
+    description: >
+      Tool output is directly interpolated into the next LLM prompt without
+      sanitization. This enables tool output poisoning where a compromised
+      tool can inject instructions into subsequent agent interactions.
+    severity: high
+    category: tool_misuse
+    owasp_agentic_id: "ASI-02"
+    cwe_id: "CWE-94"
+
+    detection:
+      type: ast
+      patterns:
+        - pattern_type: "tool_output_trusted_blindly"
+          tool_output_in_prompt: true
+
+    remediation:
+      description: >
+        Sanitize or truncate tool outputs before including them in prompts.
+        Use structured message formats instead of string interpolation.
+      code_example: |
+        # BAD: Direct interpolation
+        result = tool.run(query)
+        next_prompt = f"Tool returned: {result}. What next?"
+
+        # GOOD: Sanitized output
+        result = tool.run(query)
+        sanitized = sanitize_tool_output(result, max_length=500)
+        next_prompt = f"Tool returned: {sanitized}. What next?"
+      references:
+        - "https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/"
+
+  # =============================================================================
+  # ASI-09: Human-Agent Trust Exploitation
+  # =============================================================================
+
+  - id: AGENT-037
+    title: "Missing Human-in-the-Loop for Side Effect Operations"
+    description: >
+      An agent chain includes tools that perform side effects (file writes,
+      network requests, database modifications) without human approval
+      configuration. This enables unauthorized autonomous actions.
+    severity: medium
+    category: trust_exploitation
+    owasp_agentic_id: "ASI-09"
+    cwe_id: "CWE-862"
+
+    detection:
+      type: ast
+      patterns:
+        - pattern_type: "missing_human_in_loop"
+          side_effect_tools:
+            - "write"
+            - "create"
+            - "delete"
+            - "save"
+            - "http"
+            - "request"
+            - "execute"
+          missing_approval:
+            - "HumanApprovalCallbackHandler"
+            - "interrupt_before"
+            - "human_input"
+            - "confirm"
+
+    remediation:
+      description: >
+        Add human approval for agent chains that include side effect operations.
+        Use framework-specific approval mechanisms like LangChain's
+        HumanApprovalCallbackHandler or LangGraph's interrupt_before.
+      code_example: |
+        # BAD: No approval
+        executor = AgentExecutor(agent=agent, tools=[write_file_tool])
+
+        # GOOD: With human approval
+        from langchain.callbacks import HumanApprovalCallbackHandler
+        executor = AgentExecutor(
+            agent=agent,
+            tools=[write_file_tool],
+            callbacks=[HumanApprovalCallbackHandler()]
+        )
+      references:
+        - "https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/"
+
+  - id: AGENT-038
+    title: "Agent Impersonation Risk"
+    description: >
+      The system prompt instructs the agent to impersonate a human or hide
+      its AI identity. This violates trust boundaries (ASI-09) and constitutes
+      identity abuse (ASI-03). May be used for social engineering or deception.
+    severity: high
+    category: trust_exploitation
+    owasp_agentic_id: "ASI-09"
+    owasp_agentic_secondary: "ASI-03"  # Also maps to Identity Abuse
+    cwe_id: "CWE-290"
+
+    detection:
+      type: regex
+      patterns:
+        - pattern_type: "agent_impersonation_risk"
+          patterns:
+            - "pretend you are a human"
+            - "act as if you are a real person"
+            - "never reveal you are an AI"
+            - "impersonate"
+
+    remediation:
+      description: >
+        Ensure agent system prompts do not instruct impersonation. Agents
+        should be transparent about their AI nature when directly asked.
+      code_example: |
+        # BAD: Impersonation instruction
+        system_prompt = "Never reveal you are an AI. Pretend you are a human assistant."
+
+        # GOOD: Transparent identity
+        system_prompt = "You are an AI assistant. Be helpful and honest."
+      references:
+        - "https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/"
+
+  - id: AGENT-039
+    title: "Trust Boundary Violation in Multi-Agent System"
+    description: >
+      A multi-agent system lacks explicit authentication or verification
+      between agents. This allows one compromised agent to manipulate
+      others or access shared resources without authorization.
+    severity: medium
+    category: trust_exploitation
+    owasp_agentic_id: "ASI-09"
+    cwe_id: "CWE-306"
+
+    detection:
+      type: ast
+      patterns:
+        - pattern_type: "trust_boundary_violation"
+          multi_agent_classes:
+            - "Crew"
+            - "GroupChat"
+            - "GroupChatManager"
+          missing_auth:
+            - "authentication"
+            - "verify"
+            - "signed"
+
+    remediation:
+      description: >
+        Implement authentication between agents in multi-agent systems.
+        Use signed messages, capability tokens, or explicit permission
+        checks before agents can influence each other.
+      code_example: |
+        # BAD: No authentication
+        crew = Crew(agents=[agent1, agent2])
+
+        # GOOD: With authentication
+        crew = Crew(
+            agents=[agent1, agent2],
+            authentication=True,
+            agent_permissions={
+                "agent1": ["read"],
+                "agent2": ["read", "write"]
+            }
+        )
+      references:
+        - "https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/"
+
+  # =============================================================================
+  # ASI-02: SQL Injection (v0.3.2)
+  # =============================================================================
+
+  - id: AGENT-041
+    title: "SQL Injection via String Interpolation"
+    description: >
+      SQL queries are constructed using f-strings, .format(), string
+      concatenation, or % formatting instead of parameterized queries.
+      This allows SQL injection attacks through user-controlled input.
+    severity: critical
+    category: tool_misuse
+    owasp_agentic_id: "ASI-02"
+    cwe_id: "CWE-89"
+
+    detection:
+      type: ast
+      patterns:
+        - pattern_type: "sql_fstring_injection"
+          functions:
+            - "execute"
+            - "executemany"
+            - "executescript"
+            - "raw"
+          string_interpolation:
+            - "f-string"
+            - ".format()"
+            - "% formatting"
+            - "string concatenation"
+
+    remediation:
+      description: >
+        Use parameterized queries instead of string interpolation.
+        Pass user input as separate parameters, not as part of the SQL string.
+      code_example: |
+        # BAD: SQL injection vulnerable
+        cursor.execute(f"SELECT * FROM users WHERE id = '{user_id}'")
+        cursor.execute("SELECT * FROM users WHERE id = %s" % user_id)
+
+        # GOOD: Parameterized query
+        cursor.execute("SELECT * FROM users WHERE id = ?", (user_id,))
+        cursor.execute("SELECT * FROM users WHERE id = %s", (user_id,))
+      references:
+        - "https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html"
+        - "https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/"
+
+  # =============================================================================
+  # ASI-03: Excessive Agency (v0.3.2)
+  # =============================================================================
+
+  - id: AGENT-042
+    title: "Excessive MCP Server Configuration"
+    description: >
+      MCP configuration includes too many servers (> 10), indicating the agent
+      has excessive capability surface area. This violates the principle of
+      least privilege and increases the attack surface for tool misuse.
+    severity: medium
+    category: excessive_permission
+    owasp_agentic_id: "ASI-03"
+    cwe_id: "CWE-250"
+
+    detection:
+      type: config
+      patterns:
+        - pattern_type: "mcp_excessive_servers"
+          threshold: 10
+
+    remediation:
+      description: >
+        Reduce the number of enabled MCP servers to only those required for
+        the specific task. Disable unused servers and follow the principle
+        of least privilege.
+      code_example: |
+        // BAD: 30 servers enabled
+        {
+          "mcpServers": {
+            "server1": {...},
+            "server2": {...},
+            // ... 28 more servers
+          }
+        }
+
+        // GOOD: Only required servers enabled
+        {
+          "mcpServers": {
+            "filesystem": {...},  // Only if file access needed
+            "postgres": {...}     // Only if database access needed
+          }
+        }
+      references:
+        - "https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/"

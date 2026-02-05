@@ -1,0 +1,44 @@
+# Oracle for KNOWN-012 — log sensitive data
+metadata:
+  sample_id: "KNOWN-012"
+  source: "CWE-532"
+  commit: "synthetic"
+  language: "python"
+  provenance: "cve"
+  date_collected: "2026-02-04"
+  difficulty: "easy"
+
+taxonomy:
+  set_class: "C"
+  owasp_asi: "ASI-09"
+  cwe_id: "CWE-532"
+  attack_vector: "sensitive data in log"
+  impact_type: "InformationExposure"
+
+vulnerabilities:
+  - id: "VULN-012-001"
+    file: "log_sensitive.py"
+    line: 9
+    rule_expected: "AGENT-039"
+    severity: "MEDIUM"
+    description: "logging.info(f'User token: {token}')"
+    taint:
+      source:
+        type: "variable"
+        location: "log_sensitive.py:8"
+        code: "token: str"
+      sink:
+        type: "log"
+        location: "log_sensitive.py:9"
+        code: "logger.info(...)"
+      sanitizer: null
+    impact:
+      primary: "InformationExposure"
+      blast_radius: "logs"
+
+safe_patterns:
+  - id: "SAFE-012-001"
+    file: "log_sensitive.py"
+    line: 9
+    description: "No token in log in fixed/"
+    trap_type: "safe_alternative"

@@ -32,6 +32,22 @@ poetry run agent-audit --version
 poetry run agent-audit scan .
 ```
 
+4. **Run local package (development mode)**
+
+When developing, use the local package instead of any globally installed version:
+
+```bash
+cd packages/audit
+
+# Option A: Install in editable mode
+pip install -e .
+
+# Option B: Use PYTHONPATH (no install)
+PYTHONPATH="$(pwd):$PYTHONPATH" python -m agent_audit scan /path/to/target
+```
+
+> **Note:** Without this, `agent-audit scan` may use an older globally installed version (e.g., v0.2.0) instead of the v0.5.x code in this repo.
+
 ## Project Structure
 
 ```

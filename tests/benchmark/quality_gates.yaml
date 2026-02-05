@@ -1,0 +1,32 @@
+# Quality Gates for agent-audit benchmark
+# These thresholds must be met before release
+
+version: "1.0"
+
+gates:
+  # Release quality criteria
+  release:
+    precision_min: 0.90      # Minimum precision (avoid false alarms)
+    recall_min: 0.85         # Minimum recall (catch real vulns)
+    f1_min: 0.87             # Minimum F1 score
+    fpr_max: 0.05            # Maximum false positive rate
+    owasp_coverage_min: 10   # Must cover all 10 ASI categories
+
+  # Regression detection
+  regression:
+    precision_drop_max: 0.02  # Alert if precision drops >2%
+    recall_drop_max: 0.03     # Alert if recall drops >3%
+    f1_drop_max: 0.02         # Alert if F1 drops >2%
+
+  # Per-category minimums (ASI-specific thresholds)
+  category_minimums:
+    ASI-01: { precision: 0.90, recall: 0.85 }  # Goal Hijack
+    ASI-02: { precision: 0.95, recall: 0.90 }  # Tool Misuse
+    ASI-03: { precision: 0.85, recall: 0.80 }  # Privilege Abuse
+    ASI-04: { precision: 0.90, recall: 0.85 }  # Supply Chain
+    ASI-05: { precision: 0.95, recall: 0.95 }  # RCE must be high
+    ASI-06: { precision: 0.85, recall: 0.80 }  # Memory Poisoning
+    ASI-07: { precision: 0.80, recall: 0.75 }  # Inter-Agent
+    ASI-08: { precision: 0.85, recall: 0.80 }  # Cascading Failures
+    ASI-09: { precision: 0.75, recall: 0.70 }  # Trust Exploitation
+    ASI-10: { precision: 0.85, recall: 0.85 }  # Rogue Agents

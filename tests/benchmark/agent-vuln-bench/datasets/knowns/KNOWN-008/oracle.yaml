@@ -1,0 +1,44 @@
+# Oracle for KNOWN-008 — MCP tool no input validation (SQL)
+metadata:
+  sample_id: "KNOWN-008"
+  source: "MCP best practice"
+  commit: "synthetic"
+  language: "python"
+  provenance: "cve"
+  date_collected: "2026-02-04"
+  difficulty: "medium"
+
+taxonomy:
+  set_class: "B"
+  owasp_asi: "ASI-02"
+  cwe_id: "CWE-89"
+  attack_vector: "user_input → SQL"
+  impact_type: "Injection"
+
+vulnerabilities:
+  - id: "VULN-008-001"
+    file: "sql_tool.py"
+    line: 11
+    rule_expected: "AGENT-026"
+    severity: "HIGH"
+    description: "SQL from user input without parameterization"
+    taint:
+      source:
+        type: "user_input"
+        location: "sql_tool.py:8"
+        code: "query: str"
+      sink:
+        type: "sql_execution"
+        location: "sql_tool.py:11"
+        code: "cursor.execute(query)"
+      sanitizer: null
+    impact:
+      primary: "Injection"
+      blast_radius: "database"
+
+safe_patterns:
+  - id: "SAFE-008-001"
+    file: "sql_tool.py"
+    line: 11
+    description: "Parameterized execute in fixed/"
+    trap_type: "safe_alternative"

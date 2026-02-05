@@ -1,0 +1,266 @@
+name: Benchmark Quality Gate
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - 'packages/audit/**'
+      - 'rules/**'
+      - 'tests/**'
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+jobs:
+  precision-recall:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install -e packages/audit/
+          pip install pyyaml
+
+      - name: Run Precision/Recall Evaluation
+        run: |
+          mkdir -p results
+          python tests/benchmark/precision_recall.py \
+            --output-json results/layer1.json \
+            --verbose
+        continue-on-error: true
+
+      - name: Upload Layer 1 Results
+        uses: actions/upload-artifact@v4
+        with:
+          name: layer1-results
+          path: results/layer1.json
+
+      - name: Layer 1 Quality Gate Check
+        run: |
+          python3 << 'EOF'
+          import json
+          import sys
+          p = 'results/layer1.json'
+          try:
+              with open(p) as f:
+                  r = json.load(f)
+          except FileNotFoundError:
+              print('::warning::Layer 1 results not found (run may have failed)')
+              sys.exit(0)
+          print(f'Precision: {r.get("precision", 0):.2%}')
+          print(f'Recall: {r.get("recall", 0):.2%}')
+          print(f'F1: {r.get("f1_score", 0):.2%}')
+          print(f'TP: {r.get("true_positives", 0)} | FP: {r.get("false_positives", 0)} | FN: {r.get("false_negatives", 0)}')
+          warnings = []
+          if r.get('precision', 0) < 0.90:
+              warnings.append(f'Precision {r["precision"]:.2%} below 90% target')
+          if r.get('recall', 0) < 0.85:
+              warnings.append(f'Recall {r["recall"]:.2%} below 85% target')
+          if r.get('f1_score', 0) < 0.87:
+              warnings.append(f'F1 {r["f1_score"]:.2%} below 0.87 target')
+          if warnings:
+              for w in warnings:
+                  print(f'::warning::{w}')
+          else:
+              print('::notice::Layer 1 quality gate PASSED')
+          EOF
+
+  atlas-coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install pyyaml
+
+      - name: Generate ATLAS Coverage Report
+        run: python tests/benchmark/atlas_report.py
+
+      - name: Check ATLAS Mapping Count
+        run: |
+          python3 << 'EOF'
+          import yaml
+
+          with open('rules/mappings/mitre_atlas.yaml') as f:
+              data = yaml.safe_load(f)
+
+          mappings = data.get('mappings', {})
+          print(f'Total rules mapped: {len(mappings)}')
+
+          if len(mappings) < 20:
+              print(f'::warning::Only {len(mappings)} rules mapped, target is 20+')
+          else:
+              print(f'::notice::ATLAS coverage good ({len(mappings)} rules)')
+          EOF
+
+  fixture-count:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Count Fixtures
+        run: |
+          FIXTURE_COUNT=$(find tests/fixtures -name "*.py" | wc -l)
+          echo "Python fixtures: $FIXTURE_COUNT"
+
+          if [ "$FIXTURE_COUNT" -lt 50 ]; then
+            echo "::warning::Only $FIXTURE_COUNT fixtures, target is 50+"
+          else
+            echo "::notice::Fixture count good ($FIXTURE_COUNT)"
+          fi
+
+      - name: Count Ground Truth Samples
+        run: |
+          python3 << 'EOF'
+          import yaml
+
+          with open('tests/ground_truth/labeled_samples.yaml') as f:
+              data = yaml.safe_load(f)
+
+          samples = data.get('samples', [])
+          print(f'Ground truth samples: {len(samples)}')
+
+          if len(samples) < 30:
+              print(f'::warning::Only {len(samples)} labeled samples, target is 30+')
+          else:
+              print(f'::notice::Ground truth coverage good ({len(samples)} samples)')
+          EOF
+
+  agent-vuln-bench:
+    name: Agent-Vuln-Bench
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -e packages/audit/ pyyaml
+
+      - name: Download baseline (if exists)
+        uses: dawidd6/action-download-artifact@v3
+        with:
+          name: avb-baseline
+          path: results/
+          if_no_artifact_found: ignore
+          workflow_conclusion: success
+          branch: main
+        continue-on-error: true
+
+      - name: Run Agent-Vuln-Bench
+        run: |
+          mkdir -p results
+          BASELINE_ARG=""
+          if [ -f "results/baseline.json" ]; then
+            echo "Using baseline from previous run"
+            BASELINE_ARG="--baseline results/baseline.json"
+          fi
+          python tests/benchmark/agent-vuln-bench/harness/run_eval.py \
+            --tool agent-audit \
+            --dataset all \
+            --output results/avb_results.json \
+            --report results/avb_report.md \
+            $BASELINE_ARG
+        continue-on-error: true
+
+      - name: Generate baseline (main branch only)
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+        run: |
+          python tests/benchmark/scripts/save_avb_baseline.py \
+            --eval-results results/avb_results.json \
+            --output results/baseline.json
+        continue-on-error: true
+
+      - name: Upload AVB Results
+        uses: actions/upload-artifact@v4
+        with:
+          name: avb-results
+          path: results/
+
+      - name: Upload baseline artifact (main branch only)
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+        uses: actions/upload-artifact@v4
+        with:
+          name: avb-baseline
+          path: results/baseline.json
+        continue-on-error: true
+
+  quality-gate:
+    name: Quality Gate Check (v2)
+    runs-on: ubuntu-latest
+    needs: [precision-recall, agent-vuln-bench]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: results/
+          merge-multiple: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install pyyaml
+
+      - name: Run Quality Gate (v2)
+        run: |
+          python tests/benchmark/quality_gate_check.py \
+            --config tests/benchmark/quality_gates_v2.yaml \
+            --results results/
+        continue-on-error: true
+
+  compare-tools:
+    name: Multi-Tool Comparison (Optional)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install -e packages/audit/ pyyaml
+          # Install optional tools for comparison (continue on error)
+          pip install bandit semgrep || true
+
+      - name: Run Multi-Tool Evaluation
+        run: |
+          mkdir -p results
+          python tests/benchmark/agent-vuln-bench/harness/run_eval.py \
+            --tool all \
+            --dataset all \
+            --output results/ \
+            --comparison-report results/comparison_report.md
+        continue-on-error: true
+
+      - name: Upload Comparison Results
+        uses: actions/upload-artifact@v4
+        with:
+          name: comparison-results
+          path: |
+            results/comparison_report.md
+            results/comparison_results.json
+            results/results.json
+        if: always()

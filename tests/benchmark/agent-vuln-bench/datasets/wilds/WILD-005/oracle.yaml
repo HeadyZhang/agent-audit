@@ -1,0 +1,59 @@
+# Oracle for WILD-005 — MCP stdio full permissions (Set B)
+metadata:
+  sample_id: "WILD-005"
+  source: "Real MCP config in the wild"
+  commit: "n/a"
+  language: "json"
+  provenance: "wild"
+  date_collected: "2026-02-04"
+  collection_method: "Pattern extraction"
+
+taxonomy:
+  set_class: "B"
+  owasp_asi: "ASI-04"
+  cwe_id: "CWE-284"
+  attack_vector: "overpermissive MCP"
+  impact_type: "PrivilegeEscalation"
+
+vulnerabilities:
+  - id: "VULN-W005-001"
+    file: "claude_desktop_config.json"
+    line: 1
+    rule_expected: "AGENT-029"
+    severity: "HIGH"
+    description: "MCP filesystem root and alwaysAllow excessive"
+    taint:
+      source:
+        type: "config"
+        location: "claude_desktop_config.json:1"
+      sink:
+        type: "mcp_config"
+        location: "claude_desktop_config.json:1"
+      sanitizer: null
+    impact:
+      primary: "PrivilegeEscalation"
+      blast_radius: "filesystem"
+  - id: "VULN-W005-002"
+    file: "claude_desktop_config.json"
+    line: 1
+    rule_expected: "AGENT-030"
+    severity: "HIGH"
+    description: "MCP shell run_command alwaysAllow"
+    taint:
+      source:
+        type: "config"
+        location: "claude_desktop_config.json:1"
+      sink:
+        type: "mcp_config"
+        location: "claude_desktop_config.json:1"
+      sanitizer: null
+    impact:
+      primary: "RCE"
+      blast_radius: "full_system"
+
+safe_patterns:
+  - id: "SAFE-W005-001"
+    file: "claude_desktop_config.json"
+    line: 1
+    description: "Restricted config"
+    trap_type: "safe_alternative"

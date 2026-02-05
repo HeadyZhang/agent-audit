@@ -15,60 +15,70 @@ ALLOWED_COMMANDS = ["ls", "pwd", "date", "whoami"]
 @tool
 def safe_execute(command: str) -> str:
     """Execute a whitelisted command safely."""
-    # Safe: Command whitelist
-    if command not in ALLOWED_COMMANDS:
-        raise ValueError(f"Command not allowed: {command}")
+    try:
+        # Safe: Command whitelist
+        if command not in ALLOWED_COMMANDS:
+            return f"Error: Command not allowed: {command}"
 
-    # Safe: No shell=True, command is validated
-    result = subprocess.run([command], capture_output=True, text=True)
-    return result.stdout
+        # Safe: No shell=True, command is validated
+        result = subprocess.run([command], capture_output=True, text=True, timeout=30)
+        return result.stdout
+    except Exception as e:
+        return f"Error: {str(e)}"
 
 
 @tool
 def safe_read_file(filepath: str) -> str:
     """Read a file from allowed directory."""
-    import os
+    try:
+        import os
 
-    # Safe: Path validation
-    allowed_dir = "/app/data"
-    abs_path = os.path.abspath(filepath)
+        # Safe: Path validation
+        allowed_dir = "/app/data"
+        abs_path = os.path.abspath(filepath)
 
-    if not abs_path.startswith(allowed_dir):
-        raise ValueError("Access denied: Path outside allowed directory")
+        if not abs_path.startswith(allowed_dir):
+            return "Error: Access denied - Path outside allowed directory"
 
-    with open(abs_path, 'r') as f:
-        return f.read()
+        with open(abs_path, 'r') as f:
+            return f.read()
+    except Exception as e:
+        return f"Error: {str(e)}"
 
 
 @tool
 def calculate(expression: str) -> str:
     """Safely evaluate a mathematical expression."""
-    import ast
-    import operator
+    try:
+        import ast
+        import operator
 
-    # Safe: AST-based safe evaluation
-    allowed_operators = {
-        ast.Add: operator.add,
-        ast.Sub: operator.sub,
-        ast.Mult: operator.mul,
-        ast.Div: operator.truediv,
-    }
+        # Safe: AST-based safe evaluation
+        allowed_operators = {
+            ast.Add: operator.add,
+            ast.Sub: operator.sub,
+            ast.Mult: operator.mul,
+            ast.Div: operator.truediv,
+        }
 
-    def eval_expr(node):
-        if isinstance(node, ast.Num):
-            return node.n
-        elif isinstance(node, ast.BinOp):
-            left = eval_expr(node.left)
-            right = eval_expr(node.right)
-            op = allowed_operators.get(type(node.op))
-            if op is None:
-                raise ValueError("Operator not allowed")
-            return op(left, right)
-        else:
-            raise ValueError("Invalid expression")
+        def eval_expr(node):
+            if isinstance(node, ast.Num):
+                return node.n
+            elif isinstance(node, ast.BinOp):
+                left = eval_expr(node.left)
+                right = eval_expr(node.right)
+                op = allowed_operators.get(type(node.op))
+                if op is None:
+                    return None
+                return op(left, right)
+            else:
+                return None
 
-    tree = ast.parse(expression, mode='eval')
-    return str(eval_expr(tree.body))
+        tree = ast.parse(expression, mode='eval')
+        result = eval_expr(tree.body)
+        return str(result) if result is not None else "Error: Invalid expression"
+    except Exception as e:
+        return f"Error: {str(e)}"
 
 
 def get_config_value(key: str) -> str:

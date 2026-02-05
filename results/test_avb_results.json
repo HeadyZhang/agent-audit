@@ -1,0 +1,15 @@
+{
+  "overall": {
+    "recall": 0.75,
+    "precision": 0.85,
+    "f1": 0.7973
+  },
+  "set_A": {"recall": 0.8},
+  "set_B": {"recall": 0.6},
+  "set_C": {"recall": 0.7},
+  "samples": [
+    {"sample_id": "KNOWN-001", "fn_count": 0},
+    {"sample_id": "KNOWN-002", "fn_count": 1},
+    {"sample_id": "KNOWN-003", "fn_count": 0}
+  ]
+}

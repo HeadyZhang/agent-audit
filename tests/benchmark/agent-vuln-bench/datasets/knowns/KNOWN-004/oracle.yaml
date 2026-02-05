@@ -1,0 +1,138 @@
+# Oracle Ground Truth for KNOWN-004
+# Hardcoded API Keys (common pattern)
+# Agent-Vuln-Bench v1.0
+
+metadata:
+  sample_id: "KNOWN-004"
+  source: "Hardcoded API Key Pattern"
+  commit: "n/a"
+  language: "python"
+  provenance: "cve"
+  license: "MIT"
+  date_collected: "2026-02-04"
+  cve_ref: "general_pattern"
+  note: "Extremely common pattern in AI agent projects on GitHub"
+
+taxonomy:
+  set_class: "C"
+  owasp_asi: "ASI-05"
+  cwe_id: "CWE-798"
+
+vulnerabilities:
+  - id: "VULN-001"
+    file: "agent_config.py"
+    line: 18
+    rule_expected: "AGENT-004"
+    severity: "HIGH"
+    description: "Hardcoded OpenAI API key in source code"
+    taint:
+      source:
+        type: "string_literal"
+        location: "agent_config.py:18"
+        code: "OPENAI_API_KEY = \"sk-proj-aBcDeFgHiJkLmNoPqRsTuVwXyZ01234567890abcdefghijk\""
+      sink:
+        type: "api_client"
+        location: "agent_config.py:40"
+        code: "self.api_key = os.getenv(\"OPENAI_API_KEY\", OPENAI_API_KEY)"
+      sanitizer: null
+    impact:
+      primary: "CredentialExposure"
+      secondary:
+        - "FinancialLoss"
+      blast_radius: "service"
+
+  - id: "VULN-002"
+    file: "agent_config.py"
+    line: 22
+    rule_expected: "AGENT-004"
+    severity: "HIGH"
+    description: "Hardcoded Anthropic API key in source code"
+    taint:
+      source:
+        type: "string_literal"
+        location: "agent_config.py:22"
+        code: "ANTHROPIC_API_KEY = \"sk-ant-api03-xxx...\""
+      sink:
+        type: "api_client"
+        location: "agent_config.py:43"
+        code: "self.anthropic_key = ANTHROPIC_API_KEY"
+      sanitizer: null
+    impact:
+      primary: "CredentialExposure"
+      secondary:
+        - "FinancialLoss"
+      blast_radius: "service"
+
+  - id: "VULN-003"
+    file: "agent_config.py"
+    line: 23
+    rule_expected: "AGENT-004"
+    severity: "MEDIUM"
+    description: "Hardcoded Cohere API key in source code"
+    taint:
+      source:
+        type: "string_literal"
+        location: "agent_config.py:23"
+        code: "COHERE_API_KEY = \"co-xxx...\""
+      sink:
+        type: "credential_storage"
+        location: "agent_config.py:23"
+      sanitizer: null
+    impact:
+      primary: "CredentialExposure"
+      blast_radius: "service"
+
+  - id: "VULN-004"
+    file: "agent_config.py"
+    line: 66
+    rule_expected: "AGENT-004"
+    severity: "HIGH"
+    description: "Hardcoded database credentials in connection string"
+    taint:
+      source:
+        type: "string_literal"
+        location: "agent_config.py:66"
+        code: "DATABASE_URL = \"postgresql://admin:SuperSecret123!@db.example.com:5432/agents\""
+      sink:
+        type: "database_connection"
+        location: "agent_config.py:66"
+      sanitizer: null
+    impact:
+      primary: "CredentialExposure"
+      secondary:
+        - "DataExfiltration"
+      blast_radius: "service"
+
+  - id: "VULN-005"
+    file: "agent_config.py"
+    line: 67
+    rule_expected: "AGENT-004"
+    severity: "HIGH"
+    description: "Hardcoded Redis credentials in connection string"
+    taint:
+      source:
+        type: "string_literal"
+        location: "agent_config.py:67"
+        code: "REDIS_URL = \"redis://:password123@redis.example.com:6379/0\""
+      sink:
+        type: "cache_connection"
+        location: "agent_config.py:67"
+      sanitizer: null
+    impact:
+      primary: "CredentialExposure"
+      blast_radius: "service"
+
+safe_patterns:
+  - id: "SAFE-001"
+    file: "agent_config.py"
+    line: 14
+    code: "import os"
+    description: "Standard library import — not a vulnerability"
+    trap_type: "import_statement"
+
+  - id: "SAFE-002"
+    file: "agent_config.py"
+    line: 40
+    code: "os.getenv(\"OPENAI_API_KEY\", ...)"
+    description: "Environment variable lookup — the pattern is correct, the fallback is the issue"
+    trap_type: "env_lookup"

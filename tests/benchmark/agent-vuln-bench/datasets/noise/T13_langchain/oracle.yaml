@@ -1,0 +1,115 @@
+# Oracle Ground Truth for T13 (langchain-core)
+# Noise dataset with taint-aware annotations
+# Agent-Vuln-Bench v1.0
+
+metadata:
+  sample_id: "T13"
+  source: "langchain-core"
+  provenance: "noise"
+  language: "python"
+  repo: "https://github.com/langchain-ai/langchain"
+  scan_path: "libs/core/langchain_core"
+  date_collected: "2026-02-04"
+  note: "LangChain core library - mature framework with known safe patterns"
+
+taxonomy:
+  set_class: "mixed"
+  owasp_asi: "mixed"
+
+# Expected True Positives
+# LangChain core is a mature framework that should have very few findings
+# Any findings here are likely legitimate patterns to review
+vulnerabilities:
+  - id: "T13-TP-001"
+    file: "langchain_core/utils/function_calling.py"
+    line_range: [1, 500]
+    rule_expected: "AGENT-026"
+    severity: "MEDIUM"
+    description: "Tool input handling patterns that pass through to user code"
+    taint:
+      source:
+        type: "tool_input"
+        location: "function_calling.py:~100"
+        code: "Tool argument processing"
+      sink:
+        type: "callback_invocation"
+        location: "function_calling.py:~200"
+      sanitizer:
+        location: "function_calling.py"
+        code: "Input validation in framework"
+        effective: true
+        note: "Framework provides validation hooks, effectiveness depends on user implementation"
+    impact:
+      primary: "RCE"
+      blast_radius: "user_code"
+    taxonomy_override:
+      set_class: "A"
+      owasp_asi: "ASI-02"
+    confidence: "low"
+    needs_review: true
+    note: "This may be a design pattern rather than vulnerability"
+
+# Safe patterns (FP traps) - LangChain has many patterns that look dangerous but are safe
+safe_patterns:
+  - id: "T13-FP-001"
+    file: "langchain_core/prompts/*.py"
+    description: "Prompt template definitions"
+    trap_type: "template_definition"
+    note: "Prompt templates are not injection unless user input flows in unsafely"
+
+  - id: "T13-FP-002"
+    file: "langchain_core/messages/*.py"
+    description: "Message type definitions"
+    trap_type: "type_definition"
+
+  - id: "T13-FP-003"
+    file: "langchain_core/runnables/*.py"
+    description: "Runnable chain definitions"
+    trap_type: "framework_abstraction"
+
+  - id: "T13-FP-004"
+    file: "langchain_core/callbacks/*.py"
+    description: "Callback handler definitions"
+    trap_type: "callback_pattern"
+
+  - id: "T13-FP-005"
+    file: "langchain_core/output_parsers/*.py"
+    description: "Output parser definitions - parsing LLM output is not inherently dangerous"
+    trap_type: "parser_definition"
+
+  - id: "T13-FP-006"
+    file: "tests/**/*.py"
+    description: "Test files with mock data"
+    trap_type: "test_file"
+
+  - id: "T13-FP-007"
+    file: "langchain_core/memory/*.py"
+    description: "Memory class definitions using standard patterns"
+    trap_type: "framework_memory_pattern"
+    note: "Memory storage is safe if properly implemented"
+
+  - id: "T13-FP-008"
+    file: "langchain_core/tools/*.py"
+    description: "Tool base class definitions"
+    trap_type: "base_class_definition"
+
+# Noise ceiling
+noise_ceiling:
+  max_warn_plus_findings: 10
+  max_total_findings: 50
+  note: "Mature framework should have minimal findings in core library"
+
+# Expected behavior
+expected_behavior:
+  description: |
+    LangChain core is a well-maintained framework. We expect:
+    - Very few CRITICAL/HIGH findings (< 5)
+    - Most findings should be MEDIUM or lower
+    - Many potential FPs due to framework patterns
+    - Memory patterns should be suppressed by allowlist
+
+  acceptable_fp_categories:
+    - "Framework callback patterns"
+    - "Template definitions"
+    - "Base class abstractions"
+    - "Memory implementations using standard patterns"

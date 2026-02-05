@@ -59,6 +59,22 @@ agent-audit scan . --fail-on critical
 agent-audit inspect stdio -- npx -y @modelcontextprotocol/server-filesystem /tmp
 ```
 
+### Development / Local Package | 开发模式
+
+When contributing or validating changes, run the local package instead of the installed one:
+
+```bash
+cd packages/audit
+
+# Option A: Editable install
+pip install -e .
+
+# Option B: PYTHONPATH (no install)
+PYTHONPATH="$(pwd):$PYTHONPATH" python -m agent_audit scan /path/to/target
+```
+
+> Without this, `agent-audit` may use an older global install (e.g. v0.2.0) instead of v0.5.x.
+
 ## 🔗 GitHub Action
 
 Add Agent Audit to your CI/CD pipeline | 添加到你的 CI/CD 流程：

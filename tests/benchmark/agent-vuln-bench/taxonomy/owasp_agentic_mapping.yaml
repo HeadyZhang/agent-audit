@@ -1,0 +1,140 @@
+# OWASP Agentic Top 10 → Set A/B/C Mapping
+# Agent-Vuln-Bench Taxonomy v1.0
+# Date: 2026-02-04
+
+version: "1.0"
+
+sets:
+  A:
+    name: "Injection & RCE"
+    description: "Prompt injection leading to code execution, command injection, SSRF"
+    owasp_asi:
+      - "ASI-01"  # Agent Goal Hijack
+      - "ASI-02"  # Tool Misuse and Exploitation
+    rules:
+      - AGENT-010  # unsanitized_tool_args
+      - AGENT-011  # prompt_injection_vector
+      - AGENT-026  # tool_input_unsanitized
+      - AGENT-027  # system_prompt_injectable
+      - AGENT-034  # unsafe_tool_construction (eval/exec)
+      - AGENT-036  # shell_command_injection
+      - AGENT-037  # network_request_ssrf
+    expected_advantage: "agent-audit >> Bandit/Semgrep (理解 Agent tool 调用链)"
+
+  B:
+    name: "MCP & Component Risks"
+    description: "MCP misconfig, path traversal, extension isolation, supply chain"
+    owasp_asi:
+      - "ASI-04"  # Agentic Supply Chain Vulnerabilities
+      - "ASI-06"  # Memory and Context Poisoning
+      - "ASI-07"  # Insecure Inter-Agent Communication
+    rules:
+      - AGENT-015  # unverified_tool_source
+      - AGENT-016  # dependency_confusion_risk
+      - AGENT-018  # memory_injection_vector
+      - AGENT-019  # memory_retrieval_no_validation
+      - AGENT-020  # inter_agent_no_auth
+      - AGENT-029  # mcp_tool_over_permissive
+      - AGENT-030  # mcp_no_confirm
+      - AGENT-031  # mcp_server_wide_access
+      - AGENT-032  # mcp_no_tls
+      - AGENT-033  # mcp_env_exposed
+      - AGENT-035  # unrestricted_file_access
+      - AGENT-048  # extension_no_permission_boundary
+    expected_advantage: "agent-audit >> all (无竞品理解 MCP 协议)"
+
+  C:
+    name: "Data & Auth"
+    description: "Hardcoded secrets, over-privileged agents, credential store access, data leakage"
+    owasp_asi:
+      - "ASI-03"  # Identity and Privilege Abuse
+      - "ASI-05"  # Unexpected Code Execution
+      - "ASI-08"  # Cascading Failures
+      - "ASI-09"  # Human-Agent Trust Exploitation
+      - "ASI-10"  # Rogue Agents
+    rules:
+      - AGENT-004  # hardcoded_credentials
+      - AGENT-013  # excessive_permissions
+      - AGENT-014  # identity_spoofing
+      - AGENT-017  # code_execution_sink
+      - AGENT-021  # no_circuit_breaker
+      - AGENT-022  # unbounded_iteration
+      - AGENT-023  # human_approval_bypass
+      - AGENT-024  # autonomous_decision_no_log
+      - AGENT-025  # self_modification_capability
+      - AGENT-039  # logging_sensitive_data
+      - AGENT-043  # daemon_privilege_escalation
+      - AGENT-044  # sudoers_nopasswd_config
+      - AGENT-045  # browser_automation_unsandboxed
+      - AGENT-046  # system_credential_store_access
+      - AGENT-047  # subprocess_execution_unsandboxed
+      - AGENT-049  # codesign_entitlement_risk
+      - AGENT-050  # agent_self_modification
+      - AGENT-051  # network_listener_exposure
+      - AGENT-052  # multi_channel_token_aggregation
+    expected_advantage: "Set C-credentials: agent-audit ≈ Bandit/Semgrep; Set C-privilege: agent-audit >> all"
+
+# Reverse mapping: rule_id → set
+rule_to_set_map:
+  # Set A - Injection & RCE
+  AGENT-010: "A"
+  AGENT-011: "A"
+  AGENT-026: "A"
+  AGENT-027: "A"
+  AGENT-034: "A"
+  AGENT-036: "A"
+  AGENT-037: "A"
+  # Set B - MCP & Component
+  AGENT-015: "B"
+  AGENT-016: "B"
+  AGENT-018: "B"
+  AGENT-019: "B"
+  AGENT-020: "B"
+  AGENT-029: "B"
+  AGENT-030: "B"
+  AGENT-031: "B"
+  AGENT-032: "B"
+  AGENT-033: "B"
+  AGENT-035: "B"
+  AGENT-048: "B"
+  # Set C - Data & Auth
+  AGENT-004: "C"
+  AGENT-013: "C"
+  AGENT-014: "C"
+  AGENT-017: "C"
+  AGENT-021: "C"
+  AGENT-022: "C"
+  AGENT-023: "C"
+  AGENT-024: "C"
+  AGENT-025: "C"
+  AGENT-039: "C"
+  AGENT-043: "C"
+  AGENT-044: "C"
+  AGENT-045: "C"
+  AGENT-046: "C"
+  AGENT-047: "C"
+  AGENT-049: "C"
+  AGENT-050: "C"
+  AGENT-051: "C"
+  AGENT-052: "C"
+
+# ASI ID to Set mapping
+asi_to_set_map:
+  ASI-01: "A"
+  ASI-02: "A"
+  ASI-03: "C"
+  ASI-04: "B"
+  ASI-05: "C"
+  ASI-06: "B"
+  ASI-07: "B"
+  ASI-08: "C"
+  ASI-09: "C"
+  ASI-10: "C"
+
+# Expected comparison matrix
+expected_comparison:
+  # Recall by Set: [Set A, Set B, Set C]
+  agent_audit: ["HIGH", "HIGH", "HIGH"]
+  bandit: ["LOW", "NONE", "MEDIUM"]
+  semgrep: ["MEDIUM", "LOW", "MEDIUM"]
+  codeql: ["MEDIUM", "NONE", "HIGH"]

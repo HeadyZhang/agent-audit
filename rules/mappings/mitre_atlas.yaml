@@ -1,0 +1,249 @@
+# MITRE ATLAS Mapping for agent-audit rules
+# Reference: https://atlas.mitre.org/matrices/ATLAS
+
+version: "1.0"
+atlas_version: "4.5.2"
+created: "2026-02-04"
+
+mappings:
+
+  # =============================================================================
+  # ASI-01: Goal Hijack
+  # =============================================================================
+  AGENT-010:
+    atlas_id: "AML.T0051"
+    technique: "LLM Prompt Injection"
+    tactic: "ML Attack Staging"
+    sub_techniques:
+      - "AML.T0051.000: Direct Prompt Injection"
+      - "AML.T0051.001: Indirect Prompt Injection"
+    references:
+      - "https://atlas.mitre.org/techniques/AML.T0051"
+
+  AGENT-011:
+    atlas_id: "AML.T0051"
+    technique: "LLM Prompt Injection"
+    tactic: "ML Attack Staging"
+    notes: "Missing goal boundaries enable prompt injection"
+
+  # =============================================================================
+  # ASI-02: Tool Misuse
+  # =============================================================================
+  AGENT-001:
+    atlas_id: "AML.T0043"
+    technique: "Craft Adversarial Data"
+    tactic: "ML Attack Staging"
+    related:
+      - "T1059: Command and Scripting Interpreter"  # ATT&CK
+    notes: "Command injection through malicious tool input"
+
+  AGENT-026:
+    atlas_id: "AML.T0043"
+    technique: "Craft Adversarial Data"
+    tactic: "ML Attack Staging"
+    related:
+      - "T1071: Application Layer Protocol"  # ATT&CK for SSRF
+    notes: "SSRF via tool input"
+
+  AGENT-027:
+    atlas_id: "AML.T0043"
+    technique: "Craft Adversarial Data"
+    tactic: "ML Attack Staging"
+    notes: "Tool input validation bypass"
+
+  AGENT-034:
+    atlas_id: "AML.T0043"
+    technique: "Craft Adversarial Data"
+    tactic: "ML Attack Staging"
+    notes: "Unvalidated tool input"
+
+  AGENT-035:
+    atlas_id: "AML.T0040"
+    technique: "ML Supply Chain Compromise"
+    tactic: "Initial Access"
+    notes: "Code execution in agent context"
+
+  AGENT-041:
+    atlas_id: "AML.T0043"
+    technique: "Craft Adversarial Data"
+    tactic: "ML Attack Staging"
+    related:
+      - "T1190: Exploit Public-Facing Application"  # ATT&CK for SQL injection
+    notes: "SQL injection via tool input"
+
+  # =============================================================================
+  # ASI-03: Privilege Abuse
+  # =============================================================================
+  AGENT-013:
+    atlas_id: "AML.T0037"
+    technique: "Data from Information Repositories"
+    tactic: "Collection"
+    related:
+      - "T1552: Unsecured Credentials"  # ATT&CK
+    notes: "Credential exposure enables data access"
+
+  AGENT-014:
+    atlas_id: "AML.T0025"
+    technique: "Exfiltration via ML Inference API"
+    tactic: "Exfiltration"
+    notes: "Excessive permissions enable data exfiltration"
+
+  # =============================================================================
+  # ASI-04: Supply Chain
+  # =============================================================================
+  AGENT-015:
+    atlas_id: "AML.T0040"
+    technique: "ML Supply Chain Compromise"
+    tactic: "Initial Access"
+    sub_techniques:
+      - "AML.T0040.000: Publish Poisoned Model"
+      - "AML.T0040.001: Poison Training Data"
+    notes: "Untrusted package import is supply chain risk"
+
+  AGENT-016:
+    atlas_id: "AML.T0020"
+    technique: "Poison Training Data"
+    tactic: "ML Attack Staging"
+    notes: "Unvalidated RAG data = training data poisoning"
+
+  AGENT-029:
+    atlas_id: "AML.T0040"
+    technique: "ML Supply Chain Compromise"
+    tactic: "Initial Access"
+    notes: "Overly broad MCP filesystem access"
+
+  AGENT-030:
+    atlas_id: "AML.T0040"
+    technique: "ML Supply Chain Compromise"
+    tactic: "Initial Access"
+    notes: "Unverified MCP server"
+
+  AGENT-031:
+    atlas_id: "AML.T0037"
+    technique: "Data from Information Repositories"
+    tactic: "Collection"
+    notes: "Sensitive env var exposure via MCP"
+
+  AGENT-032:
+    atlas_id: "AML.T0040"
+    technique: "ML Supply Chain Compromise"
+    tactic: "Initial Access"
+    notes: "MCP transport security"
+
+  AGENT-033:
+    atlas_id: "AML.T0040"
+    technique: "ML Supply Chain Compromise"
+    tactic: "Initial Access"
+    notes: "MCP config validation"
+
+  # =============================================================================
+  # ASI-05: RCE
+  # =============================================================================
+  AGENT-017:
+    atlas_id: "AML.T0044"
+    technique: "Full ML Model Access"
+    tactic: "ML Model Access"
+    related:
+      - "T1059: Command and Scripting Interpreter"  # ATT&CK
+    notes: "RCE is highest severity - full system compromise"
+
+  # =============================================================================
+  # ASI-06: Memory Poisoning
+  # =============================================================================
+  AGENT-018:
+    atlas_id: "AML.T0020"
+    technique: "Poison Training Data"
+    tactic: "ML Attack Staging"
+    notes: "Persistent memory poisoning via vectorstore"
+
+  AGENT-019:
+    atlas_id: "AML.T0020"
+    technique: "Poison Training Data"
+    tactic: "ML Attack Staging"
+    notes: "Unbounded memory enables context overflow"
+
+  # =============================================================================
+  # ASI-07: Inter-Agent
+  # =============================================================================
+  AGENT-020:
+    atlas_id: "AML.T0024"
+    technique: "Exfiltration via Cyber Means"
+    tactic: "Exfiltration"
+    related:
+      - "T1071: Application Layer Protocol"  # ATT&CK
+    notes: "Insecure inter-agent communication"
+
+  # =============================================================================
+  # ASI-08: Cascading Failures
+  # =============================================================================
+  AGENT-021:
+    atlas_id: "AML.T0048"
+    technique: "Denial of ML Service"
+    tactic: "Impact"
+    notes: "Infinite loops = DoS"
+
+  AGENT-022:
+    atlas_id: "AML.T0048"
+    technique: "Denial of ML Service"
+    tactic: "Impact"
+    notes: "Unhandled errors cause cascading failures"
+
+  AGENT-028:
+    atlas_id: "AML.T0048"
+    technique: "Denial of ML Service"
+    tactic: "Impact"
+    notes: "LangChain iteration limits"
+
+  # =============================================================================
+  # ASI-09: Trust Exploitation
+  # =============================================================================
+  AGENT-023:
+    atlas_id: "AML.T0047"
+    technique: "ML Intellectual Property Theft"
+    tactic: "Impact"
+    notes: "Opaque outputs hide malicious actions"
+
+  AGENT-036:
+    atlas_id: "AML.T0047"
+    technique: "ML Intellectual Property Theft"
+    tactic: "Impact"
+    notes: "Tool output manipulation"
+
+  AGENT-037:
+    atlas_id: "AML.T0025"
+    technique: "Exfiltration via ML Inference API"
+    tactic: "Exfiltration"
+    notes: "Missing human approval for sensitive actions"
+
+  AGENT-038:
+    atlas_id: "AML.T0047"
+    technique: "ML Intellectual Property Theft"
+    tactic: "Impact"
+    notes: "Impersonation for social engineering"
+
+  AGENT-039:
+    atlas_id: "AML.T0047"
+    technique: "ML Intellectual Property Theft"
+    tactic: "Impact"
+    notes: "Trust boundary violations"
+
+  # =============================================================================
+  # ASI-10: Rogue Agents
+  # =============================================================================
+  AGENT-024:
+    atlas_id: "AML.T0048"
+    technique: "Denial of ML Service"
+    tactic: "Impact"
+    notes: "No kill switch = uncontrolled agent"
+
+  AGENT-025:
+    atlas_id: "AML.T0044"
+    technique: "Full ML Model Access"
+    tactic: "ML Model Access"
+    notes: "No monitoring = undetected rogue behavior"
+
+  AGENT-040:
+    atlas_id: "AML.T0048"
+    technique: "Denial of ML Service"
+    tactic: "Impact"
+    notes: "Rogue agent detection"

@@ -13,6 +13,7 @@ from agent_audit.rules.engine import RuleEngine
 from agent_audit.scanners.python_scanner import PythonScanner
 from agent_audit.scanners.mcp_config_scanner import MCPConfigScanner
 from agent_audit.scanners.secret_scanner import SecretScanner
+from agent_audit.scanners.privilege_scanner import PrivilegeScanner
 from agent_audit.config.ignore import (
     IgnoreManager, load_baseline, filter_by_baseline, save_baseline
 )
@@ -32,7 +33,9 @@ def run_scan(
     save_baseline_path: Optional[Path] = None,
     rules_dir: Optional[Path] = None,
     verbose: bool = False,
-    quiet: bool = False
+    quiet: bool = False,
+    min_tier: Optional[str] = None,
+    no_color: bool = False
 ) -> int:
     """
     Run the security scan.
@@ -53,6 +56,7 @@ def run_scan(
     python_scanner = PythonScanner(exclude_patterns=exclude_patterns)
     mcp_scanner = MCPConfigScanner()
     secret_scanner = SecretScanner(exclude_paths=exclude_patterns)
+    privilege_scanner = PrivilegeScanner(exclude_patterns=exclude_patterns)
 
     # Initialize rule engine
     rule_engine = RuleEngine()
@@ -143,6 +147,49 @@ def run_scan(
         mcp_findings = rule_engine.evaluate_mcp_config(server_dicts, mcp_result.source_file)
         all_findings.extend(mcp_findings)
 
+        # v0.3.0: Process security findings from enhanced MCP scanner
+        for sec_finding in mcp_result.security_findings:
+            from agent_audit.models.risk import Location, Category
+            from agent_audit.models.finding import Remediation
+
+            # Map severity string to Severity enum
+            severity_map = {
+                'critical': Severity.CRITICAL,
+                'high': Severity.HIGH,
+                'medium': Severity.MEDIUM,
+                'low': Severity.LOW,
+            }
+            severity = severity_map.get(sec_finding.severity, Severity.MEDIUM)
+
+            # Map finding type to Category
+            category_map = {
+                'mcp_overly_broad_filesystem': Category.TOOL_MISUSE,
+                'mcp_unverified_server_source': Category.SUPPLY_CHAIN_AGENTIC,
+                'mcp_sensitive_env_exposure': Category.CREDENTIAL_EXPOSURE,
+                'mcp_stdio_no_sandbox': Category.TOOL_MISUSE,
+                'mcp_missing_auth': Category.TRUST_EXPLOITATION,
+            }
+            category = category_map.get(sec_finding.finding_type, Category.SUPPLY_CHAIN)
+
+            finding = Finding(
+                rule_id=sec_finding.rule_id,
+                title=sec_finding.finding_type.replace('_', ' ').title(),
+                description=sec_finding.description,
+                severity=severity,
+                category=category,
+                location=Location(
+                    file_path=mcp_result.source_file,
+                    start_line=sec_finding.line,
+                    end_line=sec_finding.line,
+                    snippet=sec_finding.snippet
+                ),
+                owasp_id=sec_finding.owasp_id,
+                remediation=Remediation(
+                    description=f"Review and secure the MCP server configuration for '{sec_finding.server_name}'"
+                )
+            )
+            all_findings.append(finding)
+
     # Run secret scanner
     if not quiet and output_format == "terminal":
         console.print("[dim]Scanning for secrets...[/dim]")
@@ -151,7 +198,11 @@ def run_scan(
     for secret_result in secret_results:
         for secret in secret_result.secrets:
             from agent_audit.models.risk import Location, Category
-            from agent_audit.models.finding import Remediation
+            from agent_audit.models.finding import Remediation, confidence_to_tier
+
+            # v0.5.1: Use semantic analysis results for confidence and tier
+            confidence = secret.confidence if hasattr(secret, 'confidence') else 1.0
+            tier = secret.tier if hasattr(secret, 'tier') else confidence_to_tier(confidence)
 
             finding = Finding(
                 rule_id="AGENT-004",
@@ -169,11 +220,21 @@ def run_scan(
                     snippet=secret.line_content
                 ),
                 cwe_id="CWE-798",
+                owasp_id="ASI-04",  # Supply Chain Vulnerabilities
+                confidence=confidence,
+                tier=tier,
                 remediation=Remediation(
                     description="Use environment variables or a secrets manager"
                 )
             )
             all_findings.append(finding)
+
+    # Run privilege scanner (AGENT-043~048)
+    if not quiet and output_format == "terminal":
+        console.print("[dim]Scanning for privilege issues...[/dim]")
+
+    privilege_findings = privilege_scanner.scan_and_convert(path)
+    all_findings.extend(privilege_findings)
 
     # Apply ignore rules
     for finding in all_findings:
@@ -209,7 +270,9 @@ def run_scan(
             str(path),
             scanned_files,
             verbose=verbose,
-            quiet=quiet
+            quiet=quiet,
+            min_tier=min_tier,
+            no_color=no_color
         )
     elif output_format == "json":
         from agent_audit.cli.formatters.json import format_json
@@ -302,10 +365,17 @@ def _output_markdown(findings: List[Finding], scan_path: str, output_path: Optio
               help='Baseline file - only report new findings')
 @click.option('--save-baseline', type=click.Path(),
               help='Save current findings as baseline')
+@click.option('--min-tier',
+              type=click.Choice(['BLOCK', 'WARN', 'INFO', 'SUPPRESSED'], case_sensitive=False),
+              default=None,
+              help='Minimum tier to display (default: WARN, or INFO with --verbose)')
+@click.option('--no-color', is_flag=True, default=False,
+              help='Disable colored output (for CI/CD environments)')
 @click.pass_context
 def scan(ctx: click.Context, path: str, output_format: str, output: Optional[str],
          severity: str, rules: tuple, rules_dir: Optional[str], fail_on: str,
-         baseline: Optional[str], save_baseline: Optional[str]):
+         baseline: Optional[str], save_baseline: Optional[str],
+         min_tier: Optional[str], no_color: bool):
     """
     Scan agent code and configurations for security issues.
 
@@ -334,7 +404,9 @@ def scan(ctx: click.Context, path: str, output_format: str, output: Optional[str
         save_baseline_path=Path(save_baseline) if save_baseline else None,
         rules_dir=Path(rules_dir) if rules_dir else None,
         verbose=ctx.obj.get('verbose', False),
-        quiet=ctx.obj.get('quiet', False)
+        quiet=ctx.obj.get('quiet', False),
+        min_tier=min_tier.upper() if min_tier else None,
+        no_color=no_color
     )
 
     ctx.exit(exit_code)

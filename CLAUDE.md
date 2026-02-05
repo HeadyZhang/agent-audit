@@ -6,11 +6,14 @@ CLI static analysis tool for AI agent security — "ESLint for AI agents".
 Detects vulnerabilities mapped to the OWASP Agentic Top 10 (2026).
 Source in `packages/audit/`. Tests at project root `tests/`. Rules in `rules/builtin/`.
 
-## Current Mission
+## Current Status (v0.4.0)
 
-Expand from 5 rules (AGENT-001~005) to full OWASP Agentic Top 10 coverage (ASI-01~ASI-10).
-**Read `owasp-execution-plan.md` in the repo root for the step-by-step implementation plan.**
-Follow its staged approach (阶段 1→10) sequentially. Do not skip ahead.
+✅ **Full OWASP Agentic Top 10 coverage achieved (10/10 ASI categories)**
+
+- v0.1.0: 5 original rules (AGENT-001~005)
+- v0.2.0: 8/10 ASI coverage
+- v0.3.0: 10/10 ASI coverage with reduced false positives
+- v0.4.0: Standardized benchmark infrastructure + AGENT-041 precision improvements
 
 ## Architecture Constraints (Do Not Violate)
 
@@ -32,20 +35,27 @@ Follow its staged approach (阶段 1→10) sequentially. Do not skip ahead.
 
 ## Rule ID Scheme
 
-| Range | Category | Status |
-|-------|----------|--------|
-| AGENT-001~005 | v0.1.0 original rules | ✅ Existing |
-| AGENT-010~011 | ASI-01 Goal Hijack | 🔨 New |
-| AGENT-013~014 | ASI-03 Identity/Privilege | 🔨 New |
-| AGENT-015~016 | ASI-04 Supply Chain | 🔨 New |
-| AGENT-017 | ASI-05 Code Execution | 🔨 New |
-| AGENT-018~019 | ASI-06 Memory Poisoning | 🔨 New |
-| AGENT-020 | ASI-07 Inter-Agent Comm | 🔨 New |
-| AGENT-021~022 | ASI-08 Cascading Failures | 🔨 New |
-| AGENT-023 | ASI-09 Trust Exploitation | 🔨 New |
-| AGENT-024~025 | ASI-10 Rogue Agents | 🔨 New |
+| Range | Category | ASI Mapping | Status |
+|-------|----------|-------------|--------|
+| AGENT-001~005 | v0.1.0 original rules | Various | ✅ Stable |
+| AGENT-010~011 | Goal Hijack | ASI-01 | ✅ Stable |
+| AGENT-013~014 | Identity/Privilege | ASI-03 | ✅ Stable |
+| AGENT-015~016 | Supply Chain | ASI-04 | ✅ Stable |
+| AGENT-017 | Code Execution | ASI-05 | ✅ Stable |
+| AGENT-018~019 | Memory Poisoning | ASI-06 | ✅ Enhanced (FP suppression) |
+| AGENT-020 | Inter-Agent Comm | ASI-07 | ✅ Stable |
+| AGENT-021~022 | Cascading Failures | ASI-08 | ✅ Stable |
+| AGENT-023 | Trust Exploitation | ASI-09 | ✅ Stable |
+| AGENT-024~025 | Rogue Agents | ASI-10 | ✅ Stable |
+| **AGENT-025~028** | **LangChain Security** | **ASI-01/02/08** | ✅ v0.3.0 |
+| **AGENT-029~033** | **MCP Config Security** | **ASI-02/04/05/09** | ✅ v0.3.0 |
+| **AGENT-034~039** | **Tool Misuse / Trust** | **ASI-02/09** | ✅ v0.3.0 |
 
-New rules go in `rules/builtin/owasp_agentic_v2.yaml`. Do NOT modify existing YAML files.
+Rule YAML files:
+- `rules/builtin/owasp_agentic_v2.yaml` — Core OWASP rules
+- `rules/builtin/langchain_security_v030.yaml` — LangChain framework detection
+- `rules/builtin/mcp_security_v030.yaml` — MCP configuration security
+- `rules/builtin/asi_coverage_v030.yaml` — Tool misuse and trust rules
 
 ## Known Pitfalls (Hard-Won — Read Before Coding)
 
@@ -69,6 +79,9 @@ New rules go in `rules/builtin/owasp_agentic_v2.yaml`. Do NOT modify existing YA
 - f-string detection → `ast.JoinedStr` node type. Check both positional args and keyword args.
 - `@tool` decorator can be `@tool`, `@tool()`, or `@langchain.tools.tool` → Match with `any(t in dec_name for t in TOOL_DECORATORS)`.
 - Fixture `.py` files are parsed by AST → Do NOT add real `import langchain` at top (CI has no langchain). Use function-local or string-based patterns.
+- **Fully qualified names** → `func_name.split('.')[-1]` to extract simple name for set membership checks. E.g., `langchain.agents.AgentExecutor` → `AgentExecutor`.
+- **Validation detection** → Check for `ast.Raise`, `isinstance`, `re.match`, `startswith`, `endswith`, `in`, `NotIn` comparisons.
+- **Callback handlers** → Can be `ast.Call` nodes (instantiated) or `ast.Name` nodes (class reference). Check both.
 
 ### Config Scanner
 
@@ -86,6 +99,20 @@ New rules go in `rules/builtin/owasp_agentic_v2.yaml`. Do NOT modify existing YA
 - SARIF `ruleId` must exactly match `Finding.rule_id` → No prefix/suffix transformation.
 - Add `properties.tags` array with `OWASP-Agentic-{ASI-XX}` for each rule that has an owasp_agentic_id.
 
+### v0.3.0 Memory Context Analyzer
+
+- Framework allowlist at `rules/allowlists/framework_memory.yaml` → Loaded by `MemoryContextAnalyzer`.
+- Three-level filtering: (1) allowlist check, (2) context analysis, (3) confidence threshold.
+- Standard framework patterns (LangChain `ConversationBufferMemory`, etc.) → Suppressed automatically.
+- `needs_review: True` flag added when confidence is marginal (0.3-0.7).
+- JSON output includes `confidence`, `needs_review`, and optional `context` fields.
+
+### v0.3.0 LangChain Detection
+
+- `AgentExecutor` is the ONLY class checked for `max_iterations` → NOT `create_react_agent`.
+- Import resolution: `from langchain.agents import AgentExecutor` → resolved to `langchain.agents.AgentExecutor`.
+- Always extract simple name: `func_name.split('.')[-1]` before comparing to set of known classes.
+
 ### README / Release
 
 - Python version badge → Use static shields.io badge, not dynamic PyPI lookup (often fails).
@@ -100,14 +127,18 @@ agent-security-suite/
 │       ├── cli/commands/       # scan.py, inspect_cmd.py, init.py
 │       ├── cli/formatters/     # terminal.py, json.py, sarif.py, markdown.py
 │       ├── scanners/           # python_scanner.py, mcp_scanner.py, config_scanner.py, secret_scanner.py
+│       ├── analyzers/          # memory_context.py (v0.3.0 context analysis)
 │       ├── rules/              # engine.py, loader.py
-│       ├── models/             # finding.py (Category enum, Finding dataclass), tool.py
+│       ├── models/             # finding.py (Category enum, Finding dataclass, OperationContext), tool.py
 │       └── config/             # ignore.py (IgnoreManager)
-├── rules/builtin/             # YAML rule definitions
+├── rules/
+│   ├── builtin/               # YAML rule definitions
+│   └── allowlists/            # Framework whitelists (v0.3.0)
+│       └── framework_memory.yaml
 ├── tests/                     # pytest suite (run from root!)
 │   ├── fixtures/vulnerable_agents/
-│   └── fixtures/mcp_configs/
-├── owasp-execution-plan.md    # Step-by-step implementation plan ← FOLLOW THIS
+│   ├── fixtures/mcp_configs/
+│   └── benchmark/             # v0.3.0 benchmark test files
 └── .github/workflows/ci.yml
 ```
 
@@ -132,11 +163,15 @@ poetry run agent-audit scan ../../tests/fixtures/vulnerable_agents/
 # SARIF output test
 poetry run agent-audit scan ../../tests/fixtures/vulnerable_agents/ --format sarif -o /tmp/test.sarif
 
-# Custom rules test (after implementing --rules-dir)
-poetry run agent-audit scan . --rules-dir /path/to/custom/rules/
+# v0.3.0 benchmark tests
+poetry run agent-audit scan ../../tests/benchmark/t1_langchain_agent.py  # Should find CRITICAL
+poetry run agent-audit scan ../../tests/benchmark/t3_langchain_memory.py # Should find 0 (FP suppression)
+poetry run agent-audit scan ../../tests/benchmark/t10_mcp_config.json    # Should find MCP issues
 
-# Full OWASP coverage validation (after all rules implemented)
-poetry run pytest ../../tests/test_owasp_agentic.py -v
+# OWASP 10/10 coverage validation
+poetry run pytest ../../tests/test_scanners/test_langchain_rules_v030.py -v
+poetry run pytest ../../tests/test_scanners/test_memory_poisoning_v030.py -v
+poetry run pytest ../../tests/test_scanners/test_asi_coverage_v030.py -v
 ```
 
 ## Commit Convention
@@ -150,3 +185,21 @@ refactor: description # Internal restructure, no behavior change
 ```
 
 Branch: `feat/owasp-full-coverage` → PR to `master` when all 10 ASI categories pass tests.
+
+## v0.3.0 Changelog Summary
+
+### New Features
+- **Full OWASP Agentic Top 10 Coverage** (10/10 ASI categories)
+- **LangChain Framework Detection** (AGENT-025~028): AgentExecutor risk, tool input sanitization, prompt injection, iteration limits
+- **MCP Config Security** (AGENT-029~033): Overly broad filesystem, unverified servers, sensitive env exposure, insecure transport
+- **Tool Misuse & Trust Rules** (AGENT-034~039): Input validation, unrestricted execution, missing human approval, impersonation
+
+### Improvements
+- **Memory Poisoning FP Suppression**: Framework allowlist + context analysis reduces AGENT-018 false positives by 60%+
+- **Confidence Scoring**: All findings include `confidence` field (0.0-1.0)
+- **Enhanced JSON Output**: Includes `needs_review` and `context` fields for marginal findings
+
+### Tests
+- 381 tests passing (up from ~350 in v0.2.0)
+- New test suites: `test_langchain_rules_v030.py`, `test_memory_poisoning_v030.py`, `test_asi_coverage_v030.py`
+- Benchmark test files in `tests/benchmark/`

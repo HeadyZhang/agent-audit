@@ -1,0 +1,108 @@
+# Oracle Ground Truth for WILD-002
+# Web Fetcher Tool with SSRF vulnerability
+# Agent-Vuln-Bench v1.0
+
+metadata:
+  sample_id: "WILD-002"
+  source: "GitHub agent web tool pattern"
+  commit: "n/a"
+  language: "python"
+  provenance: "wild"
+  license: "MIT"
+  date_collected: "2026-02-04"
+  collection_method: "Pattern extraction from agent browsing implementations"
+  note: "Common pattern in research agents and RAG applications"
+
+taxonomy:
+  set_class: "A"
+  owasp_asi: "ASI-02"
+  cwe_id: "CWE-918"
+
+vulnerabilities:
+  - id: "VULN-001"
+    file: "web_fetcher_tool.py"
+    line: 55
+    rule_expected: "AGENT-037"
+    severity: "HIGH"
+    description: "No URL validation enables SSRF attacks"
+    taint:
+      source:
+        type: "llm_output"
+        location: "web_fetcher_tool.py:39"
+        code: "def fetch_url(url: str) -> str:"
+        note: "url parameter comes from LLM's tool invocation"
+      propagation:
+        - step: 1
+          location: "web_fetcher_tool.py:55"
+          code: "# Direct pass to requests"
+      sink:
+        type: "network_request"
+        location: "web_fetcher_tool.py:55"
+        code: "response = requests_get(url, timeout=10)"
+      sanitizer: null
+    impact:
+      primary: "DataExfiltration"
+      secondary:
+        - "PrivilegeEscalation"
+      blast_radius: "service"
+
+  - id: "VULN-002"
+    file: "web_fetcher_tool.py"
+    line: 77
+    rule_expected: "AGENT-037"
+    severity: "HIGH"
+    description: "Headers from LLM output can be used for auth bypass or smuggling"
+    taint:
+      source:
+        type: "llm_output"
+        location: "web_fetcher_tool.py:61"
+        code: "def fetch_url_with_headers(url: str, headers: Optional[str] = None)"
+      propagation:
+        - step: 1
+          location: "web_fetcher_tool.py:71"
+          code: "parsed_headers = json.loads(headers)"
+      sink:
+        type: "network_request"
+        location: "web_fetcher_tool.py:77"
+        code: "response = requests_get(url, headers=parsed_headers, timeout=10)"
+      sanitizer: null
+    impact:
+      primary: "DataExfiltration"
+      blast_radius: "service"
+
+  - id: "VULN-003"
+    file: "web_fetcher_tool.py"
+    line: 109
+    rule_expected: "AGENT-036"
+    severity: "CRITICAL"
+    description: "Command injection via curl command arguments"
+    taint:
+      source:
+        type: "llm_output"
+        location: "web_fetcher_tool.py:99"
+        code: "def execute_curl(curl_command: str) -> str:"
+      sink:
+        type: "shell_execution"
+        location: "web_fetcher_tool.py:109"
+        code: "subprocess.run(f\"curl {curl_command}\", shell=True, ...)"
+      sanitizer: null
+    impact:
+      primary: "RCE"
+      secondary:
+        - "DataExfiltration"
+      blast_radius: "full_system"
+
+safe_patterns:
+  - id: "SAFE-001"
+    file: "web_fetcher_tool.py"
+    line: 17
+    code: "class MockResponse:"
+    description: "Mock class for testing — not a vulnerability"
+    trap_type: "test_mock"
+
+  - id: "SAFE-002"
+    file: "web_fetcher_tool.py"
+    line: 7
+    code: "from urllib.parse import urlparse"
+    description: "URL parsing import — could be used for validation but isn't"
+    trap_type: "unused_safe_import"

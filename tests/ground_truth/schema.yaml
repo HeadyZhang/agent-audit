@@ -1,0 +1,58 @@
+# Ground Truth Data Format Definition v2.2
+# Used for Precision/Recall/F1 evaluation of agent-audit
+
+version: "2.2"
+schema:
+  sample:
+    type: object
+    required: [file, vulnerabilities]
+    properties:
+      file:
+        type: string
+        description: "Relative path from tests/fixtures/"
+      vulnerabilities:
+        type: array
+        items:
+          type: object
+          required: [line, rule_id, is_true_positive]
+          properties:
+            line:
+              type: integer
+            rule_id:
+              type: string
+              pattern: "^AGENT-\\d{3}$"
+            is_true_positive:
+              type: boolean
+            owasp_id:
+              type: string
+              pattern: "^ASI-\\d{2}$"
+            confidence:
+              type: number
+              minimum: 0.0
+              maximum: 1.0
+            notes:
+              type: string
+            # v2.2 扩展字段 (可选)
+            expected_confidence_min:
+              type: number
+              minimum: 0.0
+              maximum: 1.0
+              description: "Expected minimum confidence score from scanner"
+            expected_confidence_max:
+              type: number
+              minimum: 0.0
+              maximum: 1.0
+              description: "Expected maximum confidence score from scanner"
+            expected_tier:
+              type: string
+              enum: ["BLOCK", "WARN", "INFO", "SUPPRESSED"]
+              description: "Expected severity tier classification"
+            benchmark_gap:
+              type: string
+              description: "Reference to known benchmark gap (e.g., Gap-1)"
+            agent_vuln_bench_link:
+              type: string
+              description: "Link to agent-vuln-bench test case (e.g., KNOWN-001)"
+      notes:
+        type: string
+        description: "Optional notes about the sample"
