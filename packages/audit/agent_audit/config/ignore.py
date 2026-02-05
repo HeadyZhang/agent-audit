@@ -53,7 +53,7 @@ class AllowlistConfig:
     # Ignore rules
     ignore_rules: List[IgnoreRule] = field(default_factory=list)
 
-    # Inline ignore marker (like # noqa)
+    # Inline ignore marker (similar to ruff/flake8 inline comments)
     inline_ignore_marker: str = "# noaudit"
 
     # Scan configuration

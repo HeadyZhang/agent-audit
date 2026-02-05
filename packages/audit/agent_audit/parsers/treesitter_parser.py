@@ -14,7 +14,7 @@ import re
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import List, Optional, Dict, Any, Sequence, Tuple
+from typing import List, Optional, Dict, Any, Tuple
 
 logger = logging.getLogger(__name__)
 

@@ -20,16 +20,8 @@ from typing import List, Optional, Dict, Any, Tuple
 
 from agent_audit.analysis.entropy import shannon_entropy, entropy_confidence
 from agent_audit.analysis.placeholder_detector import is_placeholder
-from agent_audit.analysis.value_analyzer import (
-    analyze_credential_value,
-    KNOWN_CREDENTIAL_FORMATS,
-    CredentialAnalysis,
-)
-from agent_audit.parsers.treesitter_parser import (
-    TreeSitterParser,
-    ValueType,
-    Assignment,
-)
+from agent_audit.analysis.value_analyzer import KNOWN_CREDENTIAL_FORMATS
+from agent_audit.parsers.treesitter_parser import TreeSitterParser, ValueType
 
 logger = logging.getLogger(__name__)
 

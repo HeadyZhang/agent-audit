@@ -22,7 +22,7 @@ import logging
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import List, Dict, Any, Optional, Set, Sequence
+from typing import List, Optional, Set, Sequence
 
 from agent_audit.models.finding import Finding, Remediation, confidence_to_tier
 from agent_audit.models.risk import Severity, Category, Location
