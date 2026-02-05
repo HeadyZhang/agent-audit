@@ -224,6 +224,58 @@ KNOWN_CREDENTIAL_FORMATS: List[CredentialFormat] = [
 ]
 
 
+# UUID format patterns for false positive detection
+UUID_PATTERNS: List[Tuple[re.Pattern, str, float]] = [
+    # Standard UUID with dashes: 8-4-4-4-12
+    (re.compile(r'^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$', re.I),
+     "Standard UUID", 0.98),
+    # Compact UUID: 32 hex chars without dashes
+    (re.compile(r'^[a-f0-9]{32}$', re.I),
+     "Compact UUID (32 hex)", 0.90),
+    # UUID with underscores (rare but exists)
+    (re.compile(r'^[a-f0-9]{8}_[a-f0-9]{4}_[a-f0-9]{4}_[a-f0-9]{4}_[a-f0-9]{12}$', re.I),
+     "UUID with underscores", 0.95),
+]
+
+
+@dataclass
+class UUIDAnalysis:
+    """Result of UUID format detection."""
+    is_uuid: bool
+    confidence: float
+    format_name: Optional[str] = None
+
+
+def detect_uuid_format(value: str) -> UUIDAnalysis:
+    """
+    Detect if a value matches UUID format patterns.
+
+    UUID format strings are commonly used as data identifiers (sample IDs,
+    scene tokens, etc.) and should NOT be flagged as credentials unless
+    there's strong contextual evidence.
+
+    Args:
+        value: String value to check
+
+    Returns:
+        UUIDAnalysis with detection result
+    """
+    if not value:
+        return UUIDAnalysis(is_uuid=False, confidence=0.0)
+
+    value = value.strip()
+
+    for pattern, name, confidence in UUID_PATTERNS:
+        if pattern.match(value):
+            return UUIDAnalysis(
+                is_uuid=True,
+                confidence=confidence,
+                format_name=name
+            )
+
+    return UUIDAnalysis(is_uuid=False, confidence=0.0)
+
+
 @dataclass
 class CredentialAnalysis:
     """Result of credential value analysis."""

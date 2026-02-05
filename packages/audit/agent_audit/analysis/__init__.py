@@ -10,6 +10,15 @@ from agent_audit.analysis.value_analyzer import (
     analyze_credential_value,
     CredentialAnalysis,
     KNOWN_CREDENTIAL_FORMATS,
+    detect_uuid_format,
+    UUIDAnalysis,
+)
+from agent_audit.analysis.identifier_analyzer import (
+    analyze_identifier,
+    identifier_suggests_credential,
+    identifier_suggests_data_id,
+    IdentifierAnalysis,
+    IdentifierCategory,
 )
 
 __all__ = [
@@ -21,4 +30,11 @@ __all__ = [
     "analyze_credential_value",
     "CredentialAnalysis",
     "KNOWN_CREDENTIAL_FORMATS",
+    "detect_uuid_format",
+    "UUIDAnalysis",
+    "analyze_identifier",
+    "identifier_suggests_credential",
+    "identifier_suggests_data_id",
+    "IdentifierAnalysis",
+    "IdentifierCategory",
 ]

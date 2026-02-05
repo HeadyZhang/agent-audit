@@ -20,7 +20,11 @@ from typing import List, Optional, Dict, Any, Tuple
 
 from agent_audit.analysis.entropy import shannon_entropy, entropy_confidence
 from agent_audit.analysis.placeholder_detector import is_placeholder
-from agent_audit.analysis.value_analyzer import KNOWN_CREDENTIAL_FORMATS
+from agent_audit.analysis.value_analyzer import KNOWN_CREDENTIAL_FORMATS, detect_uuid_format
+from agent_audit.analysis.identifier_analyzer import (
+    analyze_identifier,
+    IdentifierCategory,
+)
 from agent_audit.parsers.treesitter_parser import TreeSitterParser, ValueType
 
 logger = logging.getLogger(__name__)
@@ -438,6 +442,63 @@ class SemanticAnalyzer:
         context = candidate.context
         identifier = candidate.identifier
 
+        # === NEW: UUID Format Detection ===
+        # Check if value is UUID format BEFORE other analysis
+        uuid_analysis = detect_uuid_format(value)
+        if uuid_analysis.is_uuid:
+            # UUID detected - check identifier context
+            id_analysis = analyze_identifier(identifier)
+
+            if id_analysis.category == IdentifierCategory.DATA_IDENTIFIER:
+                # Strong signal: UUID + data identifier variable name
+                # This is almost certainly NOT a credential
+                return (
+                    False,
+                    0.05,
+                    f"UUID format ({uuid_analysis.format_name}) with data identifier "
+                    f"variable '{identifier}' ({id_analysis.reason})"
+                )
+
+            if id_analysis.category == IdentifierCategory.CREDENTIAL:
+                # UUID with credential variable name - unusual but possible
+                # Reduce confidence but don't suppress
+                return (
+                    True,
+                    0.5 * id_analysis.confidence_multiplier,
+                    f"UUID format with credential variable '{identifier}' - verify manually"
+                )
+
+            if id_analysis.category == IdentifierCategory.AMBIGUOUS:
+                # Ambiguous identifier with UUID - likely data token
+                # Apply moderate reduction
+                if identifier.lower() in ('token', 'tok', 't'):
+                    # Bare 'token' variable with UUID is almost always data
+                    return (
+                        True,
+                        0.15,
+                        f"UUID format with ambiguous variable '{identifier}' - likely data token"
+                    )
+                return (
+                    True,
+                    0.25,
+                    f"UUID format ({uuid_analysis.format_name}) - context unclear"
+                )
+
+        # === NEW: Identifier Context Analysis (for non-UUID values) ===
+        if identifier:
+            id_analysis = analyze_identifier(identifier)
+            if id_analysis.category == IdentifierCategory.DATA_IDENTIFIER:
+                # Variable name strongly suggests data identifier, not credential
+                # Apply confidence multiplier
+                base_multiplier = id_analysis.confidence_multiplier
+                # If value also doesn't match known credential formats, suppress
+                if not self._match_known_format(value)[0]:
+                    return (
+                        True,
+                        0.2 * base_multiplier,
+                        f"Data identifier variable '{identifier}' ({id_analysis.reason})"
+                    )
+
         # === Immediate Exclusions (confidence = 0.0) ===
 
         # Exclude function calls
@@ -845,12 +906,27 @@ class SemanticAnalyzer:
         if not value or len(value) < 8:
             return False
 
+        # NEW: Check if identifier suggests data identifier
+        if identifier:
+            id_analysis = analyze_identifier(identifier)
+            if id_analysis.category == IdentifierCategory.DATA_IDENTIFIER:
+                # If identifier suggests data and value is UUID format, skip
+                uuid_analysis = detect_uuid_format(value)
+                if uuid_analysis.is_uuid:
+                    return False
+
         # Check identifier name for credential hints
         cred_hints = [
             "key", "token", "secret", "password", "passwd", "pwd",
             "credential", "auth", "api", "access", "private",
         ]
         id_lower = identifier.lower()
+
+        # NEW: But exclude if it's a data identifier pattern
+        id_analysis = analyze_identifier(identifier)
+        if id_analysis.category == IdentifierCategory.DATA_IDENTIFIER:
+            return False
+
         if any(hint in id_lower for hint in cred_hints):
             return True
 
