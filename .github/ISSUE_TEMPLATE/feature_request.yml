@@ -1,0 +1,104 @@
+name: Feature Request
+description: Suggest a new feature or enhancement for agent-audit
+title: "[Feature] "
+labels: ["enhancement"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve agent-audit! Please describe your feature request below.
+
+  - type: checkboxes
+    id: duplicate-check
+    attributes:
+      label: Pre-submission Checklist
+      options:
+        - label: I have searched existing issues to ensure this is not a duplicate
+          required: true
+        - label: This feature aligns with agent-audit's focus on AI agent security
+          required: true
+
+  - type: textarea
+    id: problem-statement
+    attributes:
+      label: Problem Statement
+      description: What problem does this feature solve? Why is it needed?
+      placeholder: |
+        I'm always frustrated when...
+        Currently there's no way to...
+        When scanning X, I need to...
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed-solution
+    attributes:
+      label: Proposed Solution
+      description: Describe your proposed solution or implementation approach.
+      placeholder: |
+        I would like agent-audit to...
+        The ideal solution would be...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Feature Category
+      description: What type of feature is this?
+      options:
+        - New Rule
+        - Scanner Enhancement
+        - Output Format
+        - CI Integration
+        - MCP Support
+        - Framework Support
+        - CLI Improvement
+        - Documentation
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: new-rule-details
+    attributes:
+      label: New Rule Details (if applicable)
+      description: Fill this out if you're requesting a new detection rule.
+      placeholder: |
+        **Rule ID suggestion**: AGENT-XXX
+        **OWASP Agentic category**: ASI-XX
+        **Severity**: critical / high / medium / low / info
+        **CWE ID**: (if applicable)
+
+        **Vulnerable code example:**
+        ```python
+        # Code that SHOULD trigger the rule
+        ```
+
+        **Safe code example:**
+        ```python
+        # Code that should NOT trigger the rule
+        ```
+    validations:
+      required: false
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: Describe any alternative solutions or features you've considered.
+      placeholder: |
+        I also considered...
+        Another approach could be...
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional Context
+      description: Add any other context, mockups, or examples about the feature request.
+    validations:
+      required: false

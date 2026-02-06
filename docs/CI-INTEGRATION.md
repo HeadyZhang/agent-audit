@@ -68,7 +68,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Run Agent Audit
-        uses: agent-audit/agent-audit-action@v1
+        uses: HeadyZhang/agent-audit@v1
         with:
           path: '.'
           format: 'sarif'
@@ -679,4 +679,4 @@ Pre-configure in devcontainer:
 
 ---
 
-*Last updated: v0.16.0*
+*Last updated: v0.15.1*

@@ -1,0 +1,129 @@
+name: Bug Report
+description: Report a bug or unexpected behavior in agent-audit
+title: "[Bug] "
+labels: ["bug"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug! Please fill out the form below to help us investigate.
+
+  - type: checkboxes
+    id: duplicate-check
+    attributes:
+      label: Pre-submission Checklist
+      options:
+        - label: I have searched existing issues to ensure this is not a duplicate
+          required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Describe the Bug
+      description: A clear and concise description of what the bug is.
+      placeholder: When I run agent-audit scan on my project, it crashes with...
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps-to-reproduce
+    attributes:
+      label: Steps to Reproduce
+      description: Provide detailed steps to reproduce the bug.
+      placeholder: |
+        1. Create a file with the following content: ...
+        2. Run command: `agent-audit scan ...`
+        3. Observe the error...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: Expected Behavior
+      description: What did you expect to happen?
+      placeholder: The scan should complete successfully and report...
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual-behavior
+    attributes:
+      label: Actual Behavior
+      description: What actually happened?
+      placeholder: Instead, the scan crashed with the following error...
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: agent-audit Version
+      description: Run `agent-audit --version` to get this.
+      placeholder: "e.g., 0.15.1"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating System
+      description: Which OS are you using?
+      options:
+        - Linux
+        - macOS
+        - Windows
+    validations:
+      required: true
+
+  - type: input
+    id: python-version
+    attributes:
+      label: Python Version
+      description: Run `python --version` to get this.
+      placeholder: "e.g., 3.11.4"
+    validations:
+      required: false
+
+  - type: dropdown
+    id: installation-method
+    attributes:
+      label: Installation Method
+      description: How did you install agent-audit?
+      options:
+        - pip
+        - pipx
+        - poetry
+        - source (git clone)
+        - other
+    validations:
+      required: false
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant Log Output
+      description: |
+        Paste any error messages or logs. Run with `-v` for verbose output: `agent-audit scan . -v`
+      render: shell
+    validations:
+      required: false
+
+  - type: textarea
+    id: minimal-example
+    attributes:
+      label: Minimal Reproducible Example
+      description: If applicable, provide the smallest code sample that reproduces the issue.
+      render: python
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional Context
+      description: Add any other context about the problem (screenshots, related issues, configuration files, etc.)
+    validations:
+      required: false

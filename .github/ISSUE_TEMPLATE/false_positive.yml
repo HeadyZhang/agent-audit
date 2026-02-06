@@ -1,0 +1,141 @@
+name: False Positive Report
+description: Report a finding that should not have been flagged
+title: "[FP] AGENT-XXX: "
+labels: ["false-positive", "rules"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve detection accuracy! False positive reports are critical for making agent-audit more precise.
+
+        **Important**: Please redact any real secrets or sensitive data before submitting.
+
+  - type: checkboxes
+    id: duplicate-check
+    attributes:
+      label: Pre-submission Checklist
+      options:
+        - label: I have searched existing issues to ensure this is not a duplicate
+          required: true
+        - label: I have redacted any real secrets or sensitive data
+          required: true
+
+  - type: input
+    id: rule-id
+    attributes:
+      label: Rule ID
+      description: Which rule triggered the false positive?
+      placeholder: "e.g., AGENT-004"
+    validations:
+      required: true
+
+  - type: textarea
+    id: code-snippet
+    attributes:
+      label: Code Snippet
+      description: The code that was incorrectly flagged. Please redact any real secrets.
+      render: python
+      placeholder: |
+        # Paste the code that triggered the false positive
+        @tool
+        def my_tool(query: str) -> str:
+            """A safe tool that was incorrectly flagged."""
+            return search_api.query(query)
+    validations:
+      required: true
+
+  - type: textarea
+    id: finding-output
+    attributes:
+      label: Finding Output
+      description: The exact finding message from agent-audit. Run with `--format json` for detailed output.
+      render: shell
+      placeholder: |
+        $ agent-audit scan my_file.py -v
+
+        CRITICAL  AGENT-XXX: Tool Function Without Input Validation
+          → my_file.py:10
+          → query parameter accepts arbitrary string input
+    validations:
+      required: true
+
+  - type: textarea
+    id: why-false-positive
+    attributes:
+      label: Why is this a False Positive?
+      description: Explain why this code is safe and should not be flagged.
+      placeholder: |
+        This is a false positive because:
+        - The input is validated by the framework before reaching this function
+        - This is a read-only operation that cannot cause harm
+        - The tool only queries a safe internal API
+        - etc.
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: agent-audit Version
+      description: Run `agent-audit --version` to get this.
+      placeholder: "e.g., 0.15.1"
+    validations:
+      required: true
+
+  - type: textarea
+    id: file-context
+    attributes:
+      label: File Context
+      description: |
+        Help us understand the context of this code:
+        - What framework/library is being used? (LangChain, CrewAI, AutoGen, etc.)
+        - What is the file's purpose? (agent definition, tool implementation, test file, etc.)
+        - Is this in production code or test/example code?
+      placeholder: |
+        Framework: LangChain v0.2.x
+        Purpose: This file defines read-only tools for a RAG agent
+        Context: Production code in our search service
+    validations:
+      required: false
+
+  - type: dropdown
+    id: confidence
+    attributes:
+      label: How confident are you in this assessment?
+      options:
+        - High - I'm very sure this is a false positive
+        - Medium - I'm fairly confident but could be wrong
+        - Low - I'm unsure, seeking clarification
+    validations:
+      required: true
+
+  - type: textarea
+    id: workaround
+    attributes:
+      label: Current Workaround
+      description: If you have a workaround, please describe it.
+      placeholder: |
+        Currently suppressing with:
+        # noaudit: AGENT-XXX
+
+        Or in .agent-audit.yaml:
+        ignore:
+          - rule: AGENT-XXX
+            paths: ["path/to/file.py"]
+    validations:
+      required: false
+
+  - type: textarea
+    id: suggested-fix
+    attributes:
+      label: Suggested Fix
+      description: If you have ideas on how to fix the detection logic, please share.
+      placeholder: |
+        The rule could be improved by:
+        - Checking if the function is decorated with @readonly
+        - Detecting that the parameter flows to a safe API
+        - Recognizing Pydantic Field() declarations as type definitions
+    validations:
+      required: false

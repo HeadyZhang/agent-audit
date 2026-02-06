@@ -203,4 +203,4 @@ For questions about stability guarantees or upgrade assistance:
 
 ---
 
-*Last updated: v0.16.0*
+*Last updated: v0.15.1*
