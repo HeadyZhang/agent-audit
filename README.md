@@ -46,7 +46,14 @@
 ### Installation | 安装
 
 ```bash
+# 推荐：pipx（自动处理 PATH，隔离环境）
+pipx install agent-audit
+
+# 或 pip
 pip install agent-audit
+
+# 如果 pip 安装后找不到命令
+python3 -m agent_audit --version
 ```
 
 ### Basic Usage | 基本使用
