@@ -35,12 +35,33 @@ inputs:
     default: 'true'
 
 outputs:
+  total_findings:
+    description: 'Total number of security findings detected'
+    value: ${{ steps.scan.outputs.total_findings }}
+  critical_count:
+    description: 'Number of CRITICAL severity findings (security-severity >= 9.0)'
+    value: ${{ steps.scan.outputs.critical_count }}
+  high_count:
+    description: 'Number of HIGH severity findings (security-severity >= 7.0, < 9.0)'
+    value: ${{ steps.scan.outputs.high_count }}
+  medium_count:
+    description: 'Number of MEDIUM severity findings (security-severity >= 4.0, < 7.0)'
+    value: ${{ steps.scan.outputs.medium_count }}
+  low_count:
+    description: 'Number of LOW severity findings (security-severity < 4.0)'
+    value: ${{ steps.scan.outputs.low_count }}
+  scan_status:
+    description: 'Scan status: success (exit code 0) or failure (findings exceed fail-on threshold)'
+    value: ${{ steps.scan.outputs.scan_status }}
+  sarif_file:
+    description: 'Path to the generated SARIF file (if format=sarif)'
+    value: ${{ steps.scan.outputs.sarif_file }}
   findings-count:
-    description: 'Total number of findings'
-    value: ${{ steps.scan.outputs.findings }}
+    description: 'Total number of findings (deprecated: use total_findings)'
+    value: ${{ steps.scan.outputs.total_findings }}
   exit-code:
-    description: 'Exit code from the scan (0 = pass, 1 = fail)'
-    value: ${{ steps.scan.outputs.exit-code }}
+    description: 'Exit code from scan (deprecated: use scan_status)'
+    value: ${{ steps.scan.outputs.exit_code }}
 
 runs:
   using: 'composite'
@@ -64,8 +85,9 @@ runs:
         ARGS="${{ inputs.path }}"
         ARGS="$ARGS --format ${{ inputs.format }}"
 
-        if [ "${{ inputs.format }}" == "sarif" ] || [ -n "${{ inputs.output }}" ]; then
-          ARGS="$ARGS --output ${{ inputs.output }}"
+        OUTPUT_FILE="${{ inputs.output }}"
+        if [ "${{ inputs.format }}" == "sarif" ] || [ -n "$OUTPUT_FILE" ]; then
+          ARGS="$ARGS --output $OUTPUT_FILE"
         fi
 
         ARGS="$ARGS --severity ${{ inputs.severity }}"
@@ -78,14 +100,62 @@ runs:
         agent-audit scan $ARGS
         EXIT_CODE=$?
 
-        echo "exit-code=$EXIT_CODE" >> $GITHUB_OUTPUT
-
-        # Count findings from SARIF if available
-        if [ -f "${{ inputs.output }}" ]; then
-          FINDINGS=$(jq '.runs[0].results | length' "${{ inputs.output }}" 2>/dev/null || echo "0")
-          echo "findings=$FINDINGS" >> $GITHUB_OUTPUT
+        # Set exit code and scan status
+        echo "exit_code=$EXIT_CODE" >> $GITHUB_OUTPUT
+        if [ $EXIT_CODE -eq 0 ]; then
+          echo "scan_status=success" >> $GITHUB_OUTPUT
         else
-          echo "findings=0" >> $GITHUB_OUTPUT
+          echo "scan_status=failure" >> $GITHUB_OUTPUT
+        fi
+
+        # Parse SARIF file to extract structured counts
+        if [ -f "$OUTPUT_FILE" ]; then
+          echo "sarif_file=$OUTPUT_FILE" >> $GITHUB_OUTPUT
+
+          # Total findings count
+          TOTAL=$(jq '.runs[0].results | length' "$OUTPUT_FILE" 2>/dev/null || echo "0")
+          echo "total_findings=$TOTAL" >> $GITHUB_OUTPUT
+
+          # Count findings by severity using rule security-severity scores
+          # CVSS-aligned thresholds: Critical>=9.0, High>=7.0, Medium>=4.0, Low<4.0
+          COUNTS=$(jq -r '
+            # Build a map of ruleId -> security-severity score
+            (
+              [.runs[0].tool.driver.rules[]? |
+               {key: .id, value: ((.properties."security-severity" // "0") | tonumber)}
+              ] | from_entries
+            ) as $sev_map |
+
+            # Count results by severity category
+            reduce (.runs[0].results[]?) as $r (
+              {critical: 0, high: 0, medium: 0, low: 0};
+              ($sev_map[$r.ruleId] // 0) as $score |
+              if $score >= 9 then .critical += 1
+              elif $score >= 7 then .high += 1
+              elif $score >= 4 then .medium += 1
+              else .low += 1
+              end
+            ) |
+            "critical_count=\(.critical)\nhigh_count=\(.high)\nmedium_count=\(.medium)\nlow_count=\(.low)"
+          ' "$OUTPUT_FILE" 2>/dev/null)
+
+          if [ -n "$COUNTS" ]; then
+            echo "$COUNTS" >> $GITHUB_OUTPUT
+          else
+            # Fallback if jq parsing fails
+            echo "critical_count=0" >> $GITHUB_OUTPUT
+            echo "high_count=0" >> $GITHUB_OUTPUT
+            echo "medium_count=0" >> $GITHUB_OUTPUT
+            echo "low_count=0" >> $GITHUB_OUTPUT
+          fi
+        else
+          # No SARIF file - set all counts to 0
+          echo "sarif_file=" >> $GITHUB_OUTPUT
+          echo "total_findings=0" >> $GITHUB_OUTPUT
+          echo "critical_count=0" >> $GITHUB_OUTPUT
+          echo "high_count=0" >> $GITHUB_OUTPUT
+          echo "medium_count=0" >> $GITHUB_OUTPUT
+          echo "low_count=0" >> $GITHUB_OUTPUT
         fi
 
         exit $EXIT_CODE

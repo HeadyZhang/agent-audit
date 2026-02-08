@@ -1,1 +1,1 @@
-"""Configuration tests."""
+"""Tests for configuration and baseline functionality."""

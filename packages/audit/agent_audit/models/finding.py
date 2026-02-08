@@ -29,6 +29,28 @@ TIER_THRESHOLDS = {
     "INFO": 0.30,
 }
 
+# v0.15.0: Tier to Severity mapping for compatibility
+# Maps confidence-based tiers to security severity levels
+TIER_TO_SEVERITY: Dict[str, str] = {
+    "BLOCK": "critical",      # confidence >= 0.92
+    "WARN": "high",           # confidence >= 0.60, < 0.92
+    "INFO": "low",            # confidence >= 0.30, < 0.60
+    "SUPPRESSED": "info",     # confidence < 0.30
+}
+
+# v0.15.0: Rule-specific severity overrides
+# Some rules are always critical regardless of confidence
+RULE_SEVERITY_OVERRIDE: Dict[str, str] = {
+    # Code execution is always critical
+    "AGENT-001": "critical",  # Command injection / eval/exec
+    "AGENT-017": "critical",  # Unsandboxed code execution
+    # Credential exposure is always high
+    "AGENT-004": "high",      # Hardcoded credentials
+    # Configuration issues are typically medium
+    "AGENT-029": "medium",    # Overly broad filesystem
+    "AGENT-030": "medium",    # Unverified MCP source
+}
+
 # Privilege rules that always allow BLOCK tier regardless of context
 # These rules are critical even in test/example/infrastructure code
 BLOCK_EXEMPT_RULES = {

@@ -18,18 +18,18 @@ taxonomy:
 vulnerabilities:
   - id: "VULN-012-001"
     file: "log_sensitive.py"
-    line: 9
-    rule_expected: "AGENT-039"
-    severity: "MEDIUM"
+    line: 11
+    rule_expected: "AGENT-052"
+    severity: "HIGH"
     description: "logging.info(f'User token: {token}')"
     taint:
       source:
         type: "variable"
-        location: "log_sensitive.py:8"
+        location: "log_sensitive.py:10"
         code: "token: str"
       sink:
         type: "log"
-        location: "log_sensitive.py:9"
+        location: "log_sensitive.py:11"
         code: "logger.info(...)"
       sanitizer: null
     impact:

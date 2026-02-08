@@ -172,6 +172,62 @@ class AgentAuditAdapter(BaseAdapter):
         mapped_set = self._rule_to_set.get(rule_id, "")
         mapped_type = self._map_rule_to_type(rule_id)
 
+        # v0.13.0: Extract taint analysis data for benchmark evaluation
+        tool_specific: Dict[str, Any] = {
+            "owasp_id": finding.get("owasp_id", ""),
+            "cwe_id": finding.get("cwe_id", ""),
+            "needs_review": finding.get("needs_review", False),
+        }
+
+        # Check for taint_analysis in metadata
+        metadata = finding.get("metadata", {})
+        taint_analysis = metadata.get("taint_analysis", {})
+
+        if taint_analysis:
+            dangerous_flows = taint_analysis.get("dangerous_flows", [])
+            if dangerous_flows:
+                # Extract taint source and sink from first flow
+                first_flow = dangerous_flows[0]
+                # Map sink_type to benchmark-compatible format
+                sink_type = first_flow.get("sink_type", "")
+                source_var = first_flow.get("var", "")
+
+                # Map internal types to oracle-compatible types
+                # Oracle source types: user_input, llm_output, config, variable, literal
+                source_type_map = {
+                    "function_param": "user_input",
+                    "env_var": "config",
+                    "user_input": "user_input",
+                    "network": "user_input",
+                    "file_read": "user_input",
+                    "llm_output": "llm_output",
+                }
+
+                # Oracle sink types: eval, code_execution, shell_execution, sql_execution
+                # Don't remap - pass through the type from the finding
+                sink_type_map = {
+                    "shell_exec": "shell_execution",
+                    "code_exec": "code_execution",
+                    "sql_exec": "sql_execution",
+                    "file_write": "file_write",
+                    "network_req": "http_request",
+                    # Pass through for already-correct types
+                    "shell_execution": "shell_execution",
+                    "code_execution": "code_execution",
+                    "eval": "eval",
+                    "sql_execution": "sql_execution",
+                }
+
+                # Add taint info in format expected by oracle_eval.validates_taint_flow
+                tool_specific["taint_source"] = source_type_map.get(
+                    first_flow.get("source", "function_param"), "user_input"
+                )
+                tool_specific["taint_sink"] = sink_type_map.get(sink_type, sink_type)
+                tool_specific["source"] = source_var
+                tool_specific["sink"] = first_flow.get("sink", "")
+                tool_specific["taint_path"] = first_flow.get("path", [])
+                tool_specific["taint_confidence"] = first_flow.get("confidence", 0.0)
+
         return ToolFinding(
             file=file_path,
             line=line,
@@ -184,11 +240,7 @@ class AgentAuditAdapter(BaseAdapter):
             mapped_set=mapped_set,
             end_line=location.get("end_line"),
             snippet=location.get("snippet", ""),
-            tool_specific={
-                "owasp_id": finding.get("owasp_id", ""),
-                "cwe_id": finding.get("cwe_id", ""),
-                "needs_review": finding.get("needs_review", False),
-            },
+            tool_specific=tool_specific,
         )
 
     def _map_rule_to_type(self, rule_id: str) -> str:

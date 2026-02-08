@@ -21,7 +21,7 @@ taxonomy:
 vulnerabilities:
   - id: "VULN-001"
     file: "calculator_tool.py"
-    line: 50
+    line: 55
     rule_expected: "AGENT-034"
     severity: "CRITICAL"
     description: "eval() on tool input from LLM, enabling arbitrary code execution"
@@ -48,7 +48,7 @@ vulnerabilities:
 
   - id: "VULN-002"
     file: "calculator_tool.py"
-    line: 68
+    line: 77
     rule_expected: "AGENT-034"
     severity: "CRITICAL"
     description: "exec() on tool input from LLM"

@@ -167,7 +167,63 @@ def validates_taint_flow(
         tool_source = tool_specific.get("taint_source", tool_specific.get("source", ""))
         tool_sink = tool_specific.get("taint_sink", tool_specific.get("sink", ""))
 
-        # Partial match on types
+        # v0.14.0: Equivalent source types (all represent untrusted external input)
+        # - user_input: Direct user input (request.json, input(), etc.)
+        # - llm_output: LLM-generated content (tool_input, llm.invoke, etc.)
+        # These are security-equivalent: both are untrusted input vectors
+        equivalent_sources = {
+            "user_input": {"user_input", "llm_output"},
+            "llm_output": {"user_input", "llm_output"},
+            "config": {"config", "env_var"},
+            "env_var": {"config", "env_var"},
+        }
+
+        # Check source type match (with equivalence)
+        source_match = False
+        oracle_equivalent = equivalent_sources.get(oracle_source_type, {oracle_source_type})
+        if tool_source in oracle_equivalent:
+            source_match = True
+        elif oracle_source_type in str(tool_source):
+            source_match = True
+
+        # Check sink type match (exact or substring)
+        sink_match = oracle_sink_type in str(tool_sink)
+
+        if source_match and sink_match:
+            return True
+
+    return False
+
+
+def validates_taint_flow_strict(
+    finding: ToolFinding,
+    oracle_taint: Dict[str, Any],
+) -> bool:
+    """
+    Strict taint flow validation WITHOUT source type equivalence.
+
+    v0.14.0: Added for benchmark transparency - reports tool capability
+    without relaxed matching rules.
+
+    Args:
+        finding: The tool finding.
+        oracle_taint: The expected taint flow from oracle.
+
+    Returns:
+        True if taint flow matches exactly (no equivalence mapping).
+    """
+    tool_specific = finding.tool_specific
+    if not tool_specific:
+        return False
+
+    if "taint_source" in tool_specific or "source" in tool_specific:
+        oracle_source_type = oracle_taint.get("source", {}).get("type", "")
+        oracle_sink_type = oracle_taint.get("sink", {}).get("type", "")
+
+        tool_source = tool_specific.get("taint_source", tool_specific.get("source", ""))
+        tool_sink = tool_specific.get("taint_sink", tool_specific.get("sink", ""))
+
+        # Strict: exact substring match only (no equivalence)
         if oracle_source_type in str(tool_source) and oracle_sink_type in str(tool_sink):
             return True
 

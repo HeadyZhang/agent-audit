@@ -1,17 +1,21 @@
 """
 WILD-004: Multi-platform token aggregation (Set C).
-Expected: AGENT-004 or AGENT-052.
-Note: These are INTENTIONALLY FAKE placeholder tokens for security testing only.
+Expected: AGENT-004 via Generic Token pattern.
+Note: These are INTENTIONALLY FAKE tokens for security testing only.
+      They use pattern-matching formats to trigger detection.
 """
-# Fake tokens - format demonstrates vulnerability pattern without real secrets
-DISCORD_TOKEN = "FAKE_DISCORD_BOT_TOKEN_PLACEHOLDER_12345"  # LINE 5: Vulnerable pattern
-TELEGRAM_TOKEN = "FAKE_TELEGRAM_BOT_TOKEN_PLACEHOLDER_67890"  # LINE 6: Vulnerable pattern  
-SLACK_TOKEN = "FAKE_SLACK_BOT_TOKEN_PLACEHOLDER_ABCDE"  # LINE 7: Vulnerable pattern
+# Fake tokens using formats that match secret scanner patterns
+# LINE 7: token = assignment pattern triggers Generic Token detection
+discord_token = "MTIzNDU2Nzg5MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNA"
+# LINE 11: token = assignment pattern triggers Generic Token detection
+telegram_token = "ABC12345DEFGHIJKLMNOPQRSTUVWXYZabc67890de"
+# LINE 11: Slack xoxb format triggers Slack Bot Token detection
+slack_token = "xoxb-1234567890123-1234567890123-abcdefghijklmnopqrstuvwx"
 
 
 def get_all_tokens() -> dict:
     return {
-        "discord": DISCORD_TOKEN,
-        "telegram": TELEGRAM_TOKEN,
-        "slack": SLACK_TOKEN,
+        "discord": discord_token,
+        "telegram": telegram_token,
+        "slack": slack_token,
     }

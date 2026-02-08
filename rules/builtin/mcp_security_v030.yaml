@@ -240,3 +240,62 @@ rules:
         "env": { "MCP_API_KEY": "${MCP_SERVER_KEY}" }
       references:
         - "https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/"
+
+  # =============================================================================
+  # AGENT-040: MCP Tool Schema Security (v0.15.0)
+  # ASI-02: Tool Misuse
+  # =============================================================================
+
+  - id: AGENT-040
+    title: "Insecure MCP Tool Schema"
+    description: >
+      MCP tool schema is overly permissive, allowing additional properties or
+      defining parameters without type constraints. This enables injection of
+      unexpected data that may bypass validation and lead to tool misuse.
+    severity: medium
+    category: tool_misuse
+    owasp_agentic_id: "ASI-02"
+    cwe_id: "CWE-20"
+
+    detection:
+      type: mcp_config
+      patterns:
+        - pattern_type: "schema_additional_properties"
+          description: "inputSchema.additionalProperties: true"
+
+        - pattern_type: "schema_missing_type"
+          description: "Parameter without type constraint"
+
+        - pattern_type: "schema_no_validation"
+          description: "Tool with no input validation schema"
+
+    remediation:
+      description: >
+        Define strict JSON Schema for MCP tool inputs. Set additionalProperties
+        to false and specify type for all parameters. Use pattern, enum, or
+        format constraints where appropriate.
+      code_example: |
+        // BAD: Overly permissive
+        "inputSchema": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "query": {}
+          }
+        }
+
+        // GOOD: Strict schema
+        "inputSchema": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "query": {
+              "type": "string",
+              "maxLength": 1000
+            }
+          },
+          "required": ["query"]
+        }
+      references:
+        - "https://json-schema.org/understanding-json-schema/"
+        - "https://modelcontextprotocol.io/docs/concepts/tools"

@@ -5,12 +5,12 @@
 rules:
 
   # =============================================================================
-  # AGENT-040: LangChain AgentExecutor Risk (v0.3.1)
+  # AGENT-050: LangChain AgentExecutor Risk (v0.3.1 → v0.15.0)
   # ASI-01: Agent Goal Hijack
-  # Note: Changed from AGENT-025 to avoid conflict with monitoring rule
+  # Note: Changed from AGENT-025 to AGENT-040 to AGENT-050 to avoid conflict with MCP Tool Schema rule
   # =============================================================================
 
-  - id: AGENT-040
+  - id: AGENT-050
     title: "LangChain AgentExecutor Without Safety Parameters"
     description: >
       AgentExecutor or create_react_agent is instantiated without proper

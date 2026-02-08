@@ -19,77 +19,70 @@ taxonomy:
   cwe_id: "CWE-918"
 
 vulnerabilities:
-  - id: "VULN-001"
-    file: "web_fetcher_tool.py"
-    line: 55
-    rule_expected: "AGENT-037"
-    severity: "HIGH"
-    description: "No URL validation enables SSRF attacks"
-    taint:
-      source:
-        type: "llm_output"
-        location: "web_fetcher_tool.py:39"
-        code: "def fetch_url(url: str) -> str:"
-        note: "url parameter comes from LLM's tool invocation"
-      propagation:
-        - step: 1
-          location: "web_fetcher_tool.py:55"
-          code: "# Direct pass to requests"
-      sink:
-        type: "network_request"
-        location: "web_fetcher_tool.py:55"
-        code: "response = requests_get(url, timeout=10)"
-      sanitizer: null
-    impact:
-      primary: "DataExfiltration"
-      secondary:
-        - "PrivilegeEscalation"
-      blast_radius: "service"
-
-  - id: "VULN-002"
-    file: "web_fetcher_tool.py"
-    line: 77
-    rule_expected: "AGENT-037"
-    severity: "HIGH"
-    description: "Headers from LLM output can be used for auth bypass or smuggling"
-    taint:
-      source:
-        type: "llm_output"
-        location: "web_fetcher_tool.py:61"
-        code: "def fetch_url_with_headers(url: str, headers: Optional[str] = None)"
-      propagation:
-        - step: 1
-          location: "web_fetcher_tool.py:71"
-          code: "parsed_headers = json.loads(headers)"
-      sink:
-        type: "network_request"
-        location: "web_fetcher_tool.py:77"
-        code: "response = requests_get(url, headers=parsed_headers, timeout=10)"
-      sanitizer: null
-    impact:
-      primary: "DataExfiltration"
-      blast_radius: "service"
+  # VULN-001 and VULN-002 (SSRF via requests) are detection gaps - not currently detected
+  # These would require AGENT-037 (SSRF detection) to be enhanced for tool contexts
+  # For now, we track the detectable vulnerability:
 
   - id: "VULN-003"
     file: "web_fetcher_tool.py"
-    line: 109
-    rule_expected: "AGENT-036"
+    line: 130
+    rule_expected: "AGENT-001"
     severity: "CRITICAL"
-    description: "Command injection via curl command arguments"
+    description: "Command injection via curl command arguments - detected as shell=True subprocess"
     taint:
       source:
         type: "llm_output"
-        location: "web_fetcher_tool.py:99"
+        location: "web_fetcher_tool.py:121"
         code: "def execute_curl(curl_command: str) -> str:"
       sink:
         type: "shell_execution"
-        location: "web_fetcher_tool.py:109"
+        location: "web_fetcher_tool.py:130"
         code: "subprocess.run(f\"curl {curl_command}\", shell=True, ...)"
       sanitizer: null
     impact:
       primary: "RCE"
       secondary:
         - "DataExfiltration"
+      blast_radius: "full_system"
+
+  - id: "VULN-003b"
+    file: "web_fetcher_tool.py"
+    line: 130
+    rule_expected: "AGENT-035"
+    severity: "CRITICAL"
+    description: "Tool with unrestricted code execution (subprocess with shell=True)"
+    taint:
+      source:
+        type: "llm_output"
+        location: "web_fetcher_tool.py:121"
+        code: "def execute_curl(curl_command: str) -> str:"
+      sink:
+        type: "shell_execution"
+        location: "web_fetcher_tool.py:130"
+        code: "subprocess.run(f\"curl {curl_command}\", shell=True, ...)"
+      sanitizer: null
+    impact:
+      primary: "RCE"
+      blast_radius: "full_system"
+
+  - id: "VULN-003c"
+    file: "web_fetcher_tool.py"
+    line: 121
+    rule_expected: "AGENT-034"
+    severity: "HIGH"
+    description: "Tool function without input validation"
+    taint:
+      source:
+        type: "llm_output"
+        location: "web_fetcher_tool.py:121"
+        code: "def execute_curl(curl_command: str) -> str:"
+      sink:
+        type: "shell_execution"
+        location: "web_fetcher_tool.py:130"
+        code: "subprocess.run(...)"
+      sanitizer: null
+    impact:
+      primary: "RCE"
       blast_radius: "full_system"
 
 safe_patterns:

@@ -1,0 +1,261 @@
+Scanning Python files...
+Scanning MCP configurations...
+Scanning for secrets...
+Scanning for privilege issues...
+╭──────────────────────────────────────────────────────────────────────────────╮
+│ Agent Audit Security Report                                                  │
+│ Scanned: ../../examples/vulnerable-agent                                     │
+│ Files analyzed: 3                                                            │
+│ Risk Score: 9.8/10 (HIGH)                                                    │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+🔴 BLOCK — Tier 1 (Confidence ≥ 90%) — 33 findings
+
+  AGENT-001: Command Injection via Unsanitized Input 
+    Location: ../../examples/vulnerable-agent/tools.py:20
+    Code: exec(code, {}, local_vars)  # AGENT-035: Unrestricted code execution
+    Reason: Tool accepts user input passed directly to shell execution without 
+proper sanitization.
+
+  AGENT-001: Command Injection via Unsanitized Input 
+    Location: ../../examples/vulnerable-agent/agent.py:31
+    Code: result = eval(expression)  # AGENT-001: Command injection via eval
+    Reason: Tool accepts user input passed directly to shell execution without 
+proper sanitization.
+
+  AGENT-001: Command Injection via Unsanitized Input 
+    Location: ../../examples/vulnerable-agent/agent.py:42
+    Code: result = subprocess.run(
+    Reason: Tool accepts user input passed directly to shell execution without 
+proper sanitization.
+
+  AGENT-004: Hardcoded Credentials in MCP Config 
+    Location: ../../examples/vulnerable-agent/mcp_config.json:1
+    Code: AWS_SECRET_ACCESS_KEY=***REDACTED***
+    Reason: Found AWS Access Key in environment variable 'AWS_SECRET_ACCESS_KEY'
+
+  AGENT-005: Unverified MCP Server 
+    Location: ../../examples/vulnerable-agent/mcp_config.json:1
+    Code: server: remote-unverified
+    Reason: MCP server 'remote-unverified' lacks signature verification
+
+  AGENT-010: System Prompt Injection Vector in User Input Path 
+    Location: ../../examples/vulnerable-agent/agent.py:69
+    Code: system_prompt = f"""You are a helpful assistant.
+    Reason: User-controlled input is concatenated directly into system prompts 
+or agent instructions without san...
+
+  AGENT-017: Unsandboxed Code Execution in Agent 
+    Location: ../../examples/vulnerable-agent/tools.py:20
+    Code: exec(code, {}, local_vars)  # AGENT-035: Unrestricted code execution
+    Reason: Agent executes dynamically generated code (via eval, exec, 
+subprocess, or code interpreter tools) wi...
+
+  AGENT-017: Unsandboxed Code Execution in Agent 
+    Location: ../../examples/vulnerable-agent/tools.py:63
+    Code: exec(code)  # AGENT-036: Trusting external output
+    Reason: Agent executes dynamically generated code (via eval, exec, 
+subprocess, or code interpreter tools) wi...
+
+  AGENT-017: Unsandboxed Code Execution in Agent 
+    Location: ../../examples/vulnerable-agent/agent.py:31
+    Code: result = eval(expression)  # AGENT-001: Command injection via eval
+    Reason: Agent executes dynamically generated code (via eval, exec, 
+subprocess, or code interpreter tools) wi...
+
+  AGENT-022: No Error Handling in Tool Execution 
+    Location: ../../examples/vulnerable-agent/tools.py:28
+    Code: def read_file(filepath: str) -> str:
+    Reason: Agent tool functions lack error handling, causing unhandled 
+exceptions to propagate and potentially ...
+
+  AGENT-022: No Error Handling in Tool Execution 
+    Location: ../../examples/vulnerable-agent/tools.py:37
+    Code: def write_file(filepath: str, content: str) -> str:
+    Reason: Agent tool functions lack error handling, causing unhandled 
+exceptions to propagate and potentially ...
+
+  AGENT-022: No Error Handling in Tool Execution 
+    Location: ../../examples/vulnerable-agent/tools.py:57
+    Code: def fetch_and_execute(url: str) -> str:
+    Reason: Agent tool functions lack error handling, causing unhandled 
+exceptions to propagate and potentially ...
+
+  AGENT-022: No Error Handling in Tool Execution 
+    Location: ../../examples/vulnerable-agent/tools.py:71
+    Code: def load_model(filepath: str) -> str:
+    Reason: Agent tool functions lack error handling, causing unhandled 
+exceptions to propagate and potentially ...
+
+  AGENT-022: No Error Handling in Tool Execution 
+    Location: ../../examples/vulnerable-agent/agent.py:39
+    Code: def run_command(command: str) -> str:
+    Reason: Agent tool functions lack error handling, causing unhandled 
+exceptions to propagate and potentially ...
+
+  AGENT-022: No Error Handling in Tool Execution 
+    Location: ../../examples/vulnerable-agent/agent.py:100
+    Code: def get_secret(name: str) -> str:
+    Reason: Agent tool functions lack error handling, causing unhandled 
+exceptions to propagate and potentially ...
+
+  AGENT-022: No Error Handling in Tool Execution 
+    Location: ../../examples/vulnerable-agent/agent.py:107
+    Code: def send_webhook(url: str, data: str) -> str:
+    Reason: Agent tool functions lack error handling, causing unhandled 
+exceptions to propagate and potentially ...
+
+  AGENT-026: LangChain Tool Input Not Sanitized 
+    Location: ../../examples/vulnerable-agent/tools.py:28
+    Code: def read_file(filepath: str) -> str:
+    Reason: A @tool decorated function accepts string parameters that flow 
+directly to dangerous operations (fil...
+
+  AGENT-026: LangChain Tool Input Not Sanitized 
+    Location: ../../examples/vulnerable-agent/tools.py:37
+    Code: def write_file(filepath: str, content: str) -> str:
+    Reason: A @tool decorated function accepts string parameters that flow 
+directly to dangerous operations (fil...
+
+  AGENT-026: LangChain Tool Input Not Sanitized 
+    Location: ../../examples/vulnerable-agent/tools.py:46
+    Code: def delete_file(filepath: str) -> str:
+    Reason: A @tool decorated function accepts string parameters that flow 
+directly to dangerous operations (fil...
+
+  AGENT-026: LangChain Tool Input Not Sanitized 
+    Location: ../../examples/vulnerable-agent/tools.py:57
+    Code: def fetch_and_execute(url: str) -> str:
+    Reason: A @tool decorated function accepts string parameters that flow 
+directly to dangerous operations (fil...
+
+  AGENT-026: LangChain Tool Input Not Sanitized 
+    Location: ../../examples/vulnerable-agent/tools.py:71
+    Code: def load_model(filepath: str) -> str:
+    Reason: A @tool decorated function accepts string parameters that flow 
+directly to dangerous operations (fil...
+
+  AGENT-026: LangChain Tool Input Not Sanitized 
+    Location: ../../examples/vulnerable-agent/agent.py:39
+    Code: def run_command(command: str) -> str:
+    Reason: A @tool decorated function accepts string parameters that flow 
+directly to dangerous operations (fil...
+
+  AGENT-026: LangChain Tool Input Not Sanitized 
+    Location: ../../examples/vulnerable-agent/agent.py:100
+    Code: def get_secret(name: str) -> str:
+    Reason: A @tool decorated function accepts string parameters that flow 
+directly to dangerous operations (fil...
+
+  AGENT-026: LangChain Tool Input Not Sanitized 
+    Location: ../../examples/vulnerable-agent/agent.py:107
+    Code: def send_webhook(url: str, data: str) -> str:
+    Reason: A @tool decorated function accepts string parameters that flow 
+directly to dangerous operations (fil...
+
+  AGENT-028: Agent Without Iteration Limit 
+    Location: ../../examples/vulnerable-agent/agent.py:84
+    Code: executor = AgentExecutor(
+    Reason: Agent configuration lacks iteration limits, which can lead to 
+cascading failures (ASI-08) where the ...
+
+  AGENT-029: Mcp Overly Broad Filesystem 
+    Location: ../../examples/vulnerable-agent/mcp_config.json:1
+    Code: args: [..., "/", ...]
+    Reason: MCP server 'filesystem' has access to '/' which grants overly broad 
+filesystem permissions
+
+  AGENT-030: Mcp Unverified Server Source 
+    Location: ../../examples/vulnerable-agent/mcp_config.json:1
+    Code: command: npx, args: ['-y', 'some-random-mcp-package@latest']
+    Reason: MCP server 'untrusted-server' uses unpinned package 
+'some-random-mcp-package@latest'. Pin to specifi...
+
+  AGENT-031: Mcp Sensitive Env Exposure 
+    Location: ../../examples/vulnerable-agent/mcp_config.json:1
+    Code: env: {"API_KEY": "sk-l***"}
+    Reason: MCP server 'shell-executor' has hardcoded value for sensitive key 
+'API_KEY'. Use environment variabl...
+
+  AGENT-032: Mcp Stdio No Sandbox 
+    Location: ../../examples/vulnerable-agent/mcp_config.json:1
+    Code: command: python, transport: stdio
+    Reason: MCP server 'shell-executor' uses stdio transport without apparent 
+sandbox isolation. Consider runnin...
+
+  AGENT-033: Mcp Missing Auth 
+    Location: ../../examples/vulnerable-agent/mcp_config.json:1
+    Code: url: http://untrusted-server.example.com:8080/mcp, transport: 
+streamable-http
+    Reason: MCP server 'remote-unverified' uses streamable-http transport 
+without authentication configuration. ...
+
+  AGENT-035: Tool With Unrestricted Code Execution 
+    Location: ../../examples/vulnerable-agent/agent.py:31
+    Code: result = eval(expression)  # AGENT-001: Command injection via eval
+    Reason: A tool function contains eval(), exec(), os.system(), or subprocess 
+with shell=True without sandboxi...
+
+  AGENT-035: Tool With Unrestricted Code Execution 
+    Location: ../../examples/vulnerable-agent/agent.py:42
+    Code: result = subprocess.run(
+    Reason: A tool function contains eval(), exec(), os.system(), or subprocess 
+with shell=True without sandboxi...
+
+  AGENT-050: LangChain AgentExecutor Without Safety Parameters 
+    Location: ../../examples/vulnerable-agent/agent.py:84
+    Code: executor = AgentExecutor(
+    Reason: AgentExecutor or create_react_agent is instantiated without proper 
+safety parameters (max_iterations...
+
+
+🟠 WARN — Tier 2 (Confidence ≥ 60%) — 7 findings
+
+  AGENT-034: Tool Function Without Input Validation 
+    Location: ../../examples/vulnerable-agent/tools.py:16
+    Code: def execute_python(code: str) -> str:
+    Reason: A tool function accepts string or Any parameters without performing 
+input validation in the function...
+
+  AGENT-034: Tool Function Without Input Validation 
+    Location: ../../examples/vulnerable-agent/tools.py:28
+    Code: def read_file(filepath: str) -> str:
+    Reason: A tool function accepts string or Any parameters without performing 
+input validation in the function...
+
+  AGENT-034: Tool Function Without Input Validation 
+    Location: ../../examples/vulnerable-agent/tools.py:37
+    Code: def write_file(filepath: str, content: str) -> str:
+    Reason: A tool function accepts string or Any parameters without performing 
+input validation in the function...
+
+  AGENT-034: Tool Function Without Input Validation 
+    Location: ../../examples/vulnerable-agent/tools.py:71
+    Code: def load_model(filepath: str) -> str:
+    Reason: A tool function accepts string or Any parameters without performing 
+input validation in the function...
+
+  AGENT-034: Tool Function Without Input Validation 
+    Location: ../../examples/vulnerable-agent/agent.py:28
+    Code: def calculate(expression: str) -> str:
+    Reason: A tool function accepts string or Any parameters without performing 
+input validation in the function...
+
+  AGENT-034: Tool Function Without Input Validation 
+    Location: ../../examples/vulnerable-agent/agent.py:39
+    Code: def run_command(command: str) -> str:
+    Reason: A tool function accepts string or Any parameters without performing 
+input validation in the function...
+
+  AGENT-034: Tool Function Without Input Validation 
+    Location: ../../examples/vulnerable-agent/tools.py:57
+    Code: def fetch_and_execute(url: str) -> str:
+    Reason: A tool function accepts string or Any parameters without performing 
+input validation in the function...
+
+
+ℹ️  INFO — Tier 3 (hidden, use --verbose to show) — 3 findings
+
+📊 Summary:
+  BLOCK: 33 | WARN: 7 | INFO: 3 | SUPPRESSED: 0
+  Risk Score: █████████████████████████████░ 9.8/10 (HIGH)

@@ -21,10 +21,11 @@ taxonomy:
 vulnerabilities:
   - id: "VULN-001"
     file: "mcp_config.json"
-    line: 7
+    line: 1
     rule_expected: "AGENT-029"
     severity: "CRITICAL"
     description: "MCP filesystem server configured with root access (allowedDirectories: /)"
+    note: "MCP config scanner reports server-level findings at line 1 (JSON parsing limitation)"
     taint:
       source:
         type: "config"
@@ -66,18 +67,19 @@ vulnerabilities:
 
   - id: "VULN-003"
     file: "mcp_config.json"
-    line: 20
+    line: 1
     rule_expected: "AGENT-031"
     severity: "CRITICAL"
     description: "MCP shell server allows all commands (allowedCommands: *)"
+    note: "MCP config scanner reports server-level findings at line 1 (JSON parsing limitation)"
     taint:
       source:
         type: "config"
-        location: "mcp_config.json:20"
+        location: "mcp_config.json:21"
         code: "\"allowedCommands\": [\"*\"]"
       sink:
         type: "command_execution"
-        location: "mcp_config.json:20"
+        location: "mcp_config.json:21"
         code: "MCP shell server with unrestricted command access"
       sanitizer: null
     impact:

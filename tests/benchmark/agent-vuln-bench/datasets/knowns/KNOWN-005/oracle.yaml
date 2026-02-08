@@ -21,7 +21,7 @@ taxonomy:
 vulnerabilities:
   - id: "VULN-001"
     file: "shell_executor.py"
-    line: 47
+    line: 51
     rule_expected: "AGENT-036"
     severity: "CRITICAL"
     description: "subprocess.run with shell=True on agent-generated command"
@@ -37,7 +37,7 @@ vulnerabilities:
           code: "# Direct pass-through of command string"
       sink:
         type: "shell_execution"
-        location: "shell_executor.py:47"
+        location: "shell_executor.py:51"
         code: "result = subprocess.run(command, shell=True, ...)"
       sanitizer: null
     impact:
@@ -50,18 +50,18 @@ vulnerabilities:
 
   - id: "VULN-002"
     file: "shell_executor.py"
-    line: 114
+    line: 135
     rule_expected: "AGENT-036"
     severity: "CRITICAL"
     description: "os.system on untrusted command"
     taint:
       source:
         type: "llm_output"
-        location: "shell_executor.py:106"
+        location: "shell_executor.py:126"
         code: "def execute_with_os_system(command: str) -> int:"
       sink:
         type: "shell_execution"
-        location: "shell_executor.py:114"
+        location: "shell_executor.py:135"
         code: "return os.system(command)"
       sanitizer: null
     impact:
@@ -70,18 +70,18 @@ vulnerabilities:
 
   - id: "VULN-003"
     file: "shell_executor.py"
-    line: 121
+    line: 142
     rule_expected: "AGENT-036"
     severity: "CRITICAL"
     description: "subprocess.Popen with shell=True on untrusted command"
     taint:
       source:
         type: "llm_output"
-        location: "shell_executor.py:118"
+        location: "shell_executor.py:138"
         code: "def execute_with_popen(command: str) -> str:"
       sink:
         type: "shell_execution"
-        location: "shell_executor.py:121"
+        location: "shell_executor.py:142"
         code: "proc = subprocess.Popen(command, shell=True, ...)"
       sanitizer: null
     impact:

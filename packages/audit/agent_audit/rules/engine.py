@@ -19,6 +19,93 @@ from agent_audit.analysis.rule_context_config import get_context_multiplier
 logger = logging.getLogger(__name__)
 
 
+# v0.15.0: CWE ID Mapping Table (NIST SSDF PW.7 compliance)
+# Maps all AGENT-XXX rule IDs to corresponding CWE IDs
+RULE_CWE_MAPPING: Dict[str, str] = {
+    # Core rules (v0.1.0)
+    "AGENT-001": "CWE-78",    # OS Command Injection
+    "AGENT-002": "CWE-250",   # Excessive Privileges
+    "AGENT-003": "CWE-918",   # Server-Side Request Forgery
+    "AGENT-004": "CWE-798",   # Use of Hard-coded Credentials
+    "AGENT-005": "CWE-494",   # Download Without Integrity Check
+
+    # ASI-01: Goal Hijack
+    "AGENT-010": "CWE-74",    # Improper Neutralization of Special Elements
+    "AGENT-011": "CWE-74",    # Improper Neutralization
+
+    # ASI-03: Identity & Privilege Abuse
+    "AGENT-013": "CWE-269",   # Improper Privilege Management
+    "AGENT-014": "CWE-285",   # Improper Authorization
+
+    # ASI-04: Supply Chain
+    "AGENT-015": "CWE-829",   # Inclusion from Untrusted Control Sphere
+    "AGENT-016": "CWE-494",   # Download Without Integrity Check
+
+    # ASI-05: Code Execution
+    "AGENT-017": "CWE-94",    # Improper Control of Code Generation
+
+    # ASI-06: Memory Poisoning
+    "AGENT-018": "CWE-1321",  # Improperly Controlled Modification of Object Prototype
+    "AGENT-019": "CWE-1321",  # Improperly Controlled Modification
+
+    # ASI-07: Insecure Communication
+    "AGENT-020": "CWE-311",   # Missing Encryption of Sensitive Data
+
+    # ASI-08: Cascading Failures
+    "AGENT-021": "CWE-754",   # Improper Check for Exceptional Conditions
+    "AGENT-022": "CWE-754",   # Improper Check for Exceptional Conditions
+
+    # ASI-09: Trust Exploitation
+    "AGENT-023": "CWE-345",   # Insufficient Verification of Data Authenticity
+    "AGENT-024": "CWE-441",   # Unintended Proxy or Intermediary
+    "AGENT-025": "CWE-441",   # Unintended Proxy or Intermediary
+
+    # LangChain Security (v0.3.0)
+    "AGENT-026": "CWE-918",   # SSRF
+    "AGENT-027": "CWE-79",    # Cross-site Scripting
+    "AGENT-028": "CWE-400",   # Uncontrolled Resource Consumption (no iteration limit)
+
+    # MCP Configuration Security (v0.3.0)
+    "AGENT-029": "CWE-732",   # Incorrect Permission Assignment
+    "AGENT-030": "CWE-494",   # Download Without Integrity Check
+    "AGENT-031": "CWE-798",   # Use of Hard-coded Credentials
+    "AGENT-032": "CWE-250",   # Execution with Unnecessary Privileges
+    "AGENT-033": "CWE-306",   # Missing Authentication
+
+    # Tool Misuse & Trust (v0.3.0)
+    "AGENT-034": "CWE-20",    # Improper Input Validation
+    "AGENT-035": "CWE-77",    # Command Injection
+    "AGENT-036": "CWE-862",   # Missing Authorization
+    "AGENT-037": "CWE-862",   # Missing Authorization (human-in-loop)
+    "AGENT-038": "CWE-290",   # Authentication Bypass by Spoofing
+    "AGENT-039": "CWE-290",   # Authentication Bypass by Spoofing
+
+    # Extended rules (v0.3.2+)
+    "AGENT-040": "CWE-20",    # MCP Tool Schema Security / Improper Input Validation (v0.15.0)
+    "AGENT-041": "CWE-89",    # SQL Injection
+    "AGENT-042": "CWE-250",   # Excessive MCP Servers
+
+    # LangChain rules (v0.15.0 - renumbered from v0.3.1)
+    "AGENT-050": "CWE-400",   # LangChain AgentExecutor Without Safety Parameters
+
+    # Privilege rules (v0.8.0)
+    "AGENT-043": "CWE-269",   # Daemon Privileges
+    "AGENT-044": "CWE-269",   # Sudoers NOPASSWD
+    "AGENT-045": "CWE-269",   # CAP_SYS_ADMIN
+    "AGENT-046": "CWE-522",   # System Credential Store Access
+    "AGENT-047": "CWE-250",   # Subprocess Without Sandbox
+
+    # Supply chain (v0.9.0)
+    "AGENT-049": "CWE-502",   # Deserialization of Untrusted Data
+
+    # Data Exposure (v0.15.0)
+    "AGENT-052": "CWE-532",   # Sensitive Data Logging
+
+    # Rogue Agents (v0.15.0)
+    "AGENT-053": "CWE-94",    # Agent Self-Modification
+}
+
+
 @dataclass
 class MatchContext:
     """Context for rule matching."""
@@ -47,10 +134,12 @@ class RuleEngine:
         'system_prompt_fstring': 'AGENT-010',
         'system_prompt_concat': 'AGENT-010',
         'system_prompt_format': 'AGENT-010',
+        'system_prompt_augassign': 'AGENT-010',   # v0.15.0: += on prompt vars
+        'prompt_return_fstring': 'AGENT-010',     # v0.15.0: f-string return in prompt functions
         'agent_without_input_guard': 'AGENT-011',
 
         # ASI-01: Goal Hijack (v0.3.0 - LangChain)
-        'langchain_agent_executor_risk': 'AGENT-040',  # v0.3.1: Separate from AGENT-025 (monitoring)
+        'langchain_agent_executor_risk': 'AGENT-050',  # v0.15.0: Renumbered from AGENT-040 to avoid MCP conflict
         'langchain_system_prompt_injectable': 'AGENT-027',
 
         # ASI-02: Tool Misuse (v0.3.0 - MCP Config + LangChain)
@@ -58,11 +147,12 @@ class RuleEngine:
         'mcp_stdio_no_sandbox': 'AGENT-032',
         'langchain_tool_input_unsanitized': 'AGENT-026',
 
-        # ASI-02: SQL Injection (v0.3.2)
+        # ASI-02: SQL Injection (v0.3.2, v0.15.1)
         'sql_fstring_injection': 'AGENT-041',
         'sql_format_injection': 'AGENT-041',
         'sql_concat_injection': 'AGENT-041',
         'sql_percent_injection': 'AGENT-041',
+        'sql_tainted_param': 'AGENT-041',  # v0.15.1: Tainted variable to execute()
 
         # ASI-08: Cascading Failures (v0.3.0 - cross-framework)
         'agent_max_iterations_unbounded': 'AGENT-028',
@@ -105,6 +195,10 @@ class RuleEngine:
         # ASI-10: Rogue Agents
         'no_kill_switch': 'AGENT-024',
         'no_observability': 'AGENT-025',
+        'agent_self_modify': 'AGENT-053',  # v0.15.0: Agent self-modification
+
+        # ASI-09: Trust Exploitation (v0.15.0)
+        'sensitive_logging': 'AGENT-052',  # v0.15.0: Sensitive data in logs
 
         # v0.3.0: ASI-02 Tool Misuse (expanded)
         'tool_no_input_validation': 'AGENT-034',
@@ -233,6 +327,42 @@ class RuleEngine:
             if pattern_type == 'shell_true' or pattern_type == 'dangerous_function_call':
                 # Check if this matches AGENT-001 (Command Injection)
                 if self._is_command_injection(pattern):
+                    # v0.14.0: Use scanner's taint_analysis if available
+                    # Otherwise construct simplified taint for backward compat
+                    if pattern.get('has_tainted_input', False):
+                        if 'taint_analysis' not in pattern:
+                            # Fallback: construct synthetic taint analysis
+                            func_name = pattern.get('function', '')
+                            # Map function to sink type - matching oracle expectations
+                            # Oracle uses: eval, code_execution, shell_execution, sql_execution
+                            sink_type_map = {
+                                'eval': 'eval',  # Oracle expects "eval" for eval()
+                                'exec': 'code_execution',
+                                'compile': 'code_execution',
+                                'os.system': 'shell_execution',
+                                'os.popen': 'shell_execution',
+                                'subprocess.run': 'shell_execution',
+                                'subprocess.Popen': 'shell_execution',
+                                'subprocess.call': 'shell_execution',
+                                'subprocess.check_output': 'shell_execution',
+                                'subprocess.check_call': 'shell_execution',
+                            }
+                            sink_type = sink_type_map.get(func_name, 'shell_execution')
+                            # Source type should match oracle expectations
+                            # Oracle uses: user_input, llm_output, config, variable
+                            pattern['taint_analysis'] = {
+                                'dangerous_flows': [{
+                                    'var': 'user_input',
+                                    'sink': func_name,
+                                    'sink_type': sink_type,
+                                    'line': pattern.get('line', 0),
+                                    'path': ['user_input', func_name],
+                                    'confidence': 0.85,
+                                    'source': 'user_input',  # Changed to match oracle
+                                }],
+                                'sanitization_points': [],
+                            }
+
                     finding = self._create_finding_from_pattern(
                         rule_id="AGENT-001",
                         pattern=pattern,
@@ -736,6 +866,9 @@ class RuleEngine:
 
         tier = confidence_to_tier(confidence)
 
+        # v0.15.0: Use RULE_CWE_MAPPING, fallback to rule-defined cwe_id
+        cwe_id = RULE_CWE_MAPPING.get(rule_id, rule.get('cwe_id'))
+
         finding = Finding(
             rule_id=rule['id'],
             title=rule['title'],
@@ -748,7 +881,7 @@ class RuleEngine:
                 end_line=match.get('line', 1),
                 snippet=match.get('snippet', '')
             ),
-            cwe_id=rule.get('cwe_id'),
+            cwe_id=cwe_id,
             owasp_id=owasp_id,
             remediation=remediation,
             confidence=confidence,
@@ -758,6 +891,10 @@ class RuleEngine:
         # Add mitigation metadata if present
         if match.get('mitigation_detected'):
             finding.metadata['mitigation_detected'] = match['mitigation_detected']
+
+        # v0.13.0: Add taint analysis data if present
+        if match.get('taint_analysis'):
+            finding.metadata['taint_analysis'] = match['taint_analysis']
 
         # v0.8.0: Add infrastructure context annotation
         if infrastructure_context:

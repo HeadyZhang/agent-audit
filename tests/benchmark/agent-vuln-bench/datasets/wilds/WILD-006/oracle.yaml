@@ -18,8 +18,8 @@ taxonomy:
 vulnerabilities:
   - id: "VULN-W006-001"
     file: "prompt_inject.py"
-    line: 8
-    rule_expected: "AGENT-027"
+    line: 10
+    rule_expected: "AGENT-010"
     severity: "HIGH"
     description: "User input concatenated into prompt"
     taint:
@@ -29,7 +29,7 @@ vulnerabilities:
         code: "user_input: str"
       sink:
         type: "prompt"
-        location: "prompt_inject.py:8"
+        location: "prompt_inject.py:10"
         code: "f\"{SYSTEM_PROMPT}\\n\\nUser: {user_input}\""
       sanitizer: null
     impact:
@@ -37,8 +37,8 @@ vulnerabilities:
       blast_radius: "llm"
   - id: "VULN-W006-002"
     file: "prompt_inject.py"
-    line: 14
-    rule_expected: "AGENT-027"
+    line: 16
+    rule_expected: "AGENT-010"
     severity: "MEDIUM"
     description: "History content concatenated into system prompt"
     taint:

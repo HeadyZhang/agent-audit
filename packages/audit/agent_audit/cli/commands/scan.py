@@ -35,7 +35,8 @@ def run_scan(
     verbose: bool = False,
     quiet: bool = False,
     min_tier: Optional[str] = None,
-    no_color: bool = False
+    no_color: bool = False,
+    fail_on_new: bool = False
 ) -> int:
     """
     Run the security scan.
@@ -320,6 +321,14 @@ def run_scan(
         default=0
     )
 
+    # v0.15.0: --fail-on-new only fails if there are NEW findings (after baseline filter)
+    if fail_on_new:
+        # With --fail-on-new, only fail if there are any new findings at the fail_on level
+        # all_findings has already been filtered by baseline at this point
+        if actionable_findings and max_severity >= fail_sev_value:
+            return 1
+        return 0
+
     if max_severity >= fail_sev_value:
         return 1
     return 0
@@ -382,8 +391,10 @@ def _output_markdown(findings: List[Finding], scan_path: str, output_path: Optio
               default='high', help='Exit with error if findings at this level')
 @click.option('--baseline', type=click.Path(),
               help='Baseline file - only report new findings')
-@click.option('--save-baseline', type=click.Path(),
+@click.option('--save-baseline', '--create-baseline', type=click.Path(),
               help='Save current findings as baseline')
+@click.option('--fail-on-new', is_flag=True, default=False,
+              help='Exit with error only for new findings not in baseline')
 @click.option('--min-tier',
               type=click.Choice(['BLOCK', 'WARN', 'INFO', 'SUPPRESSED'], case_sensitive=False),
               default=None,
@@ -394,7 +405,7 @@ def _output_markdown(findings: List[Finding], scan_path: str, output_path: Optio
 def scan(ctx: click.Context, path: str, output_format: str, output: Optional[str],
          severity: str, rules: tuple, rules_dir: Optional[str], fail_on: str,
          baseline: Optional[str], save_baseline: Optional[str],
-         min_tier: Optional[str], no_color: bool):
+         fail_on_new: bool, min_tier: Optional[str], no_color: bool):
     """
     Scan agent code and configurations for security issues.
 
@@ -425,7 +436,8 @@ def scan(ctx: click.Context, path: str, output_format: str, output: Optional[str
         verbose=ctx.obj.get('verbose', False),
         quiet=ctx.obj.get('quiet', False),
         min_tier=min_tier.upper() if min_tier else None,
-        no_color=no_color
+        no_color=no_color,
+        fail_on_new=fail_on_new
     )
 
     ctx.exit(exit_code)

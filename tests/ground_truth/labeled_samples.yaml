@@ -251,7 +251,7 @@ samples:
         notes: "Agent Without Iteration Limit"
 
       - line: 17
-        rule_id: "AGENT-040"
+        rule_id: "AGENT-050"
         owasp_id: "ASI-01"
         is_true_positive: true
         confidence: 0.95
@@ -295,7 +295,7 @@ samples:
         notes: "Agent Without Iteration Limit"
 
       - line: 18
-        rule_id: "AGENT-040"
+        rule_id: "AGENT-050"
         owasp_id: "ASI-01"
         is_true_positive: true
         confidence: 0.95
@@ -511,7 +511,7 @@ samples:
         notes: "Agent Without Iteration Limit"
 
       - line: 17
-        rule_id: "AGENT-040"
+        rule_id: "AGENT-050"
         owasp_id: "ASI-01"
         is_true_positive: true
         confidence: 0.95
@@ -555,7 +555,7 @@ samples:
         notes: "Agent Without Iteration Limit"
 
       - line: 20
-        rule_id: "AGENT-040"
+        rule_id: "AGENT-050"
         owasp_id: "ASI-01"
         is_true_positive: true
         confidence: 0.95
@@ -578,7 +578,7 @@ samples:
         notes: "Agent Without Behavioral Monitoring / Logging"
 
       - line: 17
-        rule_id: "AGENT-040"
+        rule_id: "AGENT-050"
         owasp_id: "ASI-01"
         is_true_positive: true
         confidence: 0.95
@@ -631,7 +631,7 @@ samples:
         notes: "Agent Without Iteration Limit"
 
       - line: 17
-        rule_id: "AGENT-040"
+        rule_id: "AGENT-050"
         owasp_id: "ASI-01"
         is_true_positive: true
         confidence: 0.95
@@ -654,7 +654,7 @@ samples:
         notes: "Agent Without Behavioral Monitoring / Logging"
 
       - line: 17
-        rule_id: "AGENT-040"
+        rule_id: "AGENT-050"
         owasp_id: "ASI-01"
         is_true_positive: true
         confidence: 0.95
@@ -698,7 +698,7 @@ samples:
         notes: "Agent Without Iteration Limit"
 
       - line: 17
-        rule_id: "AGENT-040"
+        rule_id: "AGENT-050"
         owasp_id: "ASI-01"
         is_true_positive: true
         confidence: 0.95
@@ -999,7 +999,7 @@ samples:
         notes: "Agent Without Iteration Limit"
 
       - line: 27
-        rule_id: "AGENT-040"
+        rule_id: "AGENT-050"
         owasp_id: "ASI-01"
         is_true_positive: true
         confidence: 0.95
@@ -1090,7 +1090,7 @@ samples:
         notes: "Agent Without Iteration Limit"
 
       - line: 94
-        rule_id: "AGENT-040"
+        rule_id: "AGENT-050"
         owasp_id: "ASI-01"
         is_true_positive: true
         confidence: 0.95
@@ -1132,7 +1132,7 @@ samples:
         notes: "Agent Without Iteration Limit"
 
       - line: 100
-        rule_id: "AGENT-040"
+        rule_id: "AGENT-050"
         owasp_id: "ASI-01"
         is_true_positive: true
         confidence: 0.95
@@ -1181,7 +1181,7 @@ samples:
         notes: "Agent Without Iteration Limit"
 
       - line: 105
-        rule_id: "AGENT-040"
+        rule_id: "AGENT-050"
         owasp_id: "ASI-01"
         is_true_positive: true
         confidence: 0.95
@@ -1293,7 +1293,7 @@ samples:
         notes: "Agent Without Iteration Limit"
 
       - line: 147
-        rule_id: "AGENT-040"
+        rule_id: "AGENT-050"
         owasp_id: "ASI-01"
         is_true_positive: true
         confidence: 0.95
@@ -1335,7 +1335,7 @@ samples:
         notes: "Agent Without Iteration Limit"
 
       - line: 156
-        rule_id: "AGENT-040"
+        rule_id: "AGENT-050"
         owasp_id: "ASI-01"
         is_true_positive: true
         confidence: 0.95
@@ -1356,7 +1356,7 @@ samples:
         notes: "Agent Without Behavioral Monitoring / Logging"
 
       - line: 161
-        rule_id: "AGENT-040"
+        rule_id: "AGENT-050"
         owasp_id: "ASI-01"
         is_true_positive: true
         confidence: 0.95

@@ -20,7 +20,7 @@ taxonomy:
 vulnerabilities:
   - id: "VULN-001"
     file: "python_repl_tool.py"
-    line: 82
+    line: 90
     rule_expected: "AGENT-034"
     severity: "CRITICAL"
     description: "exec() executes LLM-generated code without sandboxing, allowing arbitrary code execution"
@@ -39,7 +39,7 @@ vulnerabilities:
           code: "# Strip markdown code blocks if present"
       sink:
         type: "code_execution"
-        location: "python_repl_tool.py:82"
+        location: "python_repl_tool.py:90"
         code: "exec(code, self.globals, self.locals)"
       sanitizer: null
     impact:

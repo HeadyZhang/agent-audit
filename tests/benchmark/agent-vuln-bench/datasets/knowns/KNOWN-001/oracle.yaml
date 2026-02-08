@@ -20,25 +20,25 @@ taxonomy:
 vulnerabilities:
   - id: "VULN-001"
     file: "llm_math_chain.py"
-    line: 87
+    line: 99
     rule_expected: "AGENT-034"
     severity: "CRITICAL"
     description: "eval() executes unsanitized LLM output, allowing arbitrary code execution"
     taint:
       source:
         type: "llm_output"
-        location: "llm_math_chain.py:72"
+        location: "llm_math_chain.py:80"
         code: "llm_output = self.llm.predict(prompt)"
       propagation:
         - step: 1
-          location: "llm_math_chain.py:75"
+          location: "llm_math_chain.py:83"
           code: "expression = llm_output.strip()"
         - step: 2
-          location: "llm_math_chain.py:79-81"
+          location: "llm_math_chain.py:86-89"
           code: "expression = expression.strip(\"`\").strip()"
       sink:
         type: "code_execution"
-        location: "llm_math_chain.py:87"
+        location: "llm_math_chain.py:99"
         code: "output = str(eval(expression))"
       sanitizer: null
     impact:

@@ -1,8 +1,11 @@
 blank_issues_enabled: false
 contact_links:
-  - name: Questions & Discussions
+  - name: General Question
     url: https://github.com/HeadyZhang/agent-audit/discussions
-    about: Ask questions and discuss ideas in GitHub Discussions
-  - name: Documentation
+    about: Ask general questions in GitHub Discussions
+  - name: Rule Documentation
     url: https://github.com/HeadyZhang/agent-audit/blob/main/docs/RULES.md
     about: Check the rule reference for detailed information about each rule
+  - name: OWASP Agentic Top 10
+    url: https://genai.owasp.org/llm-top-10/
+    about: Learn about the OWASP Agentic Top 10 vulnerabilities

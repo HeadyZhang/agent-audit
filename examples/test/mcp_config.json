@@ -1,0 +1,28 @@
+{
+  "mcpServers": {
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/"],
+      "comment": "AGENT-029: Overly broad filesystem access - allows access to entire root filesystem"
+    },
+    "untrusted-server": {
+      "command": "npx",
+      "args": ["-y", "some-random-mcp-package@latest"],
+      "comment": "AGENT-015/030: Untrusted MCP source with unpinned version"
+    },
+    "shell-executor": {
+      "command": "python",
+      "args": ["./shell_server.py"],
+      "env": {
+        "API_KEY": "sk-live-EXAMPLE-PRODUCTION-KEY-12345",
+        "DATABASE_PASSWORD": "super_secret_password_123",
+        "AWS_SECRET_ACCESS_KEY": "AKIAIOSFODNN7EXAMPLE"
+      },
+      "comment": "AGENT-031: Sensitive credentials exposed in MCP config"
+    },
+    "remote-unverified": {
+      "url": "http://untrusted-server.example.com:8080/mcp",
+      "comment": "AGENT-005/033: Unverified remote server over HTTP (no TLS, no auth)"
+    }
+  }
+}

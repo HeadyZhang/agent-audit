@@ -19,6 +19,7 @@ from agent_audit.analysis.tool_boundary_detector import (
     FileToolContext,
 )
 from agent_audit.analysis.memory_method_detector import is_agent_memory_method
+from agent_audit.analysis.taint_tracker import TaintTracker, TaintAnalysisResult
 
 logger = logging.getLogger(__name__)
 
@@ -554,6 +555,8 @@ class PythonASTVisitor(ast.NodeVisitor):
         # Track current function context for taint analysis
         self._current_function: Optional[str] = None
         self._current_function_params: Set[str] = set()
+        # v0.14.0: Track current function node for TaintTracker integration
+        self._current_function_node: Optional[ast.FunctionDef] = None
         # Track current class for tool detection
         self._current_class: Optional[str] = None
         # Track if inside @tool decorated function (ASI-05)
@@ -825,11 +828,13 @@ class PythonASTVisitor(ast.NodeVisitor):
         old_func = self._current_function
         old_params = self._current_function_params
         old_in_tool = self._in_tool_function
+        old_func_node = self._current_function_node  # v0.14.0
 
         self._current_function = node.name
         self._current_function_params = {
             arg.arg for arg in node.args.args
         }
+        self._current_function_node = node  # v0.14.0: Track node for TaintTracker
 
         # Check for @tool decorator
         is_tool = self._has_tool_decorator(node)
@@ -862,6 +867,7 @@ class PythonASTVisitor(ast.NodeVisitor):
         self._current_function = old_func
         self._current_function_params = old_params
         self._in_tool_function = old_in_tool
+        self._current_function_node = old_func_node  # v0.14.0
 
     def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef):
         """Handle async function definitions the same as regular functions."""
@@ -872,6 +878,24 @@ class PythonASTVisitor(ast.NodeVisitor):
         """Visit assignment statements to detect system prompt concatenation."""
         # ASI-01: Check for system prompt constructed via string operations
         finding = self._check_system_prompt_concat(node)
+        if finding:
+            self.dangerous_patterns.append(finding)
+
+        self.generic_visit(node)
+
+    def visit_AugAssign(self, node: ast.AugAssign):
+        """Visit augmented assignment (+=) to detect prompt concatenation."""
+        # ASI-01: Check for prompt variable += concatenation (e.g., system += user_input)
+        finding = self._check_prompt_augassign(node)
+        if finding:
+            self.dangerous_patterns.append(finding)
+
+        self.generic_visit(node)
+
+    def visit_Return(self, node: ast.Return):
+        """Visit return statements to detect prompt injection in prompt-building functions."""
+        # ASI-01: Check for f-string returns in prompt-related functions
+        finding = self._check_prompt_return_fstring(node)
         if finding:
             self.dangerous_patterns.append(finding)
 
@@ -972,6 +996,16 @@ class PythonASTVisitor(ast.NodeVisitor):
             oa_finding = self._check_opaque_agent_output(node)
             if oa_finding:
                 self.dangerous_patterns.append(oa_finding)
+
+            # ASI-10: Agent self-modification (v0.15.0)
+            sm_finding = self._check_agent_self_modify(node)
+            if sm_finding:
+                self.dangerous_patterns.append(sm_finding)
+
+            # ASI-09: Sensitive data logging (v0.15.0)
+            log_finding = self._check_sensitive_logging(node)
+            if log_finding:
+                self.dangerous_patterns.append(log_finding)
 
             # v0.3.0: AGENT-025 - LangChain agent executor risk
             lc_exec_finding = self._check_langchain_agent_executor_risk(node)
@@ -1361,6 +1395,92 @@ class PythonASTVisitor(ast.NodeVisitor):
 
         return None
 
+    def _check_prompt_augassign(self, node: ast.AugAssign) -> Optional[Dict[str, Any]]:
+        """
+        ASI-01: Detect prompt variable modified via += concatenation.
+
+        Example: system += "\\n" + msg["content"]
+
+        Returns a finding dict if vulnerable, None otherwise.
+        """
+        # Check if target is a prompt-related variable
+        if not isinstance(node.target, ast.Name):
+            return None
+
+        varname = node.target.id.lower()
+
+        # Expand prompt variable detection - include 'system', 'prompt', etc.
+        prompt_names = self.SYSTEM_PROMPT_VARNAMES | {'system', 'prompt', 'instruction'}
+
+        if varname not in prompt_names:
+            return None
+
+        # Check if operation is += (Add)
+        if not isinstance(node.op, ast.Add):
+            return None
+
+        # The value being added could contain user input
+        # Flag as potential prompt injection
+        return {
+            'type': 'system_prompt_augassign',
+            'variable': node.target.id,
+            'line': node.lineno,
+            'snippet': self._get_line(node.lineno),
+            'owasp_id': 'ASI-01',
+            'risk': 'Prompt variable modified via +=, may concatenate untrusted input',
+        }
+
+    def _check_prompt_return_fstring(self, node: ast.Return) -> Optional[Dict[str, Any]]:
+        """
+        ASI-01: Detect f-string returns in prompt-building functions.
+
+        Example:
+            def build_prompt(user_input: str) -> str:
+                return f"{SYSTEM_PROMPT}\\n\\nUser: {user_input}"
+
+        Returns a finding dict if vulnerable, None otherwise.
+        """
+        # Only check if we're inside a function
+        if not self._current_function:
+            return None
+
+        # Check if the return value is an f-string
+        if node.value is None or not isinstance(node.value, ast.JoinedStr):
+            return None
+
+        # Check if function name suggests prompt building
+        func_lower = self._current_function.lower()
+        prompt_function_patterns = {
+            'build_prompt', 'create_prompt', 'get_prompt', 'make_prompt',
+            'format_prompt', 'construct_prompt', 'generate_prompt',
+            'get_llm_prompt', 'build_system_prompt', 'get_messages',
+        }
+
+        is_prompt_function = any(
+            pattern in func_lower for pattern in prompt_function_patterns
+        ) or func_lower.endswith('_prompt') or 'prompt' in func_lower
+
+        if not is_prompt_function:
+            return None
+
+        # Check if f-string interpolates variables (not just constants)
+        has_variable_interpolation = any(
+            isinstance(val, ast.FormattedValue)
+            for val in node.value.values
+        )
+
+        if not has_variable_interpolation:
+            return None
+
+        return {
+            'type': 'prompt_return_fstring',
+            'function': self._current_function,
+            'line': node.lineno,
+            'snippet': self._get_line(node.lineno),
+            'owasp_id': 'ASI-01',
+            'risk': 'Prompt-building function returns f-string with interpolated variables',
+        }
+
     def _check_excessive_tools(self, node: ast.Call) -> Optional[Dict[str, Any]]:
         """
         ASI-03: Detect agents with too many tools or auto-approval mode.
@@ -1646,6 +1766,144 @@ class PythonASTVisitor(ast.NodeVisitor):
                 'snippet': self._get_line(node.lineno),
                 'owasp_id': 'ASI-10',
             }
+
+        return None
+
+    def _check_agent_self_modify(self, node: ast.Call) -> Optional[Dict[str, Any]]:
+        """
+        ASI-10: Detect agent self-modification patterns (v0.15.0).
+
+        Detects:
+        1. Dynamic module loading (importlib.util.spec_from_file_location, exec_module)
+        2. exec() or compile() with file content
+
+        Note: File write detection (open(..., 'w').write()) is handled via With context.
+
+        Returns a finding dict if vulnerable, None otherwise.
+        """
+        func_name = self._get_call_name(node)
+        if not func_name:
+            return None
+
+        # Pattern 1: importlib dynamic loading
+        self_modify_functions = {
+            'importlib.util.spec_from_file_location',
+            'spec_from_file_location',
+            'importlib.util.module_from_spec',
+            'module_from_spec',
+        }
+
+        if func_name in self_modify_functions:
+            return {
+                'type': 'agent_self_modify',
+                'subtype': 'dynamic_module_load',
+                'function': func_name,
+                'line': node.lineno,
+                'snippet': self._get_line(node.lineno),
+                'owasp_id': 'ASI-10',
+                'risk': 'Dynamic module loading enables agent self-modification',
+            }
+
+        # Pattern 2: exec_module (the dangerous call that actually loads code)
+        if func_name.endswith('.exec_module') or func_name == 'exec_module':
+            return {
+                'type': 'agent_self_modify',
+                'subtype': 'exec_module',
+                'function': func_name,
+                'line': node.lineno,
+                'snippet': self._get_line(node.lineno),
+                'owasp_id': 'ASI-10',
+                'risk': 'exec_module dynamically executes loaded module code',
+            }
+
+        # Pattern 3: __import__ with dynamic path
+        if func_name == '__import__':
+            # Check if the module name is a variable (not a string constant)
+            if node.args and not isinstance(node.args[0], ast.Constant):
+                return {
+                    'type': 'agent_self_modify',
+                    'subtype': 'dynamic_import',
+                    'function': func_name,
+                    'line': node.lineno,
+                    'snippet': self._get_line(node.lineno),
+                    'owasp_id': 'ASI-10',
+                    'risk': 'Dynamic __import__ with variable module name',
+                }
+
+        return None
+
+    # Sensitive identifiers for logging detection
+    SENSITIVE_IDENTIFIERS: Set[str] = {
+        'password', 'passwd', 'pwd', 'secret', 'token', 'api_key', 'apikey',
+        'private_key', 'privatekey', 'secret_key', 'secretkey', 'auth_token',
+        'access_token', 'refresh_token', 'bearer', 'credential', 'credentials',
+        'credit_card', 'creditcard', 'card_number', 'cardnumber',
+        'ssn', 'social_security', 'ssn_number',
+        'bank_account', 'account_number', 'routing_number',
+        'pin', 'cvv', 'cvc', 'security_code',
+    }
+
+    def _check_sensitive_logging(self, node: ast.Call) -> Optional[Dict[str, Any]]:
+        """
+        ASI-09 / AGENT-052 (v0.15.0): Detect sensitive data in logging statements.
+
+        Detects patterns like:
+            logger.info(f"User token: {user.token}")
+            print(f"Password: {password}")
+            logging.debug(f"API key = {api_key}")
+
+        Returns a finding dict if vulnerable, None otherwise.
+        """
+        func_name = self._get_call_name(node)
+        if not func_name:
+            return None
+
+        # Check if this is a logging function
+        simple_name = func_name.split('.')[-1].lower()
+        log_functions = {
+            'debug', 'info', 'warning', 'error', 'critical', 'exception',
+            'log', 'print', 'warn',
+        }
+        if simple_name not in log_functions:
+            return None
+
+        # Check for f-strings in arguments
+        for arg in node.args:
+            if isinstance(arg, ast.JoinedStr):
+                # Check each interpolated value in the f-string
+                for value in arg.values:
+                    if isinstance(value, ast.FormattedValue):
+                        sensitive_id = self._extract_sensitive_identifier(value.value)
+                        if sensitive_id:
+                            return {
+                                'type': 'sensitive_logging',
+                                'function': func_name,
+                                'identifier': sensitive_id,
+                                'line': node.lineno,
+                                'snippet': self._get_line(node.lineno),
+                                'owasp_id': 'ASI-09',
+                                'risk': f"Sensitive data '{sensitive_id}' logged in f-string",
+                            }
+
+        return None
+
+    def _extract_sensitive_identifier(self, node: ast.AST) -> Optional[str]:
+        """Extract sensitive identifier from an AST node if present."""
+        # Direct name: {password}
+        if isinstance(node, ast.Name):
+            if node.id.lower() in self.SENSITIVE_IDENTIFIERS:
+                return node.id
+
+        # Attribute access: {user.password}, {obj.token}
+        if isinstance(node, ast.Attribute):
+            if node.attr.lower() in self.SENSITIVE_IDENTIFIERS:
+                return node.attr
+
+        # Subscript: {data['password']}, {config["api_key"]}
+        if isinstance(node, ast.Subscript):
+            if isinstance(node.slice, ast.Constant) and isinstance(node.slice.value, str):
+                if node.slice.value.lower() in self.SENSITIVE_IDENTIFIERS:
+                    return node.slice.value
 
         return None
 
@@ -2536,6 +2794,24 @@ class PythonASTVisitor(ast.NodeVisitor):
 
         return False
 
+    def _analyze_function_taint(
+        self, node: ast.FunctionDef
+    ) -> Optional[TaintAnalysisResult]:
+        """
+        v0.13.0: Execute function-level taint analysis.
+
+        Uses the TaintTracker to analyze data flow from function parameters
+        to dangerous sinks (exec, subprocess, etc.).
+
+        Returns TaintAnalysisResult or None if analysis fails.
+        """
+        try:
+            tracker = TaintTracker(node)
+            return tracker.analyze()
+        except Exception as e:
+            logger.debug(f"Taint analysis failed for {node.name}: {e}")
+            return None  # Fallback to original logic on failure
+
     def _check_tool_no_input_validation(
         self, node: ast.FunctionDef
     ) -> Optional[Dict[str, Any]]:
@@ -2544,6 +2820,11 @@ class PythonASTVisitor(ast.NodeVisitor):
 
         v0.11.0: Uses Tool entry point gate - only @tool decorated functions
         or BaseTool methods are checked. No blacklists.
+
+        v0.13.0: Enhanced with taint analysis to reduce false positives.
+        - Hardcoded commands no longer trigger
+        - Sanitized flows are marked as safe
+        - More accurate data flow tracking
 
         Checks if @tool decorated functions accept str/Any parameters
         without validation in the function body.
@@ -2573,6 +2854,60 @@ class PythonASTVisitor(ast.NodeVisitor):
 
         if not str_params:
             return None  # No string params, no validation needed
+
+        # === v0.13.0: Taint Analysis Enhancement ===
+        taint_result = self._analyze_function_taint(node)
+
+        if taint_result is not None:
+            # Taint analysis succeeded - use its results
+
+            # No unsanitized flows to dangerous sinks = SAFE
+            if not taint_result.has_unsanitized_flow:
+                logger.debug(
+                    f"Taint analysis: {node.name} has no unsanitized flows, skipping"
+                )
+                return None
+
+            # Has dangerous flows - use taint analysis confidence
+            if taint_result.dangerous_flows:
+                # Find highest-confidence unsanitized flow
+                unsanitized = [f for f in taint_result.dangerous_flows if not f.is_sanitized]
+                if not unsanitized:
+                    # All flows are sanitized
+                    return None
+
+                # Build taint analysis details for the finding
+                taint_details = {
+                    'dangerous_flows': [
+                        {
+                            'var': f.tainted_var,
+                            'sink': f.sink_function,
+                            'sink_type': f.sink_type.value,
+                            'line': f.line,
+                            'path': f.flow_path,
+                            'confidence': f.confidence,
+                        }
+                        for f in unsanitized[:3]  # Limit to top 3
+                    ],
+                    'sanitization_points': [
+                        {'var': var, 'type': san_type.value, 'line': line}
+                        for var, (san_type, line) in taint_result.sanitization_points.items()
+                    ],
+                }
+
+                return {
+                    'type': 'tool_no_input_validation',
+                    'function': node.name,
+                    'unvalidated_params': list(str_params),
+                    'line': node.lineno,
+                    'snippet': self._get_line(node.lineno),
+                    'owasp_id': 'ASI-02',
+                    'confidence': taint_result.confidence,
+                    'mitigation_detected': None,
+                    'taint_analysis': taint_details,
+                }
+
+        # === Fallback to original logic if taint analysis fails ===
 
         # Check if function body has validation
         has_validation = False
@@ -3027,13 +3362,24 @@ class PythonASTVisitor(ast.NodeVisitor):
         - Only trigger when caller looks like a database cursor/connection
         - Require the string to start with SQL keywords (SELECT, INSERT, UPDATE, etc.)
         - Distinguish safe parameterized queries from vulnerable string interpolation
+
+        v0.15.0 ORM extensions:
+        - Django: Model.raw(), extra(), RawSQL()
+        - SQLAlchemy: text()
+        - Async: asyncpg.execute(), aiosqlite.execute()
         """
         func_name = self._get_call_name(node)
         if not func_name:
             return None
 
-        # Check for SQL execution functions
         simple_name = func_name.split('.')[-1]
+
+        # v0.15.0: Check for ORM-specific dangerous functions first
+        orm_sql_finding = self._check_orm_raw_sql(node, func_name, simple_name)
+        if orm_sql_finding:
+            return orm_sql_finding
+
+        # Check for SQL execution functions
         sql_functions = {'execute', 'executemany', 'executescript', 'raw'}
         if simple_name not in sql_functions:
             return None
@@ -3143,6 +3489,153 @@ class PythonASTVisitor(ast.NodeVisitor):
         # (with tuple as second arg) is the standard safe pattern in Python DB-API.
         # Flagging this causes many false positives.
 
+        # v0.15.1: Check for tainted variable passed directly to execute
+        tainted_finding = self._check_sql_tainted_param(node, func_name, simple_name, first_arg)
+        if tainted_finding:
+            return tainted_finding
+
+        return None
+
+    def _check_sql_tainted_param(
+        self,
+        node: ast.Call,
+        func_name: str,
+        simple_name: str,
+        first_arg: ast.expr
+    ) -> Optional[Dict[str, Any]]:
+        """
+        v0.15.1 KNOWN-008 Fix: Detect SQL execute with tainted variable parameter.
+
+        Pattern: cursor.execute(query) where query is a function parameter.
+        This catches cases where the SQL string was constructed upstream.
+        """
+        if simple_name not in ('execute', 'executemany', 'executescript'):
+            return None
+
+        # Check if first argument is a variable from function params
+        if isinstance(first_arg, ast.Name):
+            var_name = first_arg.id
+            # Check if variable comes from function parameters (tainted input)
+            if var_name in self._current_function_params:
+                return {
+                    'type': 'sql_tainted_param',
+                    'function': func_name,
+                    'line': node.lineno,
+                    'snippet': self._get_line(node.lineno),
+                    'owasp_id': 'ASI-02',
+                    'note': f'SQL execute with user-controlled parameter "{var_name}"',
+                    'taint_analysis': {
+                        'dangerous_flows': [{
+                            'var': var_name,
+                            'sink': func_name,
+                            'sink_type': 'sql_execution',
+                            'line': node.lineno,
+                            'path': [var_name],
+                            'confidence': 0.85,
+                            'source': 'user_input',
+                        }],
+                        'sanitization_points': [],
+                    }
+                }
+
+        return None
+
+    def _check_orm_raw_sql(
+        self,
+        node: ast.Call,
+        func_name: str,
+        simple_name: str
+    ) -> Optional[Dict[str, Any]]:
+        """
+        v0.15.0: Detect ORM raw SQL patterns.
+
+        Detects:
+        - SQLAlchemy text(): session.execute(text(f"SELECT {user_id}"))
+        - Django RawSQL: annotate(val=RawSQL(f"SELECT {x}"))
+        - Django extra(): queryset.extra(where=[f"id = {x}"])
+        - Async: asyncpg.execute(f"SELECT {x}"), aiosqlite.execute(f"SELECT {x}")
+        """
+        # Pattern 1: SQLAlchemy text() with f-string/format
+        if simple_name == 'text':
+            if node.args:
+                first_arg = node.args[0]
+                if isinstance(first_arg, ast.JoinedStr):
+                    has_interpolation = any(
+                        isinstance(v, ast.FormattedValue) for v in first_arg.values
+                    )
+                    if has_interpolation:
+                        return {
+                            'type': 'sql_fstring_injection',
+                            'subtype': 'sqlalchemy_text',
+                            'function': func_name,
+                            'line': node.lineno,
+                            'snippet': self._get_line(node.lineno),
+                            'owasp_id': 'ASI-02',
+                            'note': 'SQLAlchemy text() with f-string interpolation',
+                        }
+
+        # Pattern 2: Django RawSQL() with f-string
+        if simple_name == 'RawSQL':
+            if node.args:
+                first_arg = node.args[0]
+                if isinstance(first_arg, ast.JoinedStr):
+                    has_interpolation = any(
+                        isinstance(v, ast.FormattedValue) for v in first_arg.values
+                    )
+                    if has_interpolation:
+                        return {
+                            'type': 'sql_fstring_injection',
+                            'subtype': 'django_rawsql',
+                            'function': func_name,
+                            'line': node.lineno,
+                            'snippet': self._get_line(node.lineno),
+                            'owasp_id': 'ASI-02',
+                            'note': 'Django RawSQL() with f-string interpolation',
+                        }
+
+        # Pattern 3: Django extra() with f-string in where clause
+        if simple_name == 'extra':
+            for kw in node.keywords:
+                if kw.arg == 'where' and isinstance(kw.value, ast.List):
+                    for elt in kw.value.elts:
+                        if isinstance(elt, ast.JoinedStr):
+                            has_interpolation = any(
+                                isinstance(v, ast.FormattedValue) for v in elt.values
+                            )
+                            if has_interpolation:
+                                return {
+                                    'type': 'sql_fstring_injection',
+                                    'subtype': 'django_extra',
+                                    'function': func_name,
+                                    'line': node.lineno,
+                                    'snippet': self._get_line(node.lineno),
+                                    'owasp_id': 'ASI-02',
+                                    'note': 'Django extra() with f-string in where clause',
+                                }
+
+        # Pattern 4: Async database execute with f-string
+        # asyncpg: conn.execute(f"SELECT..."), conn.fetch(f"SELECT...")
+        # aiosqlite: conn.execute(f"SELECT...")
+        async_db_patterns = {'asyncpg', 'aiosqlite', 'aiomysql', 'aiopg'}
+        if any(pattern in func_name.lower() for pattern in async_db_patterns):
+            if simple_name in {'execute', 'fetch', 'fetchrow', 'fetchval'}:
+                if node.args:
+                    first_arg = node.args[0]
+                    if isinstance(first_arg, ast.JoinedStr):
+                        has_interpolation = any(
+                            isinstance(v, ast.FormattedValue) for v in first_arg.values
+                        )
+                        if has_interpolation:
+                            return {
+                                'type': 'sql_fstring_injection',
+                                'subtype': 'async_db',
+                                'function': func_name,
+                                'line': node.lineno,
+                                'snippet': self._get_line(node.lineno),
+                                'owasp_id': 'ASI-02',
+                                'note': 'Async database query with f-string interpolation',
+                            }
+
         return None
 
     # =========================================================================
@@ -3211,6 +3704,16 @@ class PythonASTVisitor(ast.NodeVisitor):
         confidence = base_confidence
         has_tainted_input = self._has_input_from_function_params(node)
 
+        # v0.14.0: Full taint analysis for eval/exec
+        taint_result: Optional[TaintAnalysisResult] = None
+        taint_analysis_metadata = None
+        if self._current_function_node:
+            taint_result = self._analyze_function_taint(self._current_function_node)
+            if taint_result and taint_result.has_dangerous_flows:
+                has_tainted_input = True
+                confidence = max(confidence, taint_result.confidence)
+                taint_analysis_metadata = taint_result.to_metadata_dict()
+
         if has_tainted_input:
             # Higher confidence if input comes from function parameters
             confidence = min(confidence + 0.10, 0.95)
@@ -3232,7 +3735,7 @@ class PythonASTVisitor(ast.NodeVisitor):
         if confidence < 0.45:
             return None
 
-        return {
+        result = {
             'type': 'eval_exec_expanded',
             'function': func_name,
             'line': node.lineno,
@@ -3244,6 +3747,12 @@ class PythonASTVisitor(ast.NodeVisitor):
             'in_function': self._current_function,
             'in_class': self._current_class,
         }
+
+        # v0.14.0: Attach full taint analysis for engine.py/benchmark
+        if taint_analysis_metadata:
+            result['taint_analysis'] = taint_analysis_metadata
+
+        return result
 
     def _check_expanded_ssrf(self, node: ast.Call) -> Optional[Dict[str, Any]]:
         """
@@ -3303,6 +3812,15 @@ class PythonASTVisitor(ast.NodeVisitor):
         # Check for tainted input
         has_tainted_input = self._has_input_from_function_params(node)
 
+        # v0.14.0: Full taint analysis for SSRF
+        taint_result: Optional[TaintAnalysisResult] = None
+        taint_analysis_metadata = None
+        if self._current_function_node:
+            taint_result = self._analyze_function_taint(self._current_function_node)
+            if taint_result and taint_result.has_dangerous_flows:
+                has_tainted_input = True
+                taint_analysis_metadata = taint_result.to_metadata_dict()
+
         # Check for URL validation
         has_validation = self._has_url_validation(node)
 
@@ -3322,7 +3840,7 @@ class PythonASTVisitor(ast.NodeVisitor):
         if confidence < 0.40:
             return None
 
-        return {
+        result = {
             'type': 'ssrf_expanded',
             'function': func_name,
             'line': node.lineno,
@@ -3335,6 +3853,12 @@ class PythonASTVisitor(ast.NodeVisitor):
             'in_function': self._current_function,
             'in_class': self._current_class,
         }
+
+        # v0.14.0: Attach full taint analysis for engine.py/benchmark
+        if taint_analysis_metadata:
+            result['taint_analysis'] = taint_analysis_metadata
+
+        return result
 
     def _check_expanded_subprocess(self, node: ast.Call) -> Optional[Dict[str, Any]]:
         """
@@ -3378,6 +3902,15 @@ class PythonASTVisitor(ast.NodeVisitor):
         # Check for tainted input
         has_tainted_input = self._has_input_from_function_params(node)
 
+        # v0.14.0: Full taint analysis for subprocess
+        taint_result: Optional[TaintAnalysisResult] = None
+        taint_analysis_metadata = None
+        if self._current_function_node:
+            taint_result = self._analyze_function_taint(self._current_function_node)
+            if taint_result and taint_result.has_dangerous_flows:
+                has_tainted_input = True
+                taint_analysis_metadata = taint_result.to_metadata_dict()
+
         # Calculate final confidence
         confidence = base_confidence
         if has_shell_true:
@@ -3395,7 +3928,7 @@ class PythonASTVisitor(ast.NodeVisitor):
         if confidence < 0.45:
             return None
 
-        return {
+        result = {
             'type': 'subprocess_expanded',
             'function': func_name,
             'line': node.lineno,
@@ -3408,3 +3941,9 @@ class PythonASTVisitor(ast.NodeVisitor):
             'in_function': self._current_function,
             'in_class': self._current_class,
         }
+
+        # v0.14.0: Attach full taint analysis for engine.py/benchmark
+        if taint_analysis_metadata:
+            result['taint_analysis'] = taint_analysis_metadata
+
+        return result

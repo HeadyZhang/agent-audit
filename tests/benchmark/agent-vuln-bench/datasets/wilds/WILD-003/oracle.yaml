@@ -18,8 +18,8 @@ taxonomy:
 vulnerabilities:
   - id: "VULN-W003-001"
     file: "agent_self_modify.py"
-    line: 10
-    rule_expected: "AGENT-050"
+    line: 17
+    rule_expected: "AGENT-053"
     severity: "CRITICAL"
     description: "Agent writes its own config from user input"
     taint:

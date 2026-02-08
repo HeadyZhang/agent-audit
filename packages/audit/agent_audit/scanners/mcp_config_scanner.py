@@ -47,6 +47,8 @@ class MCPConfigScanResult(ScanResult):
     servers: List[MCPServerConfig] = field(default_factory=list)
     config_type: str = "unknown"  # claude_desktop, docker_mcp, standard
     security_findings: List[MCPSecurityFinding] = field(default_factory=list)
+    # v0.15.0: Raw config data for schema validation
+    _raw_config: Dict[str, Any] = field(default_factory=dict, repr=False)
 
 
 class MCPConfigScanner(BaseScanner):
@@ -259,7 +261,8 @@ class MCPConfigScanner(BaseScanner):
             return MCPConfigScanResult(
                 source_file=str(file_path),
                 servers=servers,
-                config_type=config_type
+                config_type=config_type,
+                _raw_config=data  # v0.15.0: Store for schema validation
             )
 
         except json.JSONDecodeError as e:
@@ -455,7 +458,13 @@ class MCPConfigScanner(BaseScanner):
         excessive_findings = self._check_excessive_servers(result)
         findings.extend(excessive_findings)
 
+        # Get raw config for detailed analysis (v0.15.1)
+        raw_mcp_servers = result._raw_config.get('mcpServers', {})
+
         for server in result.servers:
+            # Get raw server config for wildcard permission check
+            raw_server_config = raw_mcp_servers.get(server.name, {}) if isinstance(raw_mcp_servers, dict) else {}
+
             # AGENT-029: Overly broad filesystem access
             fs_findings = self._check_overly_broad_filesystem(server)
             findings.extend(fs_findings)
@@ -468,6 +477,10 @@ class MCPConfigScanner(BaseScanner):
             env_findings = self._check_sensitive_env_exposure(server)
             findings.extend(env_findings)
 
+            # v0.15.1: AGENT-031 - Wildcard command permissions
+            wildcard_findings = self._check_wildcard_permissions(server, raw_server_config)
+            findings.extend(wildcard_findings)
+
             # AGENT-032: stdio without sandbox
             sandbox_findings = self._check_stdio_no_sandbox(server)
             findings.extend(sandbox_findings)
@@ -475,6 +488,10 @@ class MCPConfigScanner(BaseScanner):
             # AGENT-033: Missing auth for SSE/HTTP
             auth_findings = self._check_missing_auth(server)
             findings.extend(auth_findings)
+
+        # v0.15.0: AGENT-040 - Tool Schema validation (requires raw config data)
+        schema_findings = self._check_tool_schema_security(result)
+        findings.extend(schema_findings)
 
         return findings
 
@@ -869,6 +886,157 @@ class MCPConfigScanner(BaseScanner):
                 line=server._line,
                 snippet=f"url: {url}, transport: {server.transport}",
                 owasp_id="ASI-09"
+            ))
+
+        return findings
+
+    def _check_tool_schema_security(
+        self,
+        result: MCPConfigScanResult
+    ) -> List[MCPSecurityFinding]:
+        """
+        AGENT-040 (v0.15.0): Check for insecure MCP Tool Schema definitions.
+
+        ASI-02 (Tool Misuse) - Overly permissive schemas enable injection.
+
+        Triggers when:
+        - inputSchema.additionalProperties: true
+        - inputSchema.properties has param without type
+        - Tool has no inputSchema at all
+        """
+        findings: List[MCPSecurityFinding] = []
+        raw_config = result._raw_config
+
+        # Find tools definitions in config
+        # MCP tools can be defined in various locations
+        tools_locations = [
+            raw_config.get('tools', []),
+            raw_config.get('capabilities', {}).get('tools', []),
+        ]
+
+        # Also check each server for embedded tool definitions
+        mcp_servers = raw_config.get('mcpServers', {})
+        if isinstance(mcp_servers, dict):
+            for server_name, server_config in mcp_servers.items():
+                if isinstance(server_config, dict):
+                    server_tools = server_config.get('tools', [])
+                    if server_tools:
+                        tools_locations.append(server_tools)
+
+        for tools in tools_locations:
+            if not isinstance(tools, list):
+                continue
+
+            for tool in tools:
+                if not isinstance(tool, dict):
+                    continue
+
+                tool_name = tool.get('name', 'unknown')
+                input_schema = tool.get('inputSchema', {})
+
+                # Check 1: additionalProperties: true
+                if input_schema.get('additionalProperties') is True:
+                    findings.append(MCPSecurityFinding(
+                        rule_id="AGENT-040",
+                        server_name=tool_name,
+                        finding_type="mcp_insecure_tool_schema",
+                        description=(
+                            f"MCP tool '{tool_name}' has additionalProperties: true "
+                            "which allows injection of unexpected parameters"
+                        ),
+                        severity="medium",
+                        line=1,
+                        snippet=f"inputSchema.additionalProperties: true",
+                        owasp_id="ASI-02"
+                    ))
+
+                # Check 2: Parameters without type constraint
+                properties = input_schema.get('properties', {})
+                if isinstance(properties, dict):
+                    for prop_name, prop_def in properties.items():
+                        if isinstance(prop_def, dict) and 'type' not in prop_def:
+                            findings.append(MCPSecurityFinding(
+                                rule_id="AGENT-040",
+                                server_name=tool_name,
+                                finding_type="mcp_insecure_tool_schema",
+                                description=(
+                                    f"MCP tool '{tool_name}' parameter '{prop_name}' "
+                                    "has no type constraint"
+                                ),
+                                severity="low",
+                                line=1,
+                                snippet=f"properties.{prop_name}: {{}} (no type)",
+                                owasp_id="ASI-02"
+                            ))
+
+                # Check 3: Tool with no inputSchema (only if it looks like it needs input)
+                if not input_schema and tool.get('description'):
+                    # Only flag if description suggests input is needed
+                    desc = str(tool.get('description', '')).lower()
+                    input_keywords = ['query', 'search', 'execute', 'run', 'write', 'create', 'update', 'delete']
+                    if any(kw in desc for kw in input_keywords):
+                        findings.append(MCPSecurityFinding(
+                            rule_id="AGENT-040",
+                            server_name=tool_name,
+                            finding_type="mcp_insecure_tool_schema",
+                            description=(
+                                f"MCP tool '{tool_name}' has no inputSchema defined "
+                                "but appears to accept input based on description"
+                            ),
+                            severity="low",
+                            line=1,
+                            snippet=f"tool: {tool_name} (no inputSchema)",
+                            owasp_id="ASI-02"
+                        ))
+
+        return findings
+
+    def _check_wildcard_permissions(
+        self,
+        server: MCPServerConfig,
+        raw_server_config: Dict[str, Any]
+    ) -> List[MCPSecurityFinding]:
+        """
+        AGENT-031 (v0.15.1): Check for wildcard command/permission grants.
+
+        Triggers when:
+        - config.allowedCommands contains "*"
+        - alwaysAllow is True or contains "*"
+        """
+        findings: List[MCPSecurityFinding] = []
+        config = raw_server_config.get('config', {})
+
+        # Check allowedCommands for wildcard
+        allowed_commands = config.get('allowedCommands', [])
+        if isinstance(allowed_commands, list) and ('*' in allowed_commands or '**' in allowed_commands):
+            findings.append(MCPSecurityFinding(
+                rule_id="AGENT-031",
+                server_name=server.name,
+                finding_type="mcp_wildcard_command_grant",
+                description=(
+                    f"MCP server '{server.name}' grants wildcard command permission '*' "
+                    "allowing execution of any command"
+                ),
+                severity="critical",
+                line=server._line,
+                snippet=f"allowedCommands: {allowed_commands}",
+                owasp_id="ASI-02"
+            ))
+
+        # Check alwaysAllow for blanket permission
+        always_allow = raw_server_config.get('alwaysAllow', [])
+        if always_allow is True or (isinstance(always_allow, list) and '*' in always_allow):
+            findings.append(MCPSecurityFinding(
+                rule_id="AGENT-031",
+                server_name=server.name,
+                finding_type="mcp_always_allow_all",
+                description=(
+                    f"MCP server '{server.name}' has 'alwaysAllow' granting all permissions"
+                ),
+                severity="high",
+                line=server._line,
+                snippet=f"alwaysAllow: {always_allow}",
+                owasp_id="ASI-02"
             ))
 
         return findings

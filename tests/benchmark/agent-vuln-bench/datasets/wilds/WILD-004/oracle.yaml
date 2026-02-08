@@ -18,34 +18,51 @@ taxonomy:
 vulnerabilities:
   - id: "VULN-W004-001"
     file: "token_collector.py"
-    line: 5
+    line: 9
     rule_expected: "AGENT-004"
     severity: "CRITICAL"
-    description: "Hardcoded Discord token"
+    description: "Hardcoded Discord token (Generic Token pattern)"
     taint:
       source:
         type: "literal"
-        location: "token_collector.py:5"
+        location: "token_collector.py:9"
       sink:
         type: "credential"
-        location: "token_collector.py:5"
+        location: "token_collector.py:9"
       sanitizer: null
     impact:
       primary: "CredentialExposure"
       blast_radius: "multi_platform"
   - id: "VULN-W004-002"
     file: "token_collector.py"
-    line: 6
+    line: 11
     rule_expected: "AGENT-004"
     severity: "CRITICAL"
-    description: "Hardcoded Telegram token"
+    description: "Hardcoded Telegram token (Generic Token pattern)"
     taint:
       source:
         type: "literal"
-        location: "token_collector.py:6"
+        location: "token_collector.py:11"
       sink:
         type: "credential"
-        location: "token_collector.py:6"
+        location: "token_collector.py:11"
+      sanitizer: null
+    impact:
+      primary: "CredentialExposure"
+      blast_radius: "multi_platform"
+  - id: "VULN-W004-003"
+    file: "token_collector.py"
+    line: 13
+    rule_expected: "AGENT-004"
+    severity: "CRITICAL"
+    description: "Hardcoded Slack token (Slack Bot Token pattern)"
+    taint:
+      source:
+        type: "literal"
+        location: "token_collector.py:13"
+      sink:
+        type: "credential"
+        location: "token_collector.py:13"
       sanitizer: null
     impact:
       primary: "CredentialExposure"
@@ -54,6 +71,11 @@ vulnerabilities:
 safe_patterns:
   - id: "SAFE-W004-001"
     file: "token_collector.py"
-    line: 11
-    description: "return dict"
+    line: 16
+    description: "function definition"
     trap_type: "identifier_collision"
+  - id: "SAFE-W004-002"
+    file: "token_collector.py"
+    line: 17
+    description: "return dict"
+    trap_type: "data_structure"

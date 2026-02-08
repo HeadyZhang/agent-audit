@@ -95,7 +95,8 @@ class SecretScanner(BaseScanner):
          "Private Key Header", "critical", PatternPriority.CRITICAL),
         (re.compile(r'-----BEGIN PGP PRIVATE KEY BLOCK-----'),
          "PGP Private Key", "critical", PatternPriority.CRITICAL),
-        (re.compile(r'(?i)(?:mysql|postgres|postgresql|mongodb|redis)://[^\s"\']+:[^\s"\']+@'),
+        # v0.14.0: Allow empty username for Redis-style connections (redis://:pass@host)
+        (re.compile(r'(?i)(?:mysql|postgres|postgresql|mongodb|redis)://[^\s"\']*:[^\s"\']+@'),
          "Database Connection String with Credentials", "critical", PatternPriority.CRITICAL),
 
         # === Priority 2: HIGH - Known API key formats with verified prefixes ===
@@ -329,8 +330,8 @@ class SecretScanner(BaseScanner):
         if file_path.name in self.SKIP_FILES:
             return False
 
-        # Skip hidden directories
-        if any(part.startswith('.') and part not in {'.env'}
+        # Skip hidden directories (but not . or .. which are navigation references)
+        if any(part.startswith('.') and part not in {'.env', '.', '..'}
               for part in file_path.parts[:-1]):
             return False
 

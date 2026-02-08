@@ -21,18 +21,18 @@ taxonomy:
 vulnerabilities:
   - id: "VULN-001"
     file: "agent_config.py"
-    line: 18
+    line: 20
     rule_expected: "AGENT-004"
     severity: "HIGH"
     description: "Hardcoded OpenAI API key in source code"
     taint:
       source:
         type: "string_literal"
-        location: "agent_config.py:18"
+        location: "agent_config.py:20"
         code: "OPENAI_API_KEY = \"sk-proj-aBcDeFgHiJkLmNoPqRsTuVwXyZ01234567890abcdefghijk\""
       sink:
         type: "api_client"
-        location: "agent_config.py:40"
+        location: "agent_config.py:41"
         code: "self.api_key = os.getenv(\"OPENAI_API_KEY\", OPENAI_API_KEY)"
       sanitizer: null
     impact:
@@ -43,18 +43,18 @@ vulnerabilities:
 
   - id: "VULN-002"
     file: "agent_config.py"
-    line: 22
+    line: 23
     rule_expected: "AGENT-004"
     severity: "HIGH"
     description: "Hardcoded Anthropic API key in source code"
     taint:
       source:
         type: "string_literal"
-        location: "agent_config.py:22"
+        location: "agent_config.py:23"
         code: "ANTHROPIC_API_KEY = \"sk-ant-api03-xxx...\""
       sink:
         type: "api_client"
-        location: "agent_config.py:43"
+        location: "agent_config.py:44"
         code: "self.anthropic_key = ANTHROPIC_API_KEY"
       sanitizer: null
     impact:
@@ -65,18 +65,18 @@ vulnerabilities:
 
   - id: "VULN-003"
     file: "agent_config.py"
-    line: 23
+    line: 24
     rule_expected: "AGENT-004"
     severity: "MEDIUM"
     description: "Hardcoded Cohere API key in source code"
     taint:
       source:
         type: "string_literal"
-        location: "agent_config.py:23"
+        location: "agent_config.py:24"
         code: "COHERE_API_KEY = \"co-xxx...\""
       sink:
         type: "credential_storage"
-        location: "agent_config.py:23"
+        location: "agent_config.py:24"
       sanitizer: null
     impact:
       primary: "CredentialExposure"
@@ -84,18 +84,18 @@ vulnerabilities:
 
   - id: "VULN-004"
     file: "agent_config.py"
-    line: 66
+    line: 72
     rule_expected: "AGENT-004"
     severity: "HIGH"
     description: "Hardcoded database credentials in connection string"
     taint:
       source:
         type: "string_literal"
-        location: "agent_config.py:66"
+        location: "agent_config.py:72"
         code: "DATABASE_URL = \"postgresql://admin:SuperSecret123!@db.example.com:5432/agents\""
       sink:
         type: "database_connection"
-        location: "agent_config.py:66"
+        location: "agent_config.py:72"
       sanitizer: null
     impact:
       primary: "CredentialExposure"
@@ -105,18 +105,18 @@ vulnerabilities:
 
   - id: "VULN-005"
     file: "agent_config.py"
-    line: 67
+    line: 73
     rule_expected: "AGENT-004"
     severity: "HIGH"
     description: "Hardcoded Redis credentials in connection string"
     taint:
       source:
         type: "string_literal"
-        location: "agent_config.py:67"
+        location: "agent_config.py:73"
         code: "REDIS_URL = \"redis://:password123@redis.example.com:6379/0\""
       sink:
         type: "cache_connection"
-        location: "agent_config.py:67"
+        location: "agent_config.py:73"
       sanitizer: null
     impact:
       primary: "CredentialExposure"
