@@ -1877,4 +1877,3 @@ samples:
   - file: "benign/validated/secure_agent_config.py"
     vulnerabilities: []
     notes: "Safe agent with all security controls - any detection is FALSE POSITIVE"
-

@@ -104,6 +104,39 @@ SAFE_TOOL_PATTERNS: List[Tuple[re.Pattern, str]] = [
     (re.compile(r'^show_\w+$'), "Show function"),
     (re.compile(r'^display_\w+$'), "Display function"),
     (re.compile(r'^print_\w+$'), "Print function"),
+    # Information query
+    (re.compile(r'^retrieve_\w+$'), "Retrieve function"),
+    (re.compile(r'^view_\w+$'), "View function"),
+    (re.compile(r'^inspect_\w+$'), "Inspect function"),
+    # Boolean/status checks
+    (re.compile(r'^is_\w+$'), "Boolean check function"),
+    (re.compile(r'^has_\w+$'), "Has check function"),
+    (re.compile(r'^can_\w+$'), "Can check function"),
+    (re.compile(r'^verify_\w+$'), "Verify function"),
+    # Extraction/analysis
+    (re.compile(r'^extract_\w+$'), "Extract function"),
+    (re.compile(r'^analyze_\w+$'), "Analyze function"),
+    (re.compile(r'^summarize_\w+$'), "Summarize function"),
+    (re.compile(r'^compare_\w+$'), "Compare function"),
+    # Rendering
+    (re.compile(r'^render_\w+$'), "Render function"),
+    (re.compile(r'^generate_\w+$'), "Generate function"),
+    (re.compile(r'^build_\w+$'), "Build function"),
+    (re.compile(r'^create_\w+$'), "Create function"),
+    (re.compile(r'^make_\w+$'), "Make function"),
+    # Data handling
+    (re.compile(r'^encode_\w+$'), "Encode function"),
+    (re.compile(r'^decode_\w+$'), "Decode function"),
+    (re.compile(r'^serialize_\w+$'), "Serialize function"),
+    (re.compile(r'^deserialize_\w+$'), "Deserialize function"),
+    (re.compile(r'^map_\w+$'), "Map function"),
+    (re.compile(r'^filter_\w+$'), "Filter function"),
+    (re.compile(r'^sort_\w+$'), "Sort function"),
+    (re.compile(r'^merge_\w+$'), "Merge function"),
+    # Communication/messaging (publish/subscribe only - not send which can be network/dangerous)
+    (re.compile(r'^notify_\w+$'), "Notify function"),
+    (re.compile(r'^publish_\w+$'), "Publish function"),
+    (re.compile(r'^subscribe_\w+$'), "Subscribe function"),
 ]
 
 

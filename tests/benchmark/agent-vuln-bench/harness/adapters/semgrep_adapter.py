@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import json
 import subprocess
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from .base_adapter import BaseAdapter, ToolFinding, ToolNotAvailable, normalize_severity
@@ -59,13 +60,26 @@ class SemgrepAdapter(BaseAdapter):
             List of standardized ToolFinding objects.
         """
         try:
+            # Semgrep requires explicit file targets when scanning outside
+            # a git repo or for files not tracked by git.
+            target_path = Path(project_path)
+            if target_path.is_dir():
+                # Enumerate scannable files explicitly to avoid git-tracking issues
+                targets = []
+                for ext in ("*.py", "*.js", "*.ts", "*.json", "*.yaml", "*.yml"):
+                    targets.extend(str(p) for p in target_path.rglob(ext))
+                if not targets:
+                    return []
+            else:
+                targets = [str(target_path)]
+
             # Run semgrep with JSON output
             result = subprocess.run(
                 [
                     "semgrep",
                     f"--config={self._config}",
                     "--json",
-                    project_path,
+                    *targets,
                 ],
                 capture_output=True,
                 text=True,

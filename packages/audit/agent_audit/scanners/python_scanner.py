@@ -2843,6 +2843,18 @@ class PythonASTVisitor(ast.NodeVisitor):
         if not boundary.is_tool_entry:
             return None  # NOT a Tool entry point - skip ALL checks
 
+        # v0.16.0: Framework internal path suppression for AGENT-034
+        # Framework-internal tools (crewai/*, langchain_core/*, etc.) generate
+        # many FPs because their tool functions handle internal routing, not user input
+        _FRAMEWORK_INTERNAL_PREFIXES = (
+            'crewai/', 'lib/crewai/', 'langchain_core/', 'langchain/',
+            'autogen/', 'agentscope/', 'openai_agents/', 'src/agents/',
+            'site-packages/',
+        )
+        normalized_path = str(self.file_path).replace('\\', '/')
+        if any(prefix in normalized_path for prefix in _FRAMEWORK_INTERNAL_PREFIXES):
+            return None  # Framework internal code - suppress AGENT-034
+
         # Get string/Any parameters
         str_params: Set[str] = set()
         for arg in node.args.args:
@@ -2902,7 +2914,7 @@ class PythonASTVisitor(ast.NodeVisitor):
                     'line': node.lineno,
                     'snippet': self._get_line(node.lineno),
                     'owasp_id': 'ASI-02',
-                    'confidence': taint_result.confidence,
+                    'confidence': taint_result.confidence * boundary.confidence,
                     'mitigation_detected': None,
                     'taint_analysis': taint_details,
                 }
@@ -3670,10 +3682,13 @@ class PythonASTVisitor(ast.NodeVisitor):
         simple_name = func_name.split('.')[-1]
 
         # Check if this is an eval/exec pattern
-        is_eval_exec = (
-            func_name in self.EVAL_EXEC_PATTERNS_PYTHON or
-            simple_name in self.EVAL_EXEC_PATTERNS_PYTHON
-        )
+        # v0.16.0: Only allow simple_name match for unambiguous builtins (eval, exec, __import__)
+        # For ambiguous names like 'compile', require full qualified match to avoid FPs
+        # (e.g., re.compile, ast.compile are safe)
+        _UNAMBIGUOUS_EVAL_BUILTINS = {'eval', 'exec', '__import__'}
+        is_eval_exec = func_name in self.EVAL_EXEC_PATTERNS_PYTHON
+        if not is_eval_exec and simple_name in _UNAMBIGUOUS_EVAL_BUILTINS:
+            is_eval_exec = True
 
         if not is_eval_exec:
             return None
@@ -3878,17 +3893,26 @@ class PythonASTVisitor(ast.NodeVisitor):
         simple_name = func_name.split('.')[-1]
 
         # Check if this is a subprocess/shell function
-        subprocess_funcs = {
-            'run', 'Popen', 'call', 'check_output', 'check_call',
-            'system', 'popen', 'spawn', 'spawnl', 'spawnle',
-            'spawnlp', 'spawnlpe', 'spawnv', 'spawnve', 'spawnvp', 'spawnvpe',
+        # v0.16.0: Require qualified name for ambiguous simple names (run, call, system)
+        # to avoid FPs from asyncio.run(), llm.call(), platform.system(), etc.
+        _QUALIFIED_SUBPROCESS_PATTERNS = {
+            'os.system', 'os.popen', 'os.spawn', 'os.spawnl', 'os.spawnle',
+            'os.spawnlp', 'os.spawnlpe', 'os.spawnv', 'os.spawnve',
+            'os.spawnvp', 'os.spawnvpe', 'os.exec', 'os.execl', 'os.execle',
+            'os.execlp', 'os.execlpe', 'os.execv', 'os.execve', 'os.execvp',
+            'os.execvpe',
+            'subprocess.run', 'subprocess.Popen', 'subprocess.call',
+            'subprocess.check_output', 'subprocess.check_call',
         }
+        _SUBPROCESS_MODULES = {'subprocess', 'os', 'sh', 'plumbum'}
+        parts = func_name.split('.')
 
-        is_subprocess = (
-            simple_name in subprocess_funcs or
-            func_name in ('os.system', 'os.popen', 'subprocess.run',
-                          'subprocess.Popen', 'subprocess.call')
-        )
+        is_subprocess = func_name in _QUALIFIED_SUBPROCESS_PATTERNS
+        if not is_subprocess and len(parts) > 1 and parts[0] in _SUBPROCESS_MODULES:
+            is_subprocess = simple_name in {
+                'run', 'Popen', 'call', 'check_output', 'check_call',
+                'system', 'popen', 'spawn',
+            }
 
         if not is_subprocess:
             return None
