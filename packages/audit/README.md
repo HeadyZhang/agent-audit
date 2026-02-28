@@ -1,83 +1,128 @@
 # Agent Audit
 
+**Find security vulnerabilities in your AI agent code before they reach production.**
+
 [![PyPI version](https://img.shields.io/pypi/v/agent-audit?color=blue)](https://pypi.org/project/agent-audit/)
 [![Python](https://img.shields.io/pypi/pyversions/agent-audit.svg)](https://pypi.org/project/agent-audit/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![CI](https://github.com/HeadyZhang/agent-audit/actions/workflows/ci.yml/badge.svg)](https://github.com/HeadyZhang/agent-audit/actions/workflows/ci.yml)
 
-> 🛡️ Security scanner for AI agents and MCP configurations. Detects vulnerabilities based on the **OWASP Agentic Top 10**.
->
-> 🛡️ 基于 **OWASP Agentic Top 10** 的 AI Agent 和 MCP 配置安全扫描器
+---
 
-<!-- 
-<p align="center">
-  <img src="docs/demo.gif" alt="Agent Audit Demo" width="800">
-</p>
--->
+## Why?
 
-## ✨ Features | 功能特性
+LLM agents can call tools, execute code, and access external systems. One missing validation and an attacker can:
 
-- **🔍 Python AST Scanning** - Detects dangerous patterns like `shell=True`, `eval()`, and tainted input flows
-- **⚙️ MCP Configuration Scanning** - Validates MCP server configurations for security issues
-- **🔐 Secret Detection** - Finds hardcoded credentials (AWS keys, API tokens, private keys)
-- **🌐 Runtime MCP Inspection** - Probes MCP servers without executing tools ("Agent Nmap")
-- **📊 Multiple Output Formats** - Terminal, JSON, SARIF (for GitHub Code Scanning), Markdown
+- **Hijack your agent via prompt injection** -- user input flows into system prompts, letting attackers override instructions
+- **Execute arbitrary commands** -- a `@tool` function passes unvalidated strings to `subprocess` or `eval`
+- **Leak secrets through MCP configs** -- API keys hardcoded in `mcp.json`, servers running without auth, packages pulled without version pinning
+
+Agent Audit catches these before deployment. Think of it as **ESLint for AI agent security**, based on the [OWASP Agentic Top 10 (2025)](https://owasp.org/www-project-agentic-security/).
 
 ---
 
-- **🔍 Python AST 扫描** - 检测危险模式，如 `shell=True`、`eval()`、受污染的输入流
-- **⚙️ MCP 配置扫描** - 验证 MCP 服务器配置的安全问题
-- **🔐 密钥检测** - 发现硬编码凭证（AWS 密钥、API Token、私钥）
-- **🌐 MCP 运行时检查** - 在不执行工具的情况下探测 MCP 服务器
-- **📊 多种输出格式** - 终端、JSON、SARIF、Markdown
-
-## 🚀 Quick Start | 快速开始
-
-### Installation | 安装
+## Quick Start
 
 ```bash
 pip install agent-audit
+agent-audit scan ./your-agent-project
 ```
 
-### Basic Usage | 基本使用
+That's it. Here's what the output looks like on a vulnerable agent:
+
+```
+╭──────────────────────────────────────────────────────────────────────────────╮
+│ Agent Audit Security Report                                                  │
+│ Scanned: ./your-agent-project                                                │
+│ Files analyzed: 2                                                            │
+│ Risk Score: 8.4/10 (HIGH)                                                    │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+BLOCK -- Tier 1 (Confidence >= 90%) -- 16 findings
+
+  AGENT-001: Command Injection via Unsanitized Input
+    Location: agent.py:21
+    Code: result = subprocess.run(command, shell=True, capture_output=True, text=True)
+
+  AGENT-010: System Prompt Injection Vector in User Input Path
+    Location: agent.py:13
+    Code: system_prompt = f"You are a helpful {user_role} assistant..."
+
+  AGENT-041: SQL Injection via String Interpolation
+    Location: agent.py:31
+    Code: cursor.execute(f"SELECT * FROM users WHERE name = '{query}'")
+
+  AGENT-031: Mcp Sensitive Env Exposure
+    Location: mcp_config.json:1
+    Code: env: {"API_KEY": "sk-a***"}
+
+  ... and 15 more
+
+Summary:
+  BLOCK: 16 | WARN: 2 | INFO: 1
+  Risk Score: =========================----- 8.4/10 (HIGH)
+```
+
+---
+
+## What It Detects
+
+| Category | What goes wrong | Example rule |
+|----------|----------------|--------------|
+| **Injection attacks** | User input flows to `exec()`, `subprocess`, SQL | AGENT-001, AGENT-041 |
+| **Prompt injection** | User input concatenated into system prompts | AGENT-010 |
+| **Leaked secrets** | API keys hardcoded in source or MCP config | AGENT-004, AGENT-031 |
+| **Missing input validation** | `@tool` functions accept raw strings without checks | AGENT-034 |
+| **Unsafe MCP servers** | No auth, no version pinning, overly broad permissions | AGENT-005, AGENT-029, AGENT-030, AGENT-033 |
+| **No guardrails** | Agent runs without iteration limits or human approval | AGENT-028, AGENT-037 |
+| **Unrestricted code execution** | Tools run `eval()` or `shell=True` without sandboxing | AGENT-035 |
+
+Full coverage of all 10 OWASP Agentic Security categories. [See all rules ->](#detected-rules)
+
+---
+
+## Who Is This For
+
+- **Agent developers** building with LangChain, CrewAI, AutoGen, OpenAI Agents SDK, or raw function-calling -- run it before every deploy
+- **Security engineers** reviewing agent codebases -- get a structured report in SARIF for GitHub Security tab
+- **Teams shipping MCP servers** -- validate your `mcp.json` / `claude_desktop_config.json` for secrets, auth gaps, and supply chain risks
+
+---
+
+## Usage
 
 ```bash
-# Scan current directory | 扫描当前目录
-agent-audit scan .
+# Scan a project
+agent-audit scan ./my-agent
 
-# Scan with JSON output | JSON 格式输出
+# JSON output for scripting
 agent-audit scan ./my-agent --format json
 
-# Scan with SARIF output for GitHub Code Scanning
-# SARIF 格式输出（用于 GitHub 代码扫描）
+# SARIF output for GitHub Code Scanning
 agent-audit scan . --format sarif --output results.sarif
 
-# Fail CI on critical findings only | 仅在严重问题时失败
+# Only fail CI on critical findings
 agent-audit scan . --fail-on critical
 
-# Inspect an MCP server at runtime | 运行时检查 MCP 服务器
+# Inspect a live MCP server (read-only, never calls tools)
 agent-audit inspect stdio -- npx -y @modelcontextprotocol/server-filesystem /tmp
 ```
 
-### Development / Local Package | 开发模式
+### Baseline Scanning
 
-When contributing or validating changes, run the local package instead of the installed one:
+Track only *new* findings across commits:
 
 ```bash
-cd packages/audit
+# Save current state as baseline
+agent-audit scan . --save-baseline baseline.json
 
-# Option A: Editable install
-pip install -e .
-
-# Option B: PYTHONPATH (no install)
-PYTHONPATH="$(pwd):$PYTHONPATH" python -m agent_audit scan /path/to/target
+# Only report new findings not in baseline
+agent-audit scan . --baseline baseline.json --fail-on-new
 ```
 
-> Without this, `agent-audit` may use an older global install (e.g. v0.2.0) instead of v0.5.x.
+---
 
-## 🔗 GitHub Action
-
-Add Agent Audit to your CI/CD pipeline | 添加到你的 CI/CD 流程：
+## GitHub Action
 
 ```yaml
 name: Security Scan
@@ -88,7 +133,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Run Agent Audit
         uses: HeadyZhang/agent-audit@v1
         with:
@@ -97,45 +142,30 @@ jobs:
           upload-sarif: 'true'
 ```
 
-### Action Inputs | Action 参数
-
 | Input | Description | Default |
 |-------|-------------|---------|
 | `path` | Path to scan | `.` |
 | `format` | Output format: `terminal`, `json`, `sarif`, `markdown` | `sarif` |
-| `severity` | Minimum severity: `info`, `low`, `medium`, `high`, `critical` | `low` |
-| `fail-on` | Exit with error if findings at this severity | `high` |
-| `baseline` | Path to baseline file for incremental scanning | - |
+| `severity` | Minimum severity to report | `low` |
+| `fail-on` | Exit with error at this severity | `high` |
+| `baseline` | Baseline file for incremental scanning | - |
 | `upload-sarif` | Upload SARIF to GitHub Security tab | `true` |
 
-## 🎯 Detected Issues | 检测规则
+---
 
-| Rule ID | Title | Severity |
-|---------|-------|----------|
-| AGENT-001 | Command Injection via Unsanitized Input | 🔴 Critical |
-| AGENT-002 | Excessive Agent Permissions | 🟡 Medium |
-| AGENT-003 | Potential Data Exfiltration Chain | 🟠 High |
-| AGENT-004 | Hardcoded Credentials | 🔴 Critical |
-| AGENT-005 | Unverified MCP Server | 🟠 High |
+## Configuration
 
-## ⚙️ Configuration | 配置
-
-Create `.agent-audit.yaml` to customize scanning | 创建 `.agent-audit.yaml` 自定义扫描：
+Create `.agent-audit.yaml` in your project root:
 
 ```yaml
-# Allowed network hosts | 允许的网络主机
-allowed_hosts:
-  - "*.internal.company.com"
-  - "api.openai.com"
-
-# Ignore rules | 忽略规则
+# Ignore specific rules for certain paths
 ignore:
   - rule_id: AGENT-003
     paths:
       - "auth/**"
     reason: "Auth module legitimately communicates externally"
 
-# Scan settings | 扫描设置
+# Scan settings
 scan:
   exclude:
     - "tests/**"
@@ -144,68 +174,67 @@ scan:
   fail_on: high
 ```
 
-## 📈 Baseline Scanning | 基线扫描
+---
 
-Track new findings incrementally | 增量跟踪新发现：
+## Detected Rules
 
-```bash
-# Save current findings as baseline | 保存当前发现为基线
-agent-audit scan . --save-baseline baseline.json
-
-# Only report new findings | 仅报告新发现
-agent-audit scan . --baseline baseline.json
-```
-
-## 📖 CLI Reference | 命令行参考
-
-```
-Usage: agent-audit [OPTIONS] COMMAND [ARGS]...
-
-Commands:
-  scan     Scan agent code and configurations
-  inspect  Inspect an MCP server at runtime
-  init     Initialize configuration file
-
-Options:
-  --version   Show version
-  -v          Enable verbose output
-  -q          Only show errors
-  --help      Show this message
-```
-
-## 🛠️ Development | 开发
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup and guidelines.
-
-查看 [CONTRIBUTING.md](CONTRIBUTING.md) 了解开发设置和指南。
-
-```bash
-# Clone the repository | 克隆仓库
-git clone https://github.com/HeadyZhang/agent-audit
-cd agent-audit
-
-# Install dependencies | 安装依赖
-cd packages/audit
-poetry install
-
-# Run tests | 运行测试
-poetry run pytest tests/ -v
-
-# Run the scanner | 运行扫描器
-poetry run agent-audit scan .
-```
-
-## 📄 License | 许可证
-
-MIT License - see [LICENSE](LICENSE) for details.
-
-## 🙏 Acknowledgments | 致谢
-
-- Based on the [OWASP Agentic Security Top 10](https://owasp.org/www-project-agentic-security/)
-- Inspired by the need for better AI agent security tooling
+| Rule ID | Title | Severity |
+|---------|-------|----------|
+| AGENT-001 | Command Injection via Unsanitized Input | Critical |
+| AGENT-002 | Excessive Agent Permissions | Medium |
+| AGENT-003 | Potential Data Exfiltration Chain | High |
+| AGENT-004 | Hardcoded Credentials | Critical |
+| AGENT-005 | Unverified MCP Server | High |
+| AGENT-010 | System Prompt Injection | Critical |
+| AGENT-022 | No Error Handling in Tool Execution | High |
+| AGENT-026 | Tool Input Not Sanitized | Critical |
+| AGENT-028 | Agent Without Iteration Limit | High |
+| AGENT-029 | Overly Broad MCP Filesystem Access | High |
+| AGENT-030 | Unpinned MCP Server Package | Critical |
+| AGENT-031 | Hardcoded Secrets in MCP Config | High |
+| AGENT-032 | MCP Server Without Sandbox | Medium |
+| AGENT-033 | MCP Server Without Authentication | High |
+| AGENT-034 | Tool Function Without Input Validation | High |
+| AGENT-035 | Unrestricted Code Execution in Tool | Critical |
+| AGENT-037 | Missing Human-in-the-Loop | High |
+| AGENT-040 | Insecure MCP Tool Schema | Medium |
+| AGENT-041 | SQL Injection via String Interpolation | Critical |
+| AGENT-042 | Excessive MCP Servers | Medium |
+| AGENT-050 | AgentExecutor Without Safety Parameters | High |
 
 ---
 
-<p align="center">
-  Made with ❤️ for the AI agent security community
-</p>
+## How It Works
+
+Agent Audit combines three analysis engines:
+
+1. **Python AST Scanner** -- walks the abstract syntax tree to trace data flow from `@tool` parameters to dangerous sinks (`subprocess`, `eval`, `cursor.execute`), with intra-procedural taint tracking and sanitization detection
+2. **MCP Config Scanner** -- parses `mcp.json` / `claude_desktop_config.json` / YAML configs to check filesystem permissions, supply chain integrity, credential exposure, and auth gaps
+3. **Secret Detector** -- pattern-matches hardcoded API keys (AWS, OpenAI, Anthropic, GitHub, etc.) with framework-aware suppression to reduce false positives from Pydantic schema definitions
+
+For technical details on detection methodology and benchmark results, see [ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
+---
+
+## Development
+
+```bash
+git clone https://github.com/HeadyZhang/agent-audit
+cd agent-audit/packages/audit
+poetry install
+poetry run pytest tests/ -v
+poetry run agent-audit scan .
+```
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+
+---
+
+## License
+
+MIT License - see [LICENSE](LICENSE) for details.
+
+## Acknowledgments
+
+- Based on the [OWASP Agentic Security Top 10](https://owasp.org/www-project-agentic-security/)
+- Inspired by the need for better AI agent security tooling
