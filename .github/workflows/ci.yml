@@ -40,7 +40,7 @@ jobs:
         uses: codecov/codecov-action@v4
         if: matrix.python-version == '3.11'
         with:
-          file: ./packages/audit/coverage.xml
+          files: ./packages/audit/coverage.xml
           fail_ci_if_error: false
 
   lint:

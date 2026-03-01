@@ -6,29 +6,54 @@
 [![Python](https://img.shields.io/pypi/pyversions/agent-audit.svg)](https://pypi.org/project/agent-audit/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![CI](https://github.com/HeadyZhang/agent-audit/actions/workflows/ci.yml/badge.svg)](https://github.com/HeadyZhang/agent-audit/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/HeadyZhang/agent-audit/graph/badge.svg?branch=master)](https://codecov.io/gh/HeadyZhang/agent-audit?branch=master)
 
 ---
 
-## Why?
+## Why Agent Security Fails in Production
 
-LLM agents can call tools, execute code, and access external systems. One missing validation and an attacker can:
+AI agents are not just chatbots. They execute code, call tools, and touch real systems, so one unsafe input path can become a production incident.
 
-- **Hijack your agent via prompt injection** -- user input flows into system prompts, letting attackers override instructions
-- **Execute arbitrary commands** -- a `@tool` function passes unvalidated strings to `subprocess` or `eval`
-- **Leak secrets through MCP configs** -- API keys hardcoded in `mcp.json`, servers running without auth, packages pulled without version pinning
+- Prompt injection rewrites agent intent through user-controlled context
+- Unsafe tool inputs can reach `subprocess`/`eval` and become command execution
+- MCP configuration mistakes can leak credentials and expand access unintentionally
 
-Agent Audit catches these before deployment. Think of it as **ESLint for AI agent security**, based on the [OWASP Agentic Top 10 (2025)](https://owasp.org/www-project-agentic-security/).
+If your team ships agent features, owns CI security gates, or operates MCP servers and tool integrations, this is a high-probability risk surface rather than an edge case.
+You likely need this before every merge if agent code can trigger tools, commands, or external systems.
+
+Agent Audit catches these issues before deployment with an analysis core designed for agent workflows today: tool-boundary taint tracking, MCP configuration auditing, and semantic secret detection, with room to extend into learning-assisted detection over time.
+
+Think of it as **security linting for AI agents**, with 40+ rules mapped to the [OWASP Agentic Top 10 (2026)](https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/).
 
 ---
 
-## Quick Start
+## Quick Start in 6 Lines
+
+1. Install
 
 ```bash
 pip install agent-audit
+```
+
+2. Scan your project
+
+```bash
 agent-audit scan ./your-agent-project
 ```
 
-That's it. Here's what the output looks like on a vulnerable agent:
+3. Interpret and gate in CI
+
+```bash
+# Show only high+ findings
+agent-audit scan . --severity high
+
+# Fail CI when high+ findings exist
+agent-audit scan . --fail-on high
+```
+
+`--severity` controls what is reported. `--fail-on` controls when the command exits with code `1`.
+
+Sample report output:
 
 ```
 ╭──────────────────────────────────────────────────────────────────────────────╮
@@ -236,5 +261,5 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 ## Acknowledgments
 
-- Based on the [OWASP Agentic Security Top 10](https://owasp.org/www-project-agentic-security/)
+- Based on the [OWASP Agentic Top 10 (2026)](https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/)
 - Inspired by the need for better AI agent security tooling
