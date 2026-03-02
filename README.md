@@ -6,30 +6,55 @@
 [![Python](https://img.shields.io/pypi/pyversions/agent-audit.svg)](https://pypi.org/project/agent-audit/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![CI](https://github.com/HeadyZhang/agent-audit/actions/workflows/ci.yml/badge.svg)](https://github.com/HeadyZhang/agent-audit/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/HeadyZhang/agent-audit/graph/badge.svg?branch=master)](https://codecov.io/gh/HeadyZhang/agent-audit?branch=master)
 [![Tests](https://img.shields.io/badge/tests-1142%20passed-brightgreen)]()
 
 ---
 
-## Why?
+## Why Agent Security Fails in Production
 
-LLM agents can call tools, execute code, and access external systems. One missing validation and an attacker can:
+AI agents are not just chatbots. They execute code, call tools, and touch real systems, so one unsafe input path can become a production incident.
 
-- **Hijack your agent via prompt injection** -- user input flows into system prompts, letting attackers override instructions
-- **Execute arbitrary commands** -- a `@tool` function passes unvalidated strings to `subprocess` or `eval`
-- **Leak secrets through MCP configs** -- API keys hardcoded in `mcp.json`, servers running without auth, packages pulled without version pinning
+- Prompt injection rewrites agent intent through user-controlled context
+- Unsafe tool inputs can reach `subprocess`/`eval` and become command execution
+- MCP configuration mistakes can leak credentials and expand access unintentionally
 
-Agent Audit catches these before deployment. Think of it as **ESLint for AI agent security**, powered by 40+ detection rules mapped to the [OWASP Agentic Top 10 (2025)](https://owasp.org/www-project-agentic-security/).
+If your team ships agent features, owns CI security gates, or operates MCP servers and tool integrations, this is a high-probability risk surface rather than an edge case.
+You likely need this before every merge if agent code can trigger tools, commands, or external systems.
+
+**Agent Audit** catches these issues before deployment with an analysis core designed for agent workflows today: tool-boundary taint tracking, MCP configuration auditing, and semantic secret detection, with room to extend into learning-assisted detection over time.
+
+Think of it as **security linting for AI agents**, with 40+ rules mapped to the [OWASP Agentic Top 10 (2026)](https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/).
 
 ---
 
-## Quick Start
+## Quick Start in 6 Lines
+
+1. Install
 
 ```bash
 pip install agent-audit
+```
+
+2. Scan your project
+
+```bash
 agent-audit scan ./your-agent-project
 ```
 
-That's it. Here's what the output looks like on a vulnerable agent:
+3. Interpret and gate in CI
+
+```bash
+# Show only high+ findings
+agent-audit scan . --severity high
+
+# Fail CI when high+ findings exist
+agent-audit scan . --fail-on high
+```
+
+`--severity` controls what is reported. `--fail-on` controls when the command exits with code `1`.
+
+Sample report output:
 
 ```
 ╭──────────────────────────────────────────────────────────────────────────────╮
@@ -63,6 +88,11 @@ Summary:
   BLOCK: 16 | WARN: 2 | INFO: 1
   Risk Score: =========================----- 8.4/10 (HIGH)
 ```
+
+---
+
+Validation snapshot (as of **2026-02-19**, v0.16 benchmark set): **94.6% recall**, **87.5% precision**, **0.91 F1**, with **10/10 OWASP Agentic Top 10** coverage across **9 open-source targets**.  
+Details: [Benchmark Results](docs/BENCHMARK-RESULTS.md) | [Competitive Comparison](docs/COMPETITIVE-COMPARISON.md)
 
 ---
 
@@ -201,7 +231,7 @@ Source Files (.py, .json, .yaml, .env, ...)
 
 ## Threat Coverage
 
-40+ detection rules covering all 10 categories of the [OWASP Agentic Top 10 (2025)](https://owasp.org/www-project-agentic-security/):
+40+ detection rules covering all 10 categories of the [OWASP Agentic Top 10 (2026)](https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/):
 
 | OWASP Category | Rules | Example Detections |
 |----------------|------:|-------------------|
@@ -266,9 +296,9 @@ allowed_hosts:
   - "api.openai.com"
 ```
 
-## Limitations
+## Current Scope
 
-- **Static analysis only**: Does not execute code; cannot detect runtime logic vulnerabilities.
+- **Current core is static analysis**: Does not execute code and may miss runtime-only logic vulnerabilities.
 - **Intra-procedural taint analysis**: Tracks data flow within functions; no cross-function or cross-module tracking yet.
 - **Python-focused**: Primary support for Python source and MCP JSON configs. Limited pattern matching for other languages.
 - **Framework coverage**: Deep support for LangChain, CrewAI, AutoGen, AgentScope. Other frameworks use generic `@tool` detection rules.
@@ -310,7 +340,7 @@ If you use agent-audit in your research, please cite:
 
 ## Acknowledgments
 
-- [OWASP Agentic Top 10 for 2025](https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/)
+- [OWASP Agentic Top 10 for 2026](https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/)
 - [CWE Top 25](https://cwe.mitre.org/top25/)
 
 ## License
