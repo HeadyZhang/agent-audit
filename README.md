@@ -153,6 +153,10 @@ agent-audit scan . --baseline baseline.json --fail-on-new
 
 ### GitHub Actions
 
+<details>
+<summary><b>Show GitHub Action Example and Inputs</b></summary>
+<br/>
+
 ```yaml
 name: Agent Security Scan
 on: [push, pull_request]
@@ -177,9 +181,15 @@ jobs:
 | `baseline` | Baseline file for incremental scanning | - |
 | `upload-sarif` | Upload SARIF to GitHub Security tab | `true` |
 
+</details>
+
 ---
 
 ## Evaluation Results
+
+<details>
+<summary><b>Show Evaluation Details</b></summary>
+<br/>
 
 Evaluated on [**Agent-Vuln-Bench**](tests/benchmark/agent-vuln-bench/) (19 samples across 3 vulnerability categories), compared against Bandit and Semgrep:
 
@@ -199,7 +209,13 @@ Evaluated on [**Agent-Vuln-Bench**](tests/benchmark/agent-vuln-bench/) (19 sampl
 
 Full evaluation details: [Benchmark Results](docs/BENCHMARK-RESULTS.md) | [Competitive Comparison](docs/COMPETITIVE-COMPARISON.md)
 
+</details>
+
 ## How It Works
+
+<details>
+<summary><b>Show Architecture and Technical Notes</b></summary>
+<br/>
 
 ```
 Source Files (.py, .json, .yaml, .env, ...)
@@ -229,6 +245,8 @@ Source Files (.py, .json, .yaml, .env, ...)
 
 - **Three-stage semantic credential detection** -- (1) Regex candidate discovery with priority tiers, (2) value analysis with known-format matching, entropy scoring, and placeholder/UUID exclusion, (3) context adjustment by file type, test patterns, and framework schema detection.
 
+</details>
+
 ## Threat Coverage
 
 40+ detection rules covering all 10 categories of the [OWASP Agentic Top 10 (2026)](https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/):
@@ -248,6 +266,10 @@ Source Files (.py, .json, .yaml, .env, ...)
 
 ## Real-World Validation
 
+<details>
+<summary><b>Show Real-World Target Results</b></summary>
+<br/>
+
 Scanned 9 open-source projects to validate detection quality:
 
 | Target | Project | Findings | OWASP Categories |
@@ -263,6 +285,8 @@ Scanned 9 open-source projects to validate detection quality:
 | T11 | [streamlit-agent](https://github.com/langchain-ai/streamlit-agent) | 6 | ASI-01, ASI-04, ASI-08 |
 
 **10/10 OWASP Agentic Top 10 categories detected** across targets. Quality gate: **PASS**.
+
+</details>
 
 ## Comparison with Existing Tools
 
@@ -298,11 +322,17 @@ allowed_hosts:
 
 ## Current Scope
 
+<details>
+<summary><b>Show Current Limitations and Scope</b></summary>
+<br/>
+
 - **Current core is static analysis**: Does not execute code and may miss runtime-only logic vulnerabilities.
 - **Intra-procedural taint analysis**: Tracks data flow within functions; no cross-function or cross-module tracking yet.
 - **Python-focused**: Primary support for Python source and MCP JSON configs. Limited pattern matching for other languages.
 - **Framework coverage**: Deep support for LangChain, CrewAI, AutoGen, AgentScope. Other frameworks use generic `@tool` detection rules.
 - **False positives**: Mitigated through semantic analysis, framework detection, and allowlists; ongoing optimization (79% FP reduction in v0.16).
+
+</details>
 
 ## Documentation
 
