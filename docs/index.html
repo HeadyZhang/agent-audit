@@ -1,0 +1,1364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agent Audit — Static Security Analysis for AI Agents</title>
+<meta name="description" content="Find security vulnerabilities in your AI agent code before they reach production. 49 rules mapped to OWASP Agentic Top 10.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════════
+   CSS VARIABLES
+   ═══════════════════════════════════════════════ */
+:root {
+  --bg-primary: #0a0e17;
+  --bg-secondary: #0f1420;
+  --bg-tertiary: #141a28;
+  --bg-card: #111827;
+  --bg-card-hover: #1a2236;
+  --border: #1e293b;
+  --border-glow: #00ff8820;
+  --text-primary: #e2e8f0;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --accent: #00ff88;
+  --accent-dim: #00cc6a;
+  --accent-glow: #00ff8830;
+  --accent-secondary: #00d4ff;
+  --accent-warn: #ffb800;
+  --accent-danger: #ff4444;
+  --accent-purple: #a78bfa;
+  --font-mono: 'JetBrains Mono', 'IBM Plex Mono', 'Fira Code', monospace;
+  --font-display: 'Space Grotesk', sans-serif;
+  --radius: 8px;
+  --radius-lg: 12px;
+}
+
+/* ═══════════════════════════════════════════════
+   RESET & BASE
+   ═══════════════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: var(--font-mono);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  line-height: 1.7;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: var(--accent);
+  color: var(--bg-primary);
+}
+
+a { color: var(--accent); text-decoration: none; transition: all 0.2s; }
+a:hover { color: #fff; text-shadow: 0 0 8px var(--accent-glow); }
+
+/* ═══════════════════════════════════════════════
+   BACKGROUND GRID
+   ═══════════════════════════════════════════════ */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background:
+    linear-gradient(rgba(0,255,136,0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,255,136,0.02) 1px, transparent 1px);
+  background-size: 60px 60px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ═══════════════════════════════════════════════
+   SCANLINE OVERLAY
+   ═══════════════════════════════════════════════ */
+body::after {
+  content: '';
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0,0,0,0.03) 2px,
+    rgba(0,0,0,0.03) 4px
+  );
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* ═══════════════════════════════════════════════
+   LAYOUT
+   ═══════════════════════════════════════════════ */
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 24px;
+  position: relative;
+  z-index: 1;
+}
+
+section {
+  padding: 80px 0;
+  position: relative;
+  z-index: 1;
+}
+
+/* ═══════════════════════════════════════════════
+   NAV
+   ═══════════════════════════════════════════════ */
+nav {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 1000;
+  background: rgba(10, 14, 23, 0.85);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+  padding: 0 24px;
+}
+
+.nav-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 56px;
+}
+
+.nav-logo {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  letter-spacing: -0.5px;
+}
+
+.nav-logo .prompt { color: var(--text-muted); font-weight: 400; }
+
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  list-style: none;
+}
+
+.nav-links a {
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--text-secondary);
+  letter-spacing: 0.3px;
+}
+
+.nav-links a:hover { color: var(--accent); }
+
+.nav-links .gh-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  transition: all 0.2s;
+}
+
+.nav-links .gh-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.gh-btn svg { width: 16px; height: 16px; fill: currentColor; }
+
+/* ═══════════════════════════════════════════════
+   HERO
+   ═══════════════════════════════════════════════ */
+.hero {
+  padding: 160px 0 80px;
+  text-align: center;
+  position: relative;
+}
+
+.hero::before {
+  content: '';
+  position: absolute;
+  top: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%);
+  pointer-events: none;
+  opacity: 0.4;
+}
+
+.hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 16px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: 100px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 32px;
+  position: relative;
+}
+
+.hero-badge .dot {
+  width: 6px; height: 6px;
+  background: var(--accent);
+  border-radius: 50%;
+  animation: pulse-dot 2s infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(0,255,136,0.4); }
+  50% { box-shadow: 0 0 0 6px rgba(0,255,136,0); }
+}
+
+.hero h1 {
+  font-family: var(--font-display);
+  font-size: clamp(40px, 6vw, 68px);
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -2px;
+  margin-bottom: 20px;
+  color: #fff;
+}
+
+.hero h1 .accent { color: var(--accent); }
+
+.hero-sub {
+  font-size: 16px;
+  color: var(--text-secondary);
+  max-width: 560px;
+  margin: 0 auto 40px;
+  line-height: 1.8;
+  font-weight: 300;
+}
+
+.hero-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 48px;
+}
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 28px;
+  background: var(--accent);
+  color: var(--bg-primary);
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: var(--radius);
+  border: none;
+  cursor: pointer;
+  transition: all 0.25s;
+  letter-spacing: -0.3px;
+}
+
+.btn-primary:hover {
+  background: #fff;
+  color: var(--bg-primary);
+  box-shadow: 0 0 30px var(--accent-glow);
+  transform: translateY(-1px);
+}
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 28px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: all 0.25s;
+}
+
+.btn-secondary:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* Hero stats */
+.hero-stats {
+  display: flex;
+  justify-content: center;
+  gap: 48px;
+  flex-wrap: wrap;
+}
+
+.hero-stat {
+  text-align: center;
+}
+
+.hero-stat .val {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--accent);
+  font-family: var(--font-display);
+  letter-spacing: -1px;
+}
+
+.hero-stat .label {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 2px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+/* ═══════════════════════════════════════════════
+   SECTION HEADERS
+   ═══════════════════════════════════════════════ */
+.section-tag {
+  font-size: 13px;
+  color: var(--accent);
+  letter-spacing: 1px;
+  margin-bottom: 12px;
+  font-weight: 500;
+}
+
+.section-tag::before { content: '⟩ '; opacity: 0.6; }
+
+.section-title {
+  font-family: var(--font-display);
+  font-size: clamp(28px, 4vw, 40px);
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: -1px;
+  margin-bottom: 16px;
+  line-height: 1.2;
+}
+
+.section-desc {
+  font-size: 15px;
+  color: var(--text-secondary);
+  max-width: 600px;
+  line-height: 1.7;
+  font-weight: 300;
+}
+
+/* ═══════════════════════════════════════════════
+   QUICK START (Terminal)
+   ═══════════════════════════════════════════════ */
+.terminal-window {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  max-width: 680px;
+  margin: 40px auto 0;
+  box-shadow:
+    0 0 0 1px rgba(0,255,136,0.05),
+    0 20px 60px rgba(0,0,0,0.4);
+}
+
+.terminal-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border);
+}
+
+.terminal-dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+}
+
+.terminal-dot.r { background: #ff5f57; }
+.terminal-dot.y { background: #febc2e; }
+.terminal-dot.g { background: #28c840; }
+
+.terminal-title {
+  flex: 1;
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.terminal-body {
+  padding: 24px;
+  font-size: 14px;
+  line-height: 2;
+}
+
+.terminal-body .comment { color: var(--text-muted); }
+.terminal-body .prompt-char { color: var(--accent); user-select: none; }
+.terminal-body .cmd { color: var(--text-primary); }
+.terminal-body .flag { color: var(--accent-secondary); }
+.terminal-body .output { color: var(--text-muted); font-style: italic; }
+
+.terminal-body .line {
+  display: block;
+  white-space: nowrap;
+  overflow-x: auto;
+}
+
+/* ═══════════════════════════════════════════════
+   WHY SECTION (Threat Cards)
+   ═══════════════════════════════════════════════ */
+.threat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 16px;
+  margin-top: 40px;
+}
+
+.threat-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 28px;
+  transition: all 0.3s;
+  position: relative;
+  overflow: hidden;
+}
+
+.threat-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.threat-card:hover {
+  border-color: var(--accent);
+  background: var(--bg-card-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(0,255,136,0.08);
+}
+
+.threat-card:hover::before { opacity: 1; }
+
+.threat-icon {
+  font-size: 20px;
+  margin-bottom: 14px;
+  display: block;
+}
+
+.threat-card h3 {
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 600;
+  color: #fff;
+  margin-bottom: 8px;
+}
+
+.threat-card p {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  font-weight: 300;
+}
+
+.threat-card .rules {
+  margin-top: 12px;
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.rule-tag {
+  font-size: 11px;
+  padding: 2px 8px;
+  background: rgba(0,255,136,0.08);
+  border: 1px solid rgba(0,255,136,0.15);
+  border-radius: 4px;
+  color: var(--accent);
+  font-weight: 500;
+}
+
+/* ═══════════════════════════════════════════════
+   BENCHMARK SECTION
+   ═══════════════════════════════════════════════ */
+.bench-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-top: 40px;
+}
+
+@media (max-width: 768px) {
+  .bench-grid { grid-template-columns: 1fr; }
+}
+
+.bench-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.bench-table th {
+  text-align: left;
+  padding: 14px 18px;
+  font-size: 12px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  font-weight: 500;
+  background: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border);
+}
+
+.bench-table td {
+  padding: 12px 18px;
+  font-size: 14px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-secondary);
+}
+
+.bench-table tr:last-child td { border-bottom: none; }
+
+.bench-table td:first-child { color: var(--text-primary); font-weight: 500; }
+
+.bench-table .highlight {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.bench-table .winner {
+  background: rgba(0,255,136,0.04);
+}
+
+.bar-cell {
+  position: relative;
+}
+
+.bar-bg {
+  height: 6px;
+  background: var(--bg-tertiary);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-top: 6px;
+}
+
+.bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 1s ease;
+}
+
+.bar-fill.green { background: var(--accent); }
+.bar-fill.gray { background: var(--text-muted); }
+
+/* ═══════════════════════════════════════════════
+   PIPELINE SECTION
+   ═══════════════════════════════════════════════ */
+.pipeline-container {
+  margin-top: 40px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 36px;
+  font-size: 13px;
+  overflow-x: auto;
+}
+
+.pipeline-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.pipe-node {
+  padding: 10px 18px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--bg-tertiary);
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.pipe-node:hover {
+  border-color: var(--accent);
+  box-shadow: 0 0 12px var(--accent-glow);
+}
+
+.pipe-node.scanner { border-left: 3px solid var(--accent); }
+.pipe-node.analysis { border-left: 3px solid var(--accent-secondary); }
+.pipe-node.engine { border-left: 3px solid var(--accent-warn); }
+.pipe-node.output { border-left: 3px solid var(--accent-purple); }
+
+.pipe-arrow {
+  color: var(--text-muted);
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.pipe-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 8px;
+  margin-top: 20px;
+}
+
+.pipe-label:first-child { margin-top: 0; }
+
+/* ═══════════════════════════════════════════════
+   OWASP COVERAGE
+   ═══════════════════════════════════════════════ */
+.owasp-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+  margin-top: 40px;
+}
+
+.owasp-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  transition: all 0.2s;
+}
+
+.owasp-item:hover {
+  border-color: var(--accent);
+  background: var(--bg-card-hover);
+}
+
+.owasp-num {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--bg-primary);
+  background: var(--accent);
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
+.owasp-info h4 {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+  font-family: var(--font-display);
+}
+
+.owasp-info span {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* ═══════════════════════════════════════════════
+   AUDIENCE SECTION
+   ═══════════════════════════════════════════════ */
+.audience-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-top: 40px;
+}
+
+@media (max-width: 768px) {
+  .audience-grid { grid-template-columns: 1fr; }
+}
+
+.audience-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 28px;
+  transition: all 0.2s;
+}
+
+.audience-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+}
+
+.audience-card h3 {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 600;
+  color: #fff;
+  margin-bottom: 8px;
+}
+
+.audience-card p {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  font-weight: 300;
+}
+
+.audience-icon {
+  font-size: 24px;
+  margin-bottom: 14px;
+  display: block;
+}
+
+/* ═══════════════════════════════════════════════
+   VALIDATION BANNER
+   ═══════════════════════════════════════════════ */
+.validation-banner {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 28px 36px;
+  margin-top: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+.validation-banner .meta {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.validation-banner .meta strong {
+  color: var(--text-primary);
+}
+
+.validation-stats {
+  display: flex;
+  gap: 32px;
+}
+
+.validation-stat .val {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--accent);
+  font-family: var(--font-display);
+}
+
+.validation-stat .label {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* ═══════════════════════════════════════════════
+   FOOTER
+   ═══════════════════════════════════════════════ */
+footer {
+  padding: 40px 0;
+  border-top: 1px solid var(--border);
+  text-align: center;
+  position: relative;
+  z-index: 1;
+}
+
+.footer-links {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.footer-links a {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.footer-links a:hover { color: var(--accent); }
+
+.footer-copy {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.8;
+}
+
+.footer-copy a { color: var(--text-secondary); }
+
+/* ═══════════════════════════════════════════════
+   RESPONSIVE
+   ═══════════════════════════════════════════════ */
+@media (max-width: 640px) {
+  .hero { padding: 120px 0 60px; }
+  .hero-stats { gap: 24px; }
+  section { padding: 60px 0; }
+  .nav-links .nav-hide-mobile { display: none; }
+  .bench-grid { grid-template-columns: 1fr; }
+  .owasp-grid { grid-template-columns: 1fr 1fr; }
+  .validation-banner { flex-direction: column; text-align: center; }
+  .validation-stats { justify-content: center; }
+}
+
+/* ═══════════════════════════════════════════════
+   ANIMATIONS
+   ═══════════════════════════════════════════════ */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-in {
+  opacity: 0;
+  animation: fadeUp 0.6s ease forwards;
+}
+
+.delay-1 { animation-delay: 0.1s; }
+.delay-2 { animation-delay: 0.2s; }
+.delay-3 { animation-delay: 0.3s; }
+.delay-4 { animation-delay: 0.4s; }
+
+.separator {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--border), transparent);
+  margin: 0;
+}
+</style>
+</head>
+<body>
+
+<!-- ══════════ NAV ══════════ -->
+<nav>
+  <div class="nav-inner">
+    <a href="#" class="nav-logo">
+      <span class="prompt">$</span> agent-audit
+    </a>
+    <ul class="nav-links">
+      <li><a href="#quickstart" class="nav-hide-mobile">Quick Start</a></li>
+      <li><a href="#detects" class="nav-hide-mobile">Detections</a></li>
+      <li><a href="#benchmark" class="nav-hide-mobile">Benchmark</a></li>
+      <li><a href="#pipeline" class="nav-hide-mobile">How It Works</a></li>
+      <li>
+        <a href="https://github.com/HeadyZhang/agent-audit" class="gh-btn" target="_blank">
+          <svg viewBox="0 0 16 16"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+          GitHub
+        </a>
+      </li>
+    </ul>
+  </div>
+</nav>
+
+<!-- ══════════ HERO ══════════ -->
+<section class="hero">
+  <div class="container">
+    <div class="animate-in">
+      <div class="hero-badge">
+        <span class="dot"></span>
+        v0.16.0 — 49 rules · 10/10 OWASP coverage · 1,142 tests passing
+      </div>
+    </div>
+
+    <h1 class="animate-in delay-1">
+      Security linting<br>for <span class="accent">AI agents</span>
+    </h1>
+
+    <p class="hero-sub animate-in delay-2">
+      Find vulnerabilities in your agent code before they reach production.<br>
+      Static analysis built for tool-calling, MCP configs, and prompt flows.
+    </p>
+
+    <div class="hero-actions animate-in delay-3">
+      <a href="#quickstart" class="btn-primary">Get Started →</a>
+      <a href="https://github.com/HeadyZhang/agent-audit" class="btn-secondary" target="_blank">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        View on GitHub
+      </a>
+    </div>
+
+    <div class="hero-stats animate-in delay-4">
+      <div class="hero-stat">
+        <div class="val">49</div>
+        <div class="label">Detection Rules</div>
+      </div>
+      <div class="hero-stat">
+        <div class="val">94.6%</div>
+        <div class="label">Recall (AVB)</div>
+      </div>
+      <div class="hero-stat">
+        <div class="val">0.91</div>
+        <div class="label">F1 Score</div>
+      </div>
+      <div class="hero-stat">
+        <div class="val">10/10</div>
+        <div class="label">OWASP Coverage</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="separator"></div>
+
+<!-- ══════════ QUICK START ══════════ -->
+<section id="quickstart">
+  <div class="container">
+    <div class="section-tag">Quick Start</div>
+    <h2 class="section-title">Up and running in 6 lines</h2>
+    <p class="section-desc">Install, scan, and gate your CI — all from the terminal.</p>
+
+    <div class="terminal-window">
+      <div class="terminal-header">
+        <span class="terminal-dot r"></span>
+        <span class="terminal-dot y"></span>
+        <span class="terminal-dot g"></span>
+        <span class="terminal-title">agent-audit — bash</span>
+      </div>
+      <div class="terminal-body">
+        <span class="line comment"># Install</span>
+        <span class="line"><span class="prompt-char">$ </span><span class="cmd">pip install agent-audit</span></span>
+        <br>
+        <span class="line comment"># Scan your project</span>
+        <span class="line"><span class="prompt-char">$ </span><span class="cmd">agent-audit scan <span class="flag">./your-agent-project</span></span></span>
+        <br>
+        <span class="line comment"># Gate CI on high+ findings</span>
+        <span class="line"><span class="prompt-char">$ </span><span class="cmd">agent-audit scan . <span class="flag">--fail-on high</span></span></span>
+        <br>
+        <span class="line comment"># SARIF for GitHub Security tab</span>
+        <span class="line"><span class="prompt-char">$ </span><span class="cmd">agent-audit scan . <span class="flag">--format sarif --output results.sarif</span></span></span>
+        <br>
+        <span class="line comment"># Inspect a live MCP server (read-only)</span>
+        <span class="line"><span class="prompt-char">$ </span><span class="cmd">agent-audit inspect stdio <span class="flag">-- npx -y @modelcontextprotocol/server-filesystem /tmp</span></span></span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="separator"></div>
+
+<!-- ══════════ WHAT IT DETECTS ══════════ -->
+<section id="detects">
+  <div class="container">
+    <div class="section-tag">Threat Detection</div>
+    <h2 class="section-title">What it catches</h2>
+    <p class="section-desc">Seven categories of agent-specific vulnerabilities that general SAST tools miss entirely.</p>
+
+    <div class="threat-grid">
+      <div class="threat-card">
+        <span class="threat-icon">⚡</span>
+        <h3>Injection Attacks</h3>
+        <p>User input flows to <code>exec()</code>, <code>subprocess</code>, or SQL without sanitization. Taint-tracked from source to sink.</p>
+        <div class="rules">
+          <span class="rule-tag">AGENT-001</span>
+          <span class="rule-tag">AGENT-041</span>
+          <span class="rule-tag">AGENT-049</span>
+        </div>
+      </div>
+
+      <div class="threat-card">
+        <span class="threat-icon">🎯</span>
+        <h3>Prompt Injection</h3>
+        <p>User input concatenated into system prompts via f-strings, <code>.format()</code>, or string concatenation.</p>
+        <div class="rules">
+          <span class="rule-tag">AGENT-010</span>
+          <span class="rule-tag">AGENT-027</span>
+        </div>
+      </div>
+
+      <div class="threat-card">
+        <span class="threat-icon">🔑</span>
+        <h3>Leaked Secrets</h3>
+        <p>API keys hardcoded in source or MCP configs. Three-stage filtering: regex → entropy + placeholder → context.</p>
+        <div class="rules">
+          <span class="rule-tag">AGENT-004</span>
+          <span class="rule-tag">AGENT-031</span>
+        </div>
+      </div>
+
+      <div class="threat-card">
+        <span class="threat-icon">🛡️</span>
+        <h3>Missing Input Validation</h3>
+        <p><code>@tool</code> functions accept raw strings from LLM output without type checks, allowlists, or sanitization.</p>
+        <div class="rules">
+          <span class="rule-tag">AGENT-034</span>
+          <span class="rule-tag">AGENT-026</span>
+        </div>
+      </div>
+
+      <div class="threat-card">
+        <span class="threat-icon">🔌</span>
+        <h3>Unsafe MCP Servers</h3>
+        <p>No auth on SSE/HTTP transport, no version pinning, overly broad filesystem access, sensitive env leakage.</p>
+        <div class="rules">
+          <span class="rule-tag">AGENT-029</span>
+          <span class="rule-tag">AGENT-030</span>
+          <span class="rule-tag">AGENT-033</span>
+        </div>
+      </div>
+
+      <div class="threat-card">
+        <span class="threat-icon">⚙️</span>
+        <h3>No Guardrails</h3>
+        <p>Agents running without iteration limits, human approval, or kill switches. Cascading failures waiting to happen.</p>
+        <div class="rules">
+          <span class="rule-tag">AGENT-028</span>
+          <span class="rule-tag">AGENT-037</span>
+          <span class="rule-tag">AGENT-024</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="separator"></div>
+
+<!-- ══════════ BENCHMARK ══════════ -->
+<section id="benchmark">
+  <div class="container">
+    <div class="section-tag">Evaluation</div>
+    <h2 class="section-title">Benchmark results</h2>
+    <p class="section-desc">Evaluated on Agent-Vuln-Bench (19 samples, 3 vulnerability categories) against Bandit and Semgrep.</p>
+
+    <div class="bench-grid">
+      <!-- Overall -->
+      <div>
+        <table class="bench-table">
+          <thead>
+            <tr>
+              <th>Tool</th>
+              <th>Recall</th>
+              <th>Precision</th>
+              <th>F1</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="winner">
+              <td class="highlight">agent-audit</td>
+              <td class="highlight">94.6%</td>
+              <td class="highlight">87.5%</td>
+              <td class="highlight">0.91</td>
+            </tr>
+            <tr>
+              <td>Bandit 1.8</td>
+              <td>
+                29.7%
+                <div class="bar-bg"><div class="bar-fill gray" style="width:29.7%"></div></div>
+              </td>
+              <td>100%</td>
+              <td>0.46</td>
+            </tr>
+            <tr>
+              <td>Semgrep 1.x</td>
+              <td>
+                27.0%
+                <div class="bar-bg"><div class="bar-fill gray" style="width:27%"></div></div>
+              </td>
+              <td>100%</td>
+              <td>0.43</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- By Category -->
+      <div>
+        <table class="bench-table">
+          <thead>
+            <tr>
+              <th>Category</th>
+              <th>agent-audit</th>
+              <th>Bandit</th>
+              <th>Semgrep</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Set A — Injection / RCE</td>
+              <td class="highlight">100%</td>
+              <td>68.8%</td>
+              <td>56.2%</td>
+            </tr>
+            <tr>
+              <td>Set B — MCP Config</td>
+              <td class="highlight">100%</td>
+              <td>0%</td>
+              <td>0%</td>
+            </tr>
+            <tr>
+              <td>Set C — Data / Auth</td>
+              <td class="highlight">84.6%</td>
+              <td>0%</td>
+              <td>7.7%</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Validation banner -->
+    <div class="validation-banner">
+      <div class="meta">
+        Validation snapshot as of <strong>2026-02-19</strong>, v0.16 benchmark set.<br>
+        <a href="https://github.com/HeadyZhang/agent-audit/blob/master/docs/BENCHMARK-RESULTS.md" target="_blank">Benchmark Details →</a>&nbsp;&nbsp;
+        <a href="https://github.com/HeadyZhang/agent-audit/blob/master/docs/COMPETITIVE-COMPARISON.md" target="_blank">Competitive Comparison →</a>
+      </div>
+      <div class="validation-stats">
+        <div class="validation-stat">
+          <div class="val">9</div>
+          <div class="label">OSS Targets</div>
+        </div>
+        <div class="validation-stat">
+          <div class="val">10/10</div>
+          <div class="label">OWASP Categories</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="separator"></div>
+
+<!-- ══════════ HOW IT WORKS ══════════ -->
+<section id="pipeline">
+  <div class="container">
+    <div class="section-tag">Architecture</div>
+    <h2 class="section-title">How it works</h2>
+    <p class="section-desc">Four specialized scanners feed into a unified rule engine. ~17,600 lines of Python.</p>
+
+    <div class="pipeline-container">
+      <div class="pipe-label">Input</div>
+      <div class="pipeline-row">
+        <div class="pipe-node">Source Files (.py, .json, .yaml, .env ...)</div>
+      </div>
+
+      <div class="pipe-label">Scanners</div>
+      <div class="pipeline-row">
+        <div class="pipe-node scanner">PythonScanner<br><span style="color:var(--text-muted);font-size:11px">AST analysis · taint tracking · 3,973 lines</span></div>
+        <div class="pipe-node scanner">SecretScanner<br><span style="color:var(--text-muted);font-size:11px">40+ regex · 3-stage semantic filter · 835 lines</span></div>
+      </div>
+      <div class="pipeline-row">
+        <div class="pipe-node scanner">MCPConfigScanner<br><span style="color:var(--text-muted);font-size:11px">JSON/YAML parsing · provenance · auth · 1,082 lines</span></div>
+        <div class="pipe-node scanner">PrivilegeScanner<br><span style="color:var(--text-muted);font-size:11px">Daemon · sudoers · sandbox · 1,138 lines</span></div>
+      </div>
+
+      <div class="pipe-label">Analysis Layer</div>
+      <div class="pipeline-row">
+        <div class="pipe-node analysis">TaintTracker<br><span style="color:var(--text-muted);font-size:11px">Source → sink reachability · BFS</span></div>
+        <div class="pipe-node analysis">SemanticAnalyzer<br><span style="color:var(--text-muted);font-size:11px">Entropy · placeholder · framework context</span></div>
+        <div class="pipe-node analysis">DangerousOpAnalyzer<br><span style="color:var(--text-muted);font-size:11px">Heuristic gating · safe patterns</span></div>
+      </div>
+
+      <div class="pipe-label">Rule Engine → Output</div>
+      <div class="pipeline-row">
+        <div class="pipe-node engine">RuleEngine<br><span style="color:var(--text-muted);font-size:11px">49 rules · dedup · confidence tiers</span></div>
+        <span class="pipe-arrow">→</span>
+        <div class="pipe-node output">SARIF</div>
+        <div class="pipe-node output">JSON</div>
+        <div class="pipe-node output">Terminal</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="separator"></div>
+
+<!-- ══════════ OWASP COVERAGE ══════════ -->
+<section id="owasp">
+  <div class="container">
+    <div class="section-tag">Threat Model</div>
+    <h2 class="section-title">Full OWASP Agentic Top 10 coverage</h2>
+    <p class="section-desc">49 detection rules mapped to every category of the <a href="https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/" target="_blank">OWASP Agentic Top 10 (2026)</a>.</p>
+
+    <div class="owasp-grid">
+      <div class="owasp-item">
+        <div class="owasp-num">01</div>
+        <div class="owasp-info">
+          <h4>Agent Goal Hijack</h4>
+          <span>4 rules · prompt injection via f-string, concat</span>
+        </div>
+      </div>
+      <div class="owasp-item">
+        <div class="owasp-num">02</div>
+        <div class="owasp-info">
+          <h4>Tool Misuse</h4>
+          <span>9 rules · @tool input to subprocess, SQL, SSRF</span>
+        </div>
+      </div>
+      <div class="owasp-item">
+        <div class="owasp-num">03</div>
+        <div class="owasp-info">
+          <h4>Identity & Privilege</h4>
+          <span>4 rules · daemon escalation, excessive servers</span>
+        </div>
+      </div>
+      <div class="owasp-item">
+        <div class="owasp-num">04</div>
+        <div class="owasp-info">
+          <h4>Supply Chain</h4>
+          <span>5 rules · unverified MCP source, unpinned npx</span>
+        </div>
+      </div>
+      <div class="owasp-item">
+        <div class="owasp-num">05</div>
+        <div class="owasp-info">
+          <h4>Code Execution</h4>
+          <span>3 rules · eval/exec in tool without sandbox</span>
+        </div>
+      </div>
+      <div class="owasp-item">
+        <div class="owasp-num">06</div>
+        <div class="owasp-info">
+          <h4>Memory Poisoning</h4>
+          <span>2 rules · unsanitized vector store upsert</span>
+        </div>
+      </div>
+      <div class="owasp-item">
+        <div class="owasp-num">07</div>
+        <div class="owasp-info">
+          <h4>Inter-Agent Comm</h4>
+          <span>1 rule · multi-agent HTTP without TLS</span>
+        </div>
+      </div>
+      <div class="owasp-item">
+        <div class="owasp-num">08</div>
+        <div class="owasp-info">
+          <h4>Cascading Failures</h4>
+          <span>3 rules · AgentExecutor without max_iterations</span>
+        </div>
+      </div>
+      <div class="owasp-item">
+        <div class="owasp-num">09</div>
+        <div class="owasp-info">
+          <h4>Trust Exploitation</h4>
+          <span>6 rules · critical ops without human_in_the_loop</span>
+        </div>
+      </div>
+      <div class="owasp-item">
+        <div class="owasp-num">10</div>
+        <div class="owasp-info">
+          <h4>Rogue Agents</h4>
+          <span>3 rules · no kill switch, no monitoring</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="separator"></div>
+
+<!-- ══════════ WHO IS THIS FOR ══════════ -->
+<section id="audience">
+  <div class="container">
+    <div class="section-tag">Use Cases</div>
+    <h2 class="section-title">Who is this for</h2>
+
+    <div class="audience-grid">
+      <div class="audience-card">
+        <span class="audience-icon">👩‍💻</span>
+        <h3>Agent Developers</h3>
+        <p>Building with LangChain, CrewAI, AutoGen, OpenAI Agents SDK, or raw function-calling. Run it before every deploy.</p>
+      </div>
+      <div class="audience-card">
+        <span class="audience-icon">🔒</span>
+        <h3>Security Engineers</h3>
+        <p>Reviewing agent codebases. Get structured SARIF reports for the GitHub Security tab. Integrate into existing CI gates.</p>
+      </div>
+      <div class="audience-card">
+        <span class="audience-icon">🔌</span>
+        <h3>MCP Server Operators</h3>
+        <p>Validate your <code>mcp.json</code> and <code>claude_desktop_config.json</code> for secrets, auth gaps, and supply chain risks.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="separator"></div>
+
+<!-- ══════════ FOOTER ══════════ -->
+<footer>
+  <div class="container">
+    <div class="footer-links">
+      <a href="https://github.com/HeadyZhang/agent-audit" target="_blank">GitHub</a>
+      <span style="color:var(--text-muted)">·</span>
+      <a href="https://github.com/HeadyZhang/agent-audit/blob/master/docs/RULES.md" target="_blank">Rules</a>
+      <span style="color:var(--text-muted)">·</span>
+      <a href="https://github.com/HeadyZhang/agent-audit/blob/master/docs/BENCHMARK-RESULTS.md" target="_blank">Benchmarks</a>
+      <span style="color:var(--text-muted)">·</span>
+      <a href="https://github.com/HeadyZhang/agent-audit/blob/master/CONTRIBUTING.md" target="_blank">Contributing</a>
+      <span style="color:var(--text-muted)">·</span>
+      <a href="https://pypi.org/project/agent-audit/" target="_blank">PyPI</a>
+    </div>
+    <p class="footer-copy">
+      Built by <a href="https://github.com/HeadyZhang" target="_blank">Haiyue Zhang</a> · <a href="https://fortis.usc.edu/" target="_blank">FORTIS Lab</a> @ USC<br>
+      Open source · MIT Licensed · Based on <a href="https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/" target="_blank">OWASP Agentic Top 10 (2026)</a>
+    </p>
+  </div>
+</footer>
+
+<!-- ══════════ SCROLL ANIMATION ══════════ -->
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  // Intersection Observer for scroll animations
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.style.opacity = '1';
+        entry.target.style.transform = 'translateY(0)';
+      }
+    });
+  }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+
+  document.querySelectorAll('.threat-card, .bench-table, .owasp-item, .audience-card, .pipeline-container, .validation-banner').forEach(el => {
+    el.style.opacity = '0';
+    el.style.transform = 'translateY(16px)';
+    el.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+    observer.observe(el);
+  });
+
+  // Stagger grid items
+  document.querySelectorAll('.threat-grid, .owasp-grid, .audience-grid').forEach(grid => {
+    const items = grid.children;
+    Array.from(items).forEach((item, i) => {
+      item.style.transitionDelay = `${i * 0.06}s`;
+    });
+  });
+
+  // Smooth scroll for nav links
+  document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+    anchor.addEventListener('click', function(e) {
+      e.preventDefault();
+      const target = document.querySelector(this.getAttribute('href'));
+      if (target) {
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
+  });
+});
+</script>
+
+</body>
+</html>
