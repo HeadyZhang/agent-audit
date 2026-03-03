@@ -1,5 +1,7 @@
 # Agent Audit
 
+**[Documentation & Overview](https://headyzhang.github.io/agent-audit/)** | [PyPI](https://pypi.org/project/agent-audit/)
+
 **Find security vulnerabilities in your AI agent code before they reach production.**
 
 [![PyPI version](https://img.shields.io/pypi/v/agent-audit?color=blue)](https://pypi.org/project/agent-audit/)
