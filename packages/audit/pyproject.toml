@@ -1,16 +1,16 @@
 [tool.poetry]
 name = "agent-audit"
 version = "0.16.0"
-description = "Security scanner for AI agents and MCP configurations - Based on OWASP Agentic Top 10"
+description = "Static security analyzer for AI agents — prompt injection, tool input validation, MCP config auditing, secret detection. 49 rules mapped to OWASP Agentic Top 10."
 authors = ["Agent Security Team <security@example.com>"]
 license = "MIT"
 readme = "README.md"
 homepage = "https://github.com/HeadyZhang/agent-audit"
 repository = "https://github.com/HeadyZhang/agent-audit"
-documentation = "https://github.com/HeadyZhang/agent-audit#readme"
+documentation = "https://headyzhang.github.io/agent-audit/"
 packages = [{include = "agent_audit"}]
 include = ["agent_audit/rules/builtin/*.yaml"]
-keywords = ["ai", "agent", "security", "mcp", "audit", "owasp", "vulnerability", "scanner"]
+keywords = ["ai-agent-security", "llm-security", "prompt-injection", "mcp-security", "owasp-agentic-top-10", "langchain-security", "static-analysis", "taint-analysis", "secret-detection", "vulnerability-scanner"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Environment :: Console",
