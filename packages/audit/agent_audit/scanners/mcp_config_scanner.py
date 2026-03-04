@@ -145,6 +145,9 @@ class MCPConfigScanner(BaseScanner):
         results = []
         config_files = self._find_config_files(path)
 
+        # v0.17.0: Collect all server tools across configs for shadowing detection
+        all_server_tools: Dict[str, List[Dict[str, Any]]] = {}
+
         for config_file in config_files:
             result = self._scan_config_file(config_file)
             if result:
@@ -153,7 +156,44 @@ class MCPConfigScanner(BaseScanner):
                 result.security_findings = security_findings
                 results.append(result)
 
+                # Collect tool definitions for cross-config shadowing
+                self._collect_tools_for_shadowing(result, all_server_tools)
+
+        # v0.17.0: AGENT-055 - Cross-server Tool Shadowing
+        if len(all_server_tools) > 1:
+            shadowing_findings = self._check_tool_shadowing(all_server_tools)
+            # Attach shadowing findings to the first result
+            if results and shadowing_findings:
+                results[0].security_findings.extend(shadowing_findings)
+
         return results
+
+    def _collect_tools_for_shadowing(
+        self,
+        result: MCPConfigScanResult,
+        all_server_tools: Dict[str, List[Dict[str, Any]]]
+    ) -> None:
+        """Collect tool definitions from config for cross-server shadowing analysis."""
+        raw_config = result._raw_config
+
+        # Check mcpServers format
+        mcp_servers = raw_config.get('mcpServers', {})
+        if isinstance(mcp_servers, dict):
+            for server_name, server_config in mcp_servers.items():
+                if isinstance(server_config, dict):
+                    tools = server_config.get('tools', [])
+                    if isinstance(tools, list) and tools:
+                        if server_name not in all_server_tools:
+                            all_server_tools[server_name] = []
+                        all_server_tools[server_name].extend(tools)
+
+        # Check top-level tools
+        top_tools = raw_config.get('tools', [])
+        if isinstance(top_tools, list) and top_tools:
+            key = f"_config_{result.source_file}"
+            if key not in all_server_tools:
+                all_server_tools[key] = []
+            all_server_tools[key].extend(top_tools)
 
     def _find_config_files(self, path: Path) -> List[Path]:
         """
@@ -492,6 +532,12 @@ class MCPConfigScanner(BaseScanner):
         # v0.15.0: AGENT-040 - Tool Schema validation (requires raw config data)
         schema_findings = self._check_tool_schema_security(result)
         findings.extend(schema_findings)
+
+        # v0.17.0: AGENT-056/057 - Tool Poisoning in config
+        poisoning_findings = self._check_tool_poisoning_in_config(
+            result._raw_config, result.source_file
+        )
+        findings.extend(poisoning_findings)
 
         return findings
 
@@ -1078,5 +1124,223 @@ class MCPConfigScanner(BaseScanner):
                 snippet=snippet,
                 owasp_id="ASI-03"
             ))
+
+        return findings
+
+    # =========================================================================
+    # v0.17.0: Tool Shadowing & Tool Poisoning Detection
+    # =========================================================================
+
+    # Trusted MCP server sources for shadowing confidence reduction
+    TRUSTED_SHADOWING_SOURCES = {
+        '@modelcontextprotocol/',
+        'ghcr.io/anthropics/',
+        'ghcr.io/modelcontextprotocol/',
+        'docker.io/mcp-catalog/',
+    }
+
+    @staticmethod
+    def _levenshtein_distance(s1: str, s2: str) -> int:
+        """Standard Levenshtein distance (DP). No external dependency."""
+        if len(s1) < len(s2):
+            return MCPConfigScanner._levenshtein_distance(s2, s1)
+        if len(s2) == 0:
+            return len(s1)
+        prev_row = list(range(len(s2) + 1))
+        for i, c1 in enumerate(s1):
+            curr_row = [i + 1]
+            for j, c2 in enumerate(s2):
+                insertions = prev_row[j + 1] + 1
+                deletions = curr_row[j] + 1
+                substitutions = prev_row[j] + (c1 != c2)
+                curr_row.append(min(insertions, deletions, substitutions))
+            prev_row = curr_row
+        return prev_row[-1]
+
+    def _is_trusted_shadowing_source(self, server: MCPServerConfig) -> bool:
+        """Check if a server is from a trusted source for shadowing analysis."""
+        args_str = ' '.join(str(a) for a in server.args)
+        combined = f"{server.command or ''} {args_str} {server.url or ''}"
+        return any(src in combined for src in self.TRUSTED_SHADOWING_SOURCES)
+
+    def _check_tool_shadowing(
+        self,
+        all_server_tools: Dict[str, List[Dict[str, Any]]]
+    ) -> List[MCPSecurityFinding]:
+        """
+        AGENT-055 (v0.17.0): Cross-server Tool Shadowing detection.
+
+        Detects when multiple MCP servers register tools with:
+        1. Exact same name (normalized lowercase) -> conf 0.90
+        2. Case-only variant -> conf 0.80
+        3. Similar name (edit distance <= 2, length > 5) -> conf 0.70
+        """
+        findings: List[MCPSecurityFinding] = []
+
+        # Build registry: normalized_name -> [(server_name, original_name)]
+        tool_registry: Dict[str, List[tuple]] = {}
+        for server_name, tools in all_server_tools.items():
+            for tool in tools:
+                name = tool.get("name", "")
+                normalized = name.lower().strip()
+                if normalized not in tool_registry:
+                    tool_registry[normalized] = []
+                tool_registry[normalized].append((server_name, name))
+
+        # Phase 1: Exact match (after normalization)
+        for normalized_name, entries in tool_registry.items():
+            servers_involved = list({e[0] for e in entries})
+            if len(servers_involved) < 2:
+                continue
+
+            confidence = 0.90
+            original_names = {e[1] for e in entries}
+            if len(original_names) > 1:
+                confidence = 0.80
+
+            findings.append(MCPSecurityFinding(
+                rule_id="AGENT-055",
+                server_name=servers_involved[0],
+                finding_type="mcp_tool_shadowing_exact",
+                description=(
+                    f"Tool '{normalized_name}' registered by multiple servers: "
+                    f"{', '.join(servers_involved)}. This may allow a malicious "
+                    "server to shadow a legitimate tool."
+                ),
+                severity="high",
+                line=1,
+                snippet=f"tool: {normalized_name}, servers: {servers_involved}",
+                owasp_id="ASI-04"
+            ))
+
+        # Phase 2: Similar name detection (edit distance <= 2)
+        all_names = list(tool_registry.keys())
+        for i, name_a in enumerate(all_names):
+            for name_b in all_names[i + 1:]:
+                if name_a == name_b:
+                    continue
+                if len(name_a) <= 5 or len(name_b) <= 5:
+                    continue
+                distance = MCPConfigScanner._levenshtein_distance(name_a, name_b)
+                if distance <= 2:
+                    servers_a = {e[0] for e in tool_registry[name_a]}
+                    servers_b = {e[0] for e in tool_registry[name_b]}
+                    if servers_a != servers_b:
+                        findings.append(MCPSecurityFinding(
+                            rule_id="AGENT-055",
+                            server_name=list(servers_a)[0],
+                            finding_type="mcp_tool_shadowing_similar",
+                            description=(
+                                f"Tools '{name_a}' and '{name_b}' are suspiciously similar "
+                                f"(edit distance {distance}) across different servers: "
+                                f"{list(servers_a)} vs {list(servers_b)}"
+                            ),
+                            severity="medium",
+                            line=1,
+                            snippet=f"'{name_a}' vs '{name_b}' (distance={distance})",
+                            owasp_id="ASI-04"
+                        ))
+
+        return findings
+
+    def _check_tool_poisoning_in_config(
+        self,
+        config: Dict[str, Any],
+        source_file: str
+    ) -> List[MCPSecurityFinding]:
+        """
+        AGENT-056/057 (v0.17.0): Check tool metadata in config for poisoning.
+
+        Analyzes tool descriptions and argument descriptions in static config
+        using ToolDescriptionAnalyzer.
+        """
+        from agent_audit.analysis.tool_description_analyzer import ToolDescriptionAnalyzer
+
+        findings: List[MCPSecurityFinding] = []
+
+        tools_sources: List[tuple] = []
+
+        mcp_servers = config.get('mcpServers', {})
+        if isinstance(mcp_servers, dict):
+            for server_name, server_config in mcp_servers.items():
+                if isinstance(server_config, dict):
+                    tools = server_config.get('tools', [])
+                    if isinstance(tools, list):
+                        tools_sources.append((server_name, tools))
+
+        top_tools = config.get('tools', [])
+        if isinstance(top_tools, list):
+            tools_sources.append(("_global_", top_tools))
+
+        cap_tools = config.get('capabilities', {}).get('tools', [])
+        if isinstance(cap_tools, list):
+            tools_sources.append(("_capabilities_", cap_tools))
+
+        for server_name, tools in tools_sources:
+            for tool in tools:
+                if not isinstance(tool, dict):
+                    continue
+
+                tool_name = tool.get('name', 'unknown')
+
+                name_results = ToolDescriptionAnalyzer.analyze(tool_name, context="name")
+                for pr in name_results:
+                    findings.append(MCPSecurityFinding(
+                        rule_id="AGENT-056",
+                        server_name=server_name,
+                        finding_type="mcp_tool_name_poisoning",
+                        description=(
+                            f"Tool name '{tool_name}' on server '{server_name}' "
+                            f"contains {pr.category} pattern: {pr.pattern_matched}"
+                        ),
+                        severity="high",
+                        line=1,
+                        snippet=pr.snippet,
+                        owasp_id="ASI-01"
+                    ))
+
+                desc = tool.get('description', '')
+                if desc:
+                    desc_results = ToolDescriptionAnalyzer.analyze(desc, context="description")
+                    for pr in desc_results:
+                        findings.append(MCPSecurityFinding(
+                            rule_id="AGENT-056",
+                            server_name=server_name,
+                            finding_type="mcp_tool_description_poisoning",
+                            description=(
+                                f"Tool '{tool_name}' description on server '{server_name}' "
+                                f"contains {pr.category} pattern: {pr.pattern_matched}"
+                            ),
+                            severity="high",
+                            line=1,
+                            snippet=pr.snippet,
+                            owasp_id="ASI-01"
+                        ))
+
+                schema = tool.get('inputSchema', {})
+                if isinstance(schema, dict):
+                    for prop_name, prop_def in schema.get('properties', {}).items():
+                        if not isinstance(prop_def, dict):
+                            continue
+                        prop_desc = prop_def.get('description', '')
+                        if prop_desc:
+                            arg_results = ToolDescriptionAnalyzer.analyze(
+                                prop_desc, context="arg_description"
+                            )
+                            for pr in arg_results:
+                                findings.append(MCPSecurityFinding(
+                                    rule_id="AGENT-057",
+                                    server_name=server_name,
+                                    finding_type="mcp_tool_arg_poisoning",
+                                    description=(
+                                        f"Tool '{tool_name}' argument '{prop_name}' description "
+                                        f"on server '{server_name}' contains {pr.category} "
+                                        f"pattern: {pr.pattern_matched}"
+                                    ),
+                                    severity="high",
+                                    line=1,
+                                    snippet=pr.snippet,
+                                    owasp_id="ASI-01"
+                                ))
 
         return findings

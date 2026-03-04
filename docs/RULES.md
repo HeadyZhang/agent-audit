@@ -46,6 +46,10 @@ This document provides a comprehensive reference for all agent-audit security ru
 | [AGENT-050](#agent-050-agentexecutor-risk) | HIGH | CWE-400 | ASI-01 | LangChain AgentExecutor Without Safety Parameters |
 | [AGENT-052](#agent-052-sensitive-logging) | HIGH | CWE-532 | ASI-09 | Sensitive Data Logged in Output |
 | [AGENT-053](#agent-053-self-modification) | CRITICAL | CWE-94 | ASI-10 | Agent Self-Modification Risk |
+| [AGENT-054](#agent-054-mcp-rug-pull) | HIGH | CWE-494 | ASI-04 | MCP Rug Pull / Baseline Drift Detection |
+| [AGENT-055](#agent-055-tool-shadowing) | HIGH | CWE-706 | ASI-04 | Cross-server Tool Shadowing |
+| [AGENT-056](#agent-056-tool-description-poisoning) | HIGH | CWE-74 | ASI-01 | Tool Description Poisoning |
+| [AGENT-057](#agent-057-tool-argument-poisoning) | HIGH | CWE-74 | ASI-01 | Tool Argument Poisoning |
 
 ---
 
@@ -58,6 +62,8 @@ Attacker manipulates agent's goals, decision logic, or task selection.
 - [AGENT-011](#agent-011-missing-goal-validation): Missing Goal Validation
 - [AGENT-027](#agent-027-injectable-system-prompt): Injectable System Prompt
 - [AGENT-050](#agent-050-agentexecutor-risk): AgentExecutor Without Safety Parameters
+- [AGENT-056](#agent-056-tool-description-poisoning): Tool Description Poisoning
+- [AGENT-057](#agent-057-tool-argument-poisoning): Tool Argument Poisoning
 
 ### ASI-02: Tool Misuse and Exploitation
 Agent is manipulated to misuse tools for unauthorized actions.
@@ -88,6 +94,8 @@ External dependencies (APIs, models, MCP servers) pose security risks.
 - [AGENT-015](#agent-015-untrusted-mcp-source): Untrusted MCP Source
 - [AGENT-016](#agent-016-unvalidated-rag-source): Unvalidated RAG Source
 - [AGENT-030](#agent-030-unverified-server-source): Unverified Server Source
+- [AGENT-054](#agent-054-mcp-rug-pull): MCP Rug Pull / Baseline Drift
+- [AGENT-055](#agent-055-tool-shadowing): Cross-server Tool Shadowing
 
 ### ASI-05: Improper Output Handling / Code Execution
 Agent generates or executes malicious code.
@@ -175,6 +183,10 @@ Autonomous agents deviate from intended goals without external manipulation.
 | AGENT-038 | Impersonation Risk | ASI-09 |
 | AGENT-050 | AgentExecutor Risk | ASI-01 |
 | AGENT-052 | Sensitive Data Logging | ASI-09 |
+| AGENT-054 | MCP Rug Pull / Baseline Drift | ASI-04 |
+| AGENT-055 | Cross-server Tool Shadowing | ASI-04 |
+| AGENT-056 | Tool Description Poisoning | ASI-01 |
+| AGENT-057 | Tool Argument Poisoning | ASI-01 |
 
 ### Medium (Address When Possible)
 
@@ -1325,6 +1337,102 @@ def update_config(config_dict: dict):
 
 ---
 
+### AGENT-054: MCP Rug Pull
+
+| Property | Value |
+|----------|-------|
+| **Severity** | HIGH |
+| **CWE** | [CWE-494: Download of Code Without Integrity Check](https://cwe.mitre.org/data/definitions/494.html) |
+| **OWASP Agentic** | ASI-04: Agentic Supply Chain |
+
+**What it detects**
+
+MCP server tools, resources, or prompts have changed since the last approved baseline (rug pull attack).
+
+**Why it matters**
+
+An initially audited MCP server can silently modify its tools after gaining trust, adding malicious capabilities or altering tool behavior.
+
+**How to fix**
+
+Create a baseline after initial security audit and compare against it on every scan. Investigate any tool additions, removals, or description changes.
+
+```bash
+# Create baseline
+agent-audit inspect sse https://example.com/sse --baseline .agent-audit-baseline.json
+
+# Detect drift
+agent-audit scan . --mcp-baseline .agent-audit-baseline.json
+```
+
+---
+
+### AGENT-055: Tool Shadowing
+
+| Property | Value |
+|----------|-------|
+| **Severity** | HIGH |
+| **CWE** | [CWE-706: Use of Incorrectly-Resolved Name](https://cwe.mitre.org/data/definitions/706.html) |
+| **OWASP Agentic** | ASI-04: Agentic Supply Chain |
+
+**What it detects**
+
+Multiple MCP servers register tools with identical or highly similar names (e.g., `read_file` vs `read_files`).
+
+**Why it matters**
+
+A malicious server can shadow a legitimate tool, intercepting calls intended for the trusted server.
+
+**How to fix**
+
+Ensure each tool name is unique across all configured MCP servers. Remove or rename conflicting tools.
+
+---
+
+### AGENT-056: Tool Description Poisoning
+
+| Property | Value |
+|----------|-------|
+| **Severity** | HIGH |
+| **CWE** | [CWE-74: Improper Neutralization of Special Elements in Output](https://cwe.mitre.org/data/definitions/74.html) |
+| **OWASP Agentic** | ASI-01: Agent Goal Hijacking |
+
+**What it detects**
+
+MCP tool descriptions containing instruction overrides, hidden instructions (zero-width characters), command injection patterns, data exfiltration directives, or privilege escalation attempts.
+
+**Why it matters**
+
+Tool descriptions are included in LLM prompts. Poisoned descriptions can hijack agent behavior, exfiltrate data, or escalate privileges.
+
+**How to fix**
+
+Review all MCP tool descriptions. Remove hidden characters and instruction-like text from descriptions. Use the `agent-audit inspect` command to audit MCP servers.
+
+---
+
+### AGENT-057: Tool Argument Poisoning
+
+| Property | Value |
+|----------|-------|
+| **Severity** | HIGH |
+| **CWE** | [CWE-74: Improper Neutralization of Special Elements in Output](https://cwe.mitre.org/data/definitions/74.html) |
+| **OWASP Agentic** | ASI-01: Agent Goal Hijacking |
+
+**What it detects**
+
+MCP tool argument/parameter descriptions containing the same poisoning patterns as AGENT-056.
+
+**Why it matters**
+
+Argument descriptions are also included in LLM prompts and can be used to inject malicious instructions that influence how the LLM constructs tool call arguments.
+
+**How to fix**
+
+Review all MCP tool argument descriptions for hidden instructions or suspicious directives.
+
+---
+
 ## Rules by Scanner
 
 ### PythonScanner
@@ -1395,6 +1503,10 @@ Static analyzer for MCP server configuration files (JSON/YAML).
 | AGENT-033 | Missing Authentication | SSE/HTTP without auth config |
 | AGENT-040 | Insecure Tool Schema | `additionalProperties: true`, missing types |
 | AGENT-042 | Excessive MCP Servers | >10 servers configured |
+| AGENT-054 | MCP Rug Pull / Baseline Drift | SHA-256 hash comparison against approved baseline |
+| AGENT-055 | Cross-server Tool Shadowing | Levenshtein distance + exact name match across servers |
+| AGENT-056 | Tool Description Poisoning | 5-category regex analysis of tool descriptions |
+| AGENT-057 | Tool Argument Poisoning | Same analysis on argument descriptions |
 
 Config files scanned:
 - `claude_desktop_config.json`
@@ -1467,4 +1579,4 @@ agent-audit scan . --baseline baseline.json
 
 ---
 
-*40 rules as of v0.15.1*
+*53 rules as of v0.17.0*

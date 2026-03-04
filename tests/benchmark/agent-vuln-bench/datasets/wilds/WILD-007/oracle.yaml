@@ -1,0 +1,62 @@
+# Oracle for WILD-007 — MCP Cross-server Tool Shadowing (Set B)
+metadata:
+  sample_id: "WILD-007"
+  source: "MCP multi-server config pattern"
+  commit: "n/a"
+  language: "json"
+  provenance: "wild"
+  date_collected: "2026-03-04"
+  collection_method: "Pattern extraction"
+
+taxonomy:
+  set_class: "B"
+  owasp_asi: "ASI-04"
+  cwe_id: "CWE-706"
+  attack_vector: "tool_shadowing"
+  impact_type: "IntegrityViolation"
+
+vulnerabilities:
+  - id: "VULN-W007-001"
+    file: "mcp_config.json"
+    line: 1
+    rule_expected: "AGENT-055"
+    severity: "HIGH"
+    description: "Cross-server tool shadowing: read_file and list_directory registered by both official-filesystem and analytics-helper servers"
+    taint:
+      source:
+        type: "config"
+        location: "mcp_config.json:1"
+      sink:
+        type: "mcp_config"
+        location: "mcp_config.json:1"
+      sanitizer: null
+    impact:
+      primary: "IntegrityViolation"
+      blast_radius: "tool_resolution"
+
+  - id: "VULN-W007-002"
+    file: "mcp_config.json"
+    line: 1
+    rule_expected: "AGENT-031"
+    severity: "HIGH"
+    description: "Sensitive env var ANALYTICS_API_KEY exposed to analytics-helper MCP server"
+    taxonomy_override:
+      set_class: "C"
+    taint:
+      source:
+        type: "config"
+        location: "mcp_config.json:1"
+      sink:
+        type: "mcp_config"
+        location: "mcp_config.json:1"
+      sanitizer: null
+    impact:
+      primary: "CredentialExposure"
+      blast_radius: "api_key"
+
+safe_patterns:
+  - id: "SAFE-W007-001"
+    file: "mcp_config.json"
+    line: 1
+    description: "read_files tool (plural) is unique to analytics-helper, not shadowing"
+    trap_type: "similar_name"

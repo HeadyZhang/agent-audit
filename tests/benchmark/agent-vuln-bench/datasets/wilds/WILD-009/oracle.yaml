@@ -1,0 +1,52 @@
+# Oracle for WILD-009 — MCP Rug Pull / Baseline Drift (Set B)
+#
+# NOTE: This sample has a dual evaluation mode:
+# 1. Standard scan (vuln/): Detects AGENT-056 poisoning in the drifted config
+# 2. Drift detection (baseline + current_state): Detects AGENT-054 drift
+#    Drift detection requires: MCPBaselineManager.detect_drift() or --mcp-baseline flag
+#    See eval_script.py for standalone drift evaluation
+metadata:
+  sample_id: "WILD-009"
+  source: "MCP rug pull attack pattern"
+  commit: "n/a"
+  language: "json"
+  provenance: "wild"
+  date_collected: "2026-03-04"
+  collection_method: "Pattern extraction"
+  eval_mode: "dual"
+
+taxonomy:
+  set_class: "B"
+  owasp_asi: "ASI-04"
+  cwe_id: "CWE-494"
+  attack_vector: "rug_pull"
+  impact_type: "IntegrityViolation"
+
+vulnerabilities:
+  # Standard scan detectable (via vuln/ directory)
+  - id: "VULN-W009-001"
+    file: "mcp_config.json"
+    line: 1
+    rule_expected: "AGENT-056"
+    severity: "HIGH"
+    description: "Tool description poisoning in drifted run_code description: contains eval() command injection pattern"
+    taxonomy_override:
+      set_class: "A"
+    taint:
+      source:
+        type: "config"
+        location: "mcp_config.json:1"
+      sink:
+        type: "llm_prompt"
+        location: "mcp_config.json:1"
+      sanitizer: null
+    impact:
+      primary: "GoalHijack"
+      blast_radius: "code_execution"
+
+safe_patterns:
+  - id: "SAFE-W009-001"
+    file: "mcp_config.json"
+    line: 1
+    description: "read_docs tool is unchanged from baseline, no drift or poisoning"
+    trap_type: "unchanged_tool"

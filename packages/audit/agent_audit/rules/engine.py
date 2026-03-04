@@ -103,6 +103,12 @@ RULE_CWE_MAPPING: Dict[str, str] = {
 
     # Rogue Agents (v0.15.0)
     "AGENT-053": "CWE-94",    # Agent Self-Modification
+
+    # MCP Security Enhancement (v0.17.0)
+    "AGENT-054": "CWE-494",   # MCP Rug Pull / Baseline Drift
+    "AGENT-055": "CWE-706",   # Cross-server Tool Shadowing
+    "AGENT-056": "CWE-74",    # Tool Description Poisoning
+    "AGENT-057": "CWE-74",    # Tool Argument Poisoning
 }
 
 
@@ -213,6 +219,24 @@ class RuleEngine:
 
         # v0.9.0: Supply chain security
         'unsafe_deserialization': 'AGENT-049',   # Pickle/torch/joblib load
+
+        # v0.17.0: MCP Security Enhancement
+        # ASI-04: Supply Chain — Tool Shadowing
+        'mcp_tool_shadowing_exact': 'AGENT-055',
+        'mcp_tool_shadowing_similar': 'AGENT-055',
+        # ASI-04: Supply Chain — Baseline Drift / Rug Pull
+        'mcp_tool_drift_added': 'AGENT-054',
+        'mcp_tool_drift_modified': 'AGENT-054',
+        'mcp_tool_drift_removed': 'AGENT-054',
+        'mcp_resource_drift_added': 'AGENT-054',
+        'mcp_resource_drift_modified': 'AGENT-054',
+        'mcp_prompt_drift_added': 'AGENT-054',
+        'mcp_prompt_drift_modified': 'AGENT-054',
+        'mcp_server_drift_added': 'AGENT-054',
+        # ASI-01: Goal Hijacking — Tool Poisoning
+        'mcp_tool_description_poisoning': 'AGENT-056',
+        'mcp_tool_name_poisoning': 'AGENT-056',
+        'mcp_tool_arg_poisoning': 'AGENT-057',
     }
 
     # v0.3.0: MCP finding type to rule metadata
@@ -246,6 +270,55 @@ class RuleEngine:
             'title': 'MCP Server Without Authentication',
             'category': 'trust_exploitation',
             'cwe_id': 'CWE-306',
+        },
+        # v0.17.0: MCP Security Enhancement
+        'mcp_tool_shadowing_exact': {
+            'id': 'AGENT-055',
+            'title': 'Cross-server Tool Shadowing',
+            'category': 'supply_chain_agentic',
+            'cwe_id': 'CWE-706',
+        },
+        'mcp_tool_shadowing_similar': {
+            'id': 'AGENT-055',
+            'title': 'Cross-server Tool Shadowing (Similar Name)',
+            'category': 'supply_chain_agentic',
+            'cwe_id': 'CWE-706',
+        },
+        'mcp_tool_description_poisoning': {
+            'id': 'AGENT-056',
+            'title': 'Tool Description Poisoning',
+            'category': 'goal_hijack',
+            'cwe_id': 'CWE-74',
+        },
+        'mcp_tool_name_poisoning': {
+            'id': 'AGENT-056',
+            'title': 'Tool Name Poisoning',
+            'category': 'goal_hijack',
+            'cwe_id': 'CWE-74',
+        },
+        'mcp_tool_arg_poisoning': {
+            'id': 'AGENT-057',
+            'title': 'Tool Argument Poisoning',
+            'category': 'goal_hijack',
+            'cwe_id': 'CWE-74',
+        },
+        'mcp_tool_drift_added': {
+            'id': 'AGENT-054',
+            'title': 'MCP Baseline Drift - Tool Added',
+            'category': 'supply_chain_agentic',
+            'cwe_id': 'CWE-494',
+        },
+        'mcp_tool_drift_modified': {
+            'id': 'AGENT-054',
+            'title': 'MCP Baseline Drift - Tool Modified',
+            'category': 'supply_chain_agentic',
+            'cwe_id': 'CWE-494',
+        },
+        'mcp_tool_drift_removed': {
+            'id': 'AGENT-054',
+            'title': 'MCP Baseline Drift - Tool Removed',
+            'category': 'supply_chain_agentic',
+            'cwe_id': 'CWE-494',
         },
     }
 

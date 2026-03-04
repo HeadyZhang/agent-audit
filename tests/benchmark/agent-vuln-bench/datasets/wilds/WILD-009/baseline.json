@@ -1,0 +1,47 @@
+{
+  "version": "1.0",
+  "created_at": "2026-03-04T04:34:40.130964Z",
+  "agent_audit_version": "0.17.0",
+  "servers": {
+    "code-assistant": {
+      "config_hash": "sha256:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "tools": {
+        "run_code": {
+          "description": "Execute code in a sandboxed environment",
+          "description_hash": "sha256:e7f56090922325e6f9fa271aae521c01ce8fd13a474434d49de9875a2f80af65",
+          "input_schema": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string",
+                "description": "Code to execute"
+              },
+              "language": {
+                "type": "string",
+                "description": "Programming language"
+              }
+            }
+          },
+          "input_schema_hash": "sha256:cf86133145e7dd4ecf5ef16e6dea55448778e59075a2b4f220615c8ac41782f6"
+        },
+        "read_docs": {
+          "description": "Read documentation for a library",
+          "description_hash": "sha256:482620049a24528a78df528af89c2af19e434376b55fd99d650694c765f3f32d",
+          "input_schema": {
+            "type": "object",
+            "properties": {
+              "library": {
+                "type": "string",
+                "description": "Library name"
+              }
+            }
+          },
+          "input_schema_hash": "sha256:c2a6e90edf4dcc530f0c37da9fd64c0ba35a28bffd711362b977459b7fb02821"
+        }
+      },
+      "resources": {},
+      "prompts": {},
+      "snapshot_at": "2026-03-04T04:34:40.130964Z"
+    }
+  }
+}

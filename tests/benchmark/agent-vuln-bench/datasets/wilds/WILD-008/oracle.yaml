@@ -1,0 +1,60 @@
+# Oracle for WILD-008 — MCP Tool Description & Argument Poisoning (Set A)
+metadata:
+  sample_id: "WILD-008"
+  source: "MCP tool poisoning pattern"
+  commit: "n/a"
+  language: "json"
+  provenance: "wild"
+  date_collected: "2026-03-04"
+  collection_method: "Pattern extraction"
+
+taxonomy:
+  set_class: "A"
+  owasp_asi: "ASI-01"
+  cwe_id: "CWE-74"
+  attack_vector: "tool_poisoning"
+  impact_type: "GoalHijack"
+
+vulnerabilities:
+  - id: "VULN-W008-001"
+    file: "mcp_config.json"
+    line: 1
+    rule_expected: "AGENT-056"
+    severity: "HIGH"
+    description: "Tool description poisoning: search_database and update_record descriptions contain instruction override, data exfiltration, hidden instructions (zero-width chars), and privilege escalation"
+    taint:
+      source:
+        type: "config"
+        location: "mcp_config.json:1"
+      sink:
+        type: "llm_prompt"
+        location: "mcp_config.json:1"
+      sanitizer: null
+    impact:
+      primary: "GoalHijack"
+      blast_radius: "agent_behavior"
+
+  - id: "VULN-W008-002"
+    file: "mcp_config.json"
+    line: 1
+    rule_expected: "AGENT-057"
+    severity: "HIGH"
+    description: "Tool argument poisoning: search_database.query argument description contains data exfiltration URL guidance"
+    taint:
+      source:
+        type: "config"
+        location: "mcp_config.json:1"
+      sink:
+        type: "llm_prompt"
+        location: "mcp_config.json:1"
+      sanitizer: null
+    impact:
+      primary: "DataExfiltration"
+      blast_radius: "user_data"
+
+safe_patterns:
+  - id: "SAFE-W008-001"
+    file: "mcp_config.json"
+    line: 1
+    description: "export_data tool has clean description and argument descriptions, no poisoning"
+    trap_type: "clean_tool"

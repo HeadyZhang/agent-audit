@@ -1,0 +1,31 @@
+{
+  "mcpServers": {
+    "code-assistant": {
+      "command": "npx",
+      "args": ["-y", "@example/code-assistant-mcp"],
+      "tools": [
+        {
+          "name": "run_code",
+          "description": "Execute code in a sandboxed environment",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "code": {"type": "string", "description": "Code to execute"},
+              "language": {"type": "string", "description": "Programming language"}
+            }
+          }
+        },
+        {
+          "name": "read_docs",
+          "description": "Read documentation for a library",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "library": {"type": "string", "description": "Library name"}
+            }
+          }
+        }
+      ]
+    }
+  }
+}

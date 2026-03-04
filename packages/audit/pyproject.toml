@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "agent-audit"
-version = "0.16.0"
-description = "Static security analyzer for AI agents — prompt injection, tool input validation, MCP config auditing, secret detection. 49 rules mapped to OWASP Agentic Top 10."
+version = "0.17.0"
+description = "Static security analyzer for AI agents — prompt injection, tool input validation, MCP config auditing, secret detection. 53 rules mapped to OWASP Agentic Top 10."
 authors = ["Agent Security Team <security@example.com>"]
 license = "MIT"
 readme = "README.md"

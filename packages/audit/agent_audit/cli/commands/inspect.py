@@ -160,7 +160,9 @@ async def run_inspect_async(
     target: str,
     transport: Optional[str],
     timeout: int,
-    output_format: str
+    output_format: str,
+    baseline_path: Optional[str] = None,
+    update_baseline: bool = False
 ) -> int:
     """Run the inspection asynchronously."""
     inspector = MCPInspector(timeout=timeout)
@@ -172,6 +174,43 @@ async def run_inspect_async(
 
     result = await inspector.inspect(target, transport_type)
     render_inspection_result(result, output_format)
+
+    # v0.17.0: Save baseline if requested
+    if baseline_path and result.connected:
+        from agent_audit.scanners.mcp_baseline import MCPBaselineManager
+
+        server_name = result.server_name or "unknown"
+        inspection_data = {
+            server_name: {
+                "tools": [
+                    {
+                        "name": t.name,
+                        "description": t.description,
+                        "inputSchema": {},
+                    }
+                    for t in result.tools
+                ],
+                "resources": result.resources,
+                "prompts": result.prompts,
+            }
+        }
+
+        mgr = MCPBaselineManager(baseline_path)
+
+        if update_baseline:
+            # Load existing and merge
+            existing = mgr.load_baseline(baseline_path)
+            if existing:
+                baseline = existing
+                snapshot = mgr.create_baseline(inspection_data)
+                baseline.servers.update(snapshot.servers)
+            else:
+                baseline = mgr.create_baseline(inspection_data)
+        else:
+            baseline = mgr.create_baseline(inspection_data)
+
+        mgr.save_baseline(baseline, baseline_path)
+        console.print(f"\n[green]Baseline saved to: {baseline_path}[/green]")
 
     # Return exit code based on risk
     if not result.connected:
@@ -185,10 +224,16 @@ def run_inspect(
     target: str,
     transport: Optional[str],
     timeout: int,
-    output_format: str
+    output_format: str,
+    baseline_path: Optional[str] = None,
+    update_baseline: bool = False
 ) -> int:
     """Run the inspection."""
-    return asyncio.run(run_inspect_async(target, transport, timeout, output_format))
+    return asyncio.run(run_inspect_async(
+        target, transport, timeout, output_format,
+        baseline_path=baseline_path,
+        update_baseline=update_baseline
+    ))
 
 
 @click.command(context_settings=dict(ignore_unknown_options=True))
@@ -198,7 +243,12 @@ def run_inspect(
 @click.option('--format', '-f', 'output_format',
               type=click.Choice(['terminal', 'json']), default='terminal',
               help='Output format')
-def inspect(transport_type: str, target: tuple, timeout: int, output_format: str):
+@click.option('--baseline', type=click.Path(),
+              help='Save inspection results as MCP baseline file for drift detection')
+@click.option('--update', is_flag=True, default=False,
+              help='Update existing baseline (merge) instead of overwriting')
+def inspect(transport_type: str, target: tuple, timeout: int, output_format: str,
+            baseline: Optional[str], update: bool):
     """
     Inspect a running MCP server and analyze its tools.
 
@@ -214,6 +264,10 @@ def inspect(transport_type: str, target: tuple, timeout: int, output_format: str
 
     The inspector connects to the server, retrieves its tool definitions,
     and analyzes them for security risks WITHOUT executing any tools.
+
+    Use --baseline to save the inspection as a baseline for drift detection:
+
+        agent-audit inspect sse https://example.com/sse --baseline .agent-audit-baseline.json
     """
     # Join target parts back together
     target_str = ' '.join(target)
@@ -230,7 +284,9 @@ def inspect(transport_type: str, target: tuple, timeout: int, output_format: str
         target=target_str,
         transport=transport_type,
         timeout=timeout,
-        output_format=output_format
+        output_format=output_format,
+        baseline_path=baseline,
+        update_baseline=update
     )
 
     sys.exit(exit_code)

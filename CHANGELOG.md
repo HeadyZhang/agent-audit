@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.17.0] - 2026-03-04
+
+### New Rules (4)
+- **AGENT-054** (CWE-494): MCP Rug Pull / Baseline Drift Detection — Detects unauthorized modifications to MCP server tools, resources, and prompts by comparing against a previously approved baseline using SHA-256 hash comparison
+- **AGENT-055** (CWE-706): Cross-server Tool Shadowing — Detects identical or similar tool names registered across multiple MCP servers, which could enable malicious tool override attacks. Uses Levenshtein distance for fuzzy matching
+- **AGENT-056** (CWE-74): Tool Description Poisoning — 5-category pattern analysis detecting prompt injection, hidden instructions (zero-width chars), command injection, data exfiltration guidance, and privilege escalation in MCP tool descriptions
+- **AGENT-057** (CWE-74): Tool Argument Poisoning — Same analysis engine applied to tool input parameter descriptions
+
+### New CLI Options
+- `--dynamic`: Enable runtime MCP server scanning (enumerates tools/resources/prompts, analyzes descriptions for security threats)
+- `--mcp-baseline <path>`: Specify baseline file for drift detection
+- `--dynamic-only`: Run only dynamic scanning, skip static analysis
+- `--dynamic-timeout <seconds>`: Set timeout for dynamic scanning
+- `agent-audit inspect --baseline <path>`: Create or update MCP security baseline
+
+### New Modules
+- `analysis/tool_description_analyzer.py` (~220 lines): 5-category poisoning detection engine
+- `scanners/mcp_baseline.py` (~600 lines): Baseline creation, serialization, SHA-256 hashing, and drift detection
+
+### Stats
+- Total rules: 49 → 53
+- Total tests: 1,142 → 1,239 (97 new, 0 regressions)
+- No new external dependencies
+
 ## [0.5.2] - 2026-02-05
 
 ### Micro-Patch: False Positive Reduction

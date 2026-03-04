@@ -173,6 +173,15 @@ def run_scan(
                 'mcp_sensitive_env_exposure': Category.CREDENTIAL_EXPOSURE,
                 'mcp_stdio_no_sandbox': Category.TOOL_MISUSE,
                 'mcp_missing_auth': Category.TRUST_EXPLOITATION,
+                # v0.17.0: MCP Security Enhancement
+                'mcp_tool_shadowing_exact': Category.SUPPLY_CHAIN_AGENTIC,
+                'mcp_tool_shadowing_similar': Category.SUPPLY_CHAIN_AGENTIC,
+                'mcp_tool_description_poisoning': Category.GOAL_HIJACK,
+                'mcp_tool_name_poisoning': Category.GOAL_HIJACK,
+                'mcp_tool_arg_poisoning': Category.GOAL_HIJACK,
+                'mcp_tool_drift_added': Category.SUPPLY_CHAIN_AGENTIC,
+                'mcp_tool_drift_modified': Category.SUPPLY_CHAIN_AGENTIC,
+                'mcp_tool_drift_removed': Category.SUPPLY_CHAIN_AGENTIC,
             }
             category = category_map.get(sec_finding.finding_type, Category.SUPPLY_CHAIN)
 
@@ -401,11 +410,21 @@ def _output_markdown(findings: List[Finding], scan_path: str, output_path: Optio
               help='Minimum tier to display (default: WARN, or INFO with --verbose)')
 @click.option('--no-color', is_flag=True, default=False,
               help='Disable colored output (for CI/CD environments)')
+@click.option('--dynamic', is_flag=True, default=False,
+              help='Enable dynamic MCP server scanning (connect and probe running servers)')
+@click.option('--dynamic-only', is_flag=True, default=False,
+              help='Only run dynamic scanning (skip static analysis)')
+@click.option('--mcp-baseline', type=click.Path(),
+              help='MCP baseline file for drift detection (used with --dynamic)')
+@click.option('--dynamic-timeout', type=int, default=120,
+              help='Timeout for dynamic MCP scanning in seconds')
 @click.pass_context
 def scan(ctx: click.Context, path: str, output_format: str, output: Optional[str],
          severity: str, rules: tuple, rules_dir: Optional[str], fail_on: str,
          baseline: Optional[str], save_baseline: Optional[str],
-         fail_on_new: bool, min_tier: Optional[str], no_color: bool):
+         fail_on_new: bool, min_tier: Optional[str], no_color: bool,
+         dynamic: bool, dynamic_only: bool, mcp_baseline: Optional[str],
+         dynamic_timeout: int):
     """
     Scan agent code and configurations for security issues.
 
@@ -422,6 +441,8 @@ def scan(ctx: click.Context, path: str, output_format: str, output: Optional[str
         agent-audit scan . --baseline baseline.json
 
         agent-audit scan . --save-baseline baseline.json
+
+        agent-audit scan . --dynamic --mcp-baseline .agent-audit-baseline.json
     """
     exit_code = run_scan(
         path=Path(path),

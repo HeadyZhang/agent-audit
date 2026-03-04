@@ -7,7 +7,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![CI](https://github.com/HeadyZhang/agent-audit/actions/workflows/ci.yml/badge.svg)](https://github.com/HeadyZhang/agent-audit/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/HeadyZhang/agent-audit/graph/badge.svg?branch=master)](https://codecov.io/gh/HeadyZhang/agent-audit?branch=master)
-[![Tests](https://img.shields.io/badge/tests-1142%20passed-brightgreen)]()
+[![Tests](https://img.shields.io/badge/tests-1239%20passed-brightgreen)]()
 [![Docs](https://img.shields.io/badge/docs-github.io-blue)](https://headyzhang.github.io/agent-audit/)
 
 ---
@@ -25,7 +25,7 @@ You likely need this before every merge if agent code can trigger tools, command
 
 **Agent Audit** catches these issues before deployment with an analysis core designed for agent workflows today: tool-boundary taint tracking, MCP configuration auditing, and semantic secret detection, with room to extend into learning-assisted detection over time.
 
-Think of it as **security linting for AI agents**, with 40+ rules mapped to the [OWASP Agentic Top 10 (2026)](https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/).
+Think of it as **security linting for AI agents**, with 53 rules mapped to the [OWASP Agentic Top 10 (2026)](https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/).
 
 ---
 
@@ -106,6 +106,9 @@ Details: [Benchmark Results](docs/BENCHMARK-RESULTS.md) | [Competitive Compariso
 | **Leaked secrets** | API keys hardcoded in source or MCP config | AGENT-004, AGENT-031 |
 | **Missing input validation** | `@tool` functions accept raw strings without checks | AGENT-034 |
 | **Unsafe MCP servers** | No auth, no version pinning, overly broad permissions | AGENT-005, AGENT-029, AGENT-030, AGENT-033 |
+| **MCP tool poisoning** | Hidden instructions or data exfiltration in tool descriptions | AGENT-056, AGENT-057 |
+| **MCP tool shadowing** | Multiple servers register identical tool names to override behavior | AGENT-055 |
+| **MCP rug pull / drift** | Server tools change after initial security audit | AGENT-054 |
 | **No guardrails** | Agent runs without iteration limits or human approval | AGENT-028, AGENT-037 |
 | **Unrestricted code execution** | Tools run `eval()` or `shell=True` without sandboxing | AGENT-035 |
 
@@ -235,14 +238,14 @@ Source Files (.py, .json, .yaml, .env, ...)
         +-- PrivilegeScanner -- Daemon / Sudoers / Sandbox / Credential Store
                  |
                  v
-            RuleEngine -- 40+ Rules x OWASP Agentic Top 10 -- Findings
+            RuleEngine -- 53 Rules x OWASP Agentic Top 10 -- Findings
 ```
 
 **Key technical contributions:**
 
 - **Tool-boundary-aware taint analysis** -- Tracks data flow from `@tool` function parameters to dangerous sinks (`eval`, `subprocess.run`, `cursor.execute`), with sanitization detection. Only triggers when a confirmed tool entry point has unsanitized parameters flowing to dangerous operations.
 
-- **MCP configuration auditing** -- Parses `claude_desktop_config.json` and MCP gateway configs to detect unverified server sources, overly broad filesystem permissions, missing authentication, and unpinned package versions -- a category entirely missed by existing SAST tools.
+- **MCP configuration auditing** -- Parses `claude_desktop_config.json` and MCP gateway configs to detect unverified server sources, overly broad filesystem permissions, missing authentication, unpinned package versions, tool description poisoning, cross-server tool shadowing, and baseline drift (rug pull) -- a category entirely missed by existing SAST tools.
 
 - **Three-stage semantic credential detection** -- (1) Regex candidate discovery with priority tiers, (2) value analysis with known-format matching, entropy scoring, and placeholder/UUID exclusion, (3) context adjustment by file type, test patterns, and framework schema detection.
 
@@ -250,14 +253,14 @@ Source Files (.py, .json, .yaml, .env, ...)
 
 ## Threat Coverage
 
-40+ detection rules covering all 10 categories of the [OWASP Agentic Top 10 (2026)](https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/):
+53 detection rules covering all 10 categories of the [OWASP Agentic Top 10 (2026)](https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/):
 
 | OWASP Category | Rules | Example Detections |
 |----------------|------:|-------------------|
-| ASI-01 Agent Goal Hijack | 4 | Prompt injection via f-string in `SystemMessage` |
+| ASI-01 Agent Goal Hijack | 6 | Prompt injection, tool description poisoning, argument poisoning |
 | ASI-02 Tool Misuse | 9 | `@tool` input to `subprocess` without validation |
 | ASI-03 Identity & Privilege | 4 | Daemon privilege escalation, >10 MCP servers |
-| ASI-04 Supply Chain | 5 | Unverified MCP source, unpinned `npx` packages |
+| ASI-04 Supply Chain | 7 | Unverified MCP source, tool shadowing, baseline drift (rug pull) |
 | ASI-05 Code Execution | 3 | `eval`/`exec` in tool without sandbox |
 | ASI-06 Memory Poisoning | 2 | Unsanitized input to vector store `upsert` |
 | ASI-07 Inter-Agent Comm | 1 | Multi-agent over HTTP without TLS |
@@ -350,7 +353,7 @@ allowed_hosts:
 git clone https://github.com/HeadyZhang/agent-audit
 cd agent-audit/packages/audit
 poetry install
-poetry run pytest ../../tests/ -v  # 1142 tests
+poetry run pytest ../../tests/ -v  # 1239 tests
 ```
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for full development setup and PR guidelines.

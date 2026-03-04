@@ -17,6 +17,7 @@ from agent_audit.models.tool import ToolDefinition, PermissionType, ToolParamete
 from agent_audit.utils.mcp_client import (
     BaseMCPTransport, TransportType, create_client, infer_transport_type
 )
+from agent_audit.analysis.tool_description_analyzer import ToolDescriptionAnalyzer
 
 
 # Python 3.9 compatibility for asyncio.timeout
@@ -38,6 +39,25 @@ else:
             handle.cancel()
 
 logger = logging.getLogger(__name__)
+
+
+# v0.17.0: Dynamic scan timeout defaults
+DYNAMIC_SCAN_DEFAULTS = {
+    "connection_timeout": 10,   # seconds
+    "request_timeout": 30,      # seconds
+    "total_timeout": 120,       # seconds
+    "max_retries": 2,
+    "retry_delay": 1,           # seconds
+}
+
+
+class DynamicScanError:
+    """Error classification for dynamic scan failures."""
+    CONNECTION_REFUSED = "connection_refused"
+    TIMEOUT = "timeout"
+    PROTOCOL_ERROR = "protocol_error"
+    AUTH_REQUIRED = "auth_required"
+    SERVER_ERROR = "server_error"
 
 
 @dataclass
@@ -214,6 +234,12 @@ class MCPInspector:
         if result.connected:
             result.risk_score = self._calculate_risk_score(result)
             result.findings = self._generate_findings(result)
+            # v0.17.0: Tool description poisoning analysis
+            result.findings.extend(self._analyze_tool_descriptions(result))
+            # v0.17.0: Resource URI security analysis
+            result.findings.extend(self._analyze_resource_uris(result))
+            # v0.17.0: Prompt description analysis
+            result.findings.extend(self._analyze_prompt_descriptions(result))
 
         return result
 
@@ -418,5 +444,164 @@ class MCPInspector:
                 "description": "Server has tools for both secret access and network outbound - potential data exfiltration",
                 "severity": "high"
             })
+
+        return findings
+
+    # =========================================================================
+    # v0.17.0: Enhanced Security Analysis
+    # =========================================================================
+
+    def _analyze_tool_descriptions(
+        self,
+        result: MCPInspectionResult
+    ) -> List[Dict[str, Any]]:
+        """
+        v0.17.0: Analyze tool descriptions for poisoning patterns (AGENT-056/057).
+        """
+        findings: List[Dict[str, Any]] = []
+
+        for tool in result.tools:
+            # Check tool description
+            if tool.description:
+                desc_results = ToolDescriptionAnalyzer.analyze(
+                    tool.description, context="description"
+                )
+                for pr in desc_results:
+                    findings.append({
+                        "type": "tool_description_poisoning",
+                        "rule_id": "AGENT-056",
+                        "tool": tool.name,
+                        "category": pr.category,
+                        "description": (
+                            f"Tool '{tool.name}' description contains "
+                            f"{pr.category} pattern: {pr.pattern_matched}"
+                        ),
+                        "confidence": pr.confidence,
+                        "severity": "high",
+                        "snippet": pr.snippet,
+                    })
+
+            # Check argument descriptions
+            for param in tool.parameters:
+                if param.description:
+                    arg_results = ToolDescriptionAnalyzer.analyze(
+                        param.description, context="arg_description"
+                    )
+                    for pr in arg_results:
+                        findings.append({
+                            "type": "tool_arg_poisoning",
+                            "rule_id": "AGENT-057",
+                            "tool": tool.name,
+                            "parameter": param.name,
+                            "category": pr.category,
+                            "description": (
+                                f"Tool '{tool.name}' argument '{param.name}' description "
+                                f"contains {pr.category} pattern: {pr.pattern_matched}"
+                            ),
+                            "confidence": pr.confidence,
+                            "severity": "high",
+                            "snippet": pr.snippet,
+                        })
+
+        return findings
+
+    def _analyze_resource_uris(
+        self,
+        result: MCPInspectionResult
+    ) -> List[Dict[str, Any]]:
+        """
+        v0.17.0: Analyze resource URIs for security issues.
+
+        Checks:
+        - file:// with overly broad paths -> AGENT-029
+        - http:// (non-https) resource transport -> insecure transport
+        """
+        findings: List[Dict[str, Any]] = []
+
+        for resource in result.resources:
+            uri = resource.get("uri", "")
+
+            # Check for overly broad file:// access
+            if uri.startswith("file://"):
+                path = uri[7:]  # Strip file://
+                dangerous_roots = ["/", "/home", "/etc", "/usr", "/var", "/root"]
+                for root in dangerous_roots:
+                    if path == root or path.rstrip("/") == root:
+                        findings.append({
+                            "type": "resource_broad_file_access",
+                            "rule_id": "AGENT-029",
+                            "resource": uri,
+                            "description": (
+                                f"Resource '{uri}' grants access to '{path}' "
+                                "which is an overly broad filesystem path"
+                            ),
+                            "severity": "high",
+                        })
+                        break
+
+            # Check for insecure http:// transport
+            if uri.startswith("http://"):
+                findings.append({
+                    "type": "resource_insecure_transport",
+                    "resource": uri,
+                    "description": (
+                        f"Resource '{uri}' uses unencrypted HTTP. "
+                        "Use HTTPS for secure data transport"
+                    ),
+                    "severity": "medium",
+                })
+
+        return findings
+
+    def _analyze_prompt_descriptions(
+        self,
+        result: MCPInspectionResult
+    ) -> List[Dict[str, Any]]:
+        """
+        v0.17.0: Analyze prompt descriptions for poisoning patterns (AGENT-056).
+        """
+        findings: List[Dict[str, Any]] = []
+
+        for prompt in result.prompts:
+            desc = prompt.get("description", "")
+            if desc:
+                desc_results = ToolDescriptionAnalyzer.analyze(desc, context="description")
+                for pr in desc_results:
+                    findings.append({
+                        "type": "prompt_description_poisoning",
+                        "rule_id": "AGENT-056",
+                        "prompt": prompt.get("name", "unknown"),
+                        "category": pr.category,
+                        "description": (
+                            f"Prompt '{prompt.get('name', 'unknown')}' description "
+                            f"contains {pr.category} pattern: {pr.pattern_matched}"
+                        ),
+                        "confidence": pr.confidence,
+                        "severity": "high",
+                        "snippet": pr.snippet,
+                    })
+
+            # Check argument descriptions
+            for arg in prompt.get("arguments", []):
+                arg_desc = arg.get("description", "")
+                if arg_desc:
+                    arg_results = ToolDescriptionAnalyzer.analyze(
+                        arg_desc, context="arg_description"
+                    )
+                    for pr in arg_results:
+                        findings.append({
+                            "type": "prompt_arg_poisoning",
+                            "rule_id": "AGENT-056",
+                            "prompt": prompt.get("name", "unknown"),
+                            "argument": arg.get("name", "unknown"),
+                            "description": (
+                                f"Prompt '{prompt.get('name', 'unknown')}' argument "
+                                f"'{arg.get('name', 'unknown')}' description contains "
+                                f"{pr.category} pattern: {pr.pattern_matched}"
+                            ),
+                            "confidence": pr.confidence,
+                            "severity": "high",
+                            "snippet": pr.snippet,
+                        })
 
         return findings

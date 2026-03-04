@@ -1,15 +1,16 @@
 # Agent-Vuln-Bench Dataset Catalog
-# Version: 1.0 | Date: 2026-02-04
+# Version: 1.1 | Date: 2026-03-04
 
-version: "1.0"
+version: "1.1"
 date_created: "2026-02-04"
+date_updated: "2026-03-04"
 benchmark_name: "Agent-Vuln-Bench"
 
 statistics:
   total_knowns: 12
-  total_wilds: 6
+  total_wilds: 9
   total_noise: 2
-  total_vulnerabilities: 40
+  total_vulnerabilities: 45
   languages:
     - python
     - typescript
@@ -17,9 +18,9 @@ statistics:
     - yaml
     - markdown
   set_breakdown:
-    A: 18   # Injection & RCE vulnerabilities
-    B: 10   # MCP & Component vulnerabilities
-    C: 12   # Data & Auth vulnerabilities
+    A: 20   # Injection & RCE vulnerabilities
+    B: 12   # MCP & Component vulnerabilities
+    C: 13   # Data & Auth vulnerabilities
 
 datasets:
   knowns:
@@ -177,6 +178,34 @@ datasets:
       vuln_count: 2
       description: "Prompt injection via user input"
       collection_method: "Pattern extraction"
+
+    - id: "WILD-007"
+      source: "MCP multi-server config pattern"
+      set: "B"
+      language: "json"
+      file_count: 1
+      vuln_count: 2
+      description: "Cross-server tool shadowing + env exposure"
+      collection_method: "Pattern extraction"
+
+    - id: "WILD-008"
+      source: "MCP tool poisoning pattern"
+      set: "A"
+      language: "json"
+      file_count: 1
+      vuln_count: 2
+      description: "Tool description and argument poisoning"
+      collection_method: "Pattern extraction"
+
+    - id: "WILD-009"
+      source: "MCP rug pull attack pattern"
+      set: "B"
+      language: "json"
+      file_count: 1
+      vuln_count: 1
+      description: "Baseline drift / rug pull detection"
+      collection_method: "Pattern extraction"
+      eval_mode: "dual"
 
   noise:
     - id: "T12"
