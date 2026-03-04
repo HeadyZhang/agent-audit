@@ -1193,11 +1193,6 @@ class MCPConfigScanner(BaseScanner):
             if len(servers_involved) < 2:
                 continue
 
-            confidence = 0.90
-            original_names = {e[1] for e in entries}
-            if len(original_names) > 1:
-                confidence = 0.80
-
             findings.append(MCPSecurityFinding(
                 rule_id="AGENT-055",
                 server_name=servers_involved[0],
