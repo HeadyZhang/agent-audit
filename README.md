@@ -116,6 +116,23 @@ Full coverage of all 10 OWASP Agentic Security categories. Framework-specific de
 
 ---
 
+## OpenClaw Support
+
+Agent Audit is available as an [OpenClaw](https://openclaw.ai) skill on ClawHub:
+
+```bash
+npx clawhub@latest install agent-audit-scanner
+```
+
+Once installed, ask your OpenClaw agent:
+- "Scan my installed skills for security issues"
+- "Is this new skill safe?"
+- "Audit my OpenClaw config"
+
+The scanner covers all 10 OWASP Agentic AI threat categories and has been validated against 18,899 ClawHub skills at 80% precision.
+
+---
+
 ## Who Is This For
 
 - **Agent developers** building with LangChain, CrewAI, AutoGen, OpenAI Agents SDK, or raw function-calling -- run it before every deploy
