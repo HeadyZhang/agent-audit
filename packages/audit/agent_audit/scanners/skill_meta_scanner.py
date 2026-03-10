@@ -203,21 +203,22 @@ class SkillMetaScanner(BaseScanner):
 
         # Check description for daemon keywords
         description = frontmatter.get("description", "")
-        if isinstance(description, str) and _DAEMON_KEYWORDS_RE.search(description):
+        if isinstance(description, str):
             match = _DAEMON_KEYWORDS_RE.search(description)
-            findings.append(SkillMetaFinding(
-                rule_id="AGENT-063",
-                pattern_type="skill_daemon_persistence",
-                description=(
-                    f"Skill description references daemon/service keyword: "
-                    f"'{match.group()}'"
-                ),
-                severity="high",
-                confidence=0.90,
-                line=line_map.get("description", 1),
-                snippet=description[:120],
-                owasp_id="ASI-03",
-            ))
+            if match:
+                findings.append(SkillMetaFinding(
+                    rule_id="AGENT-063",
+                    pattern_type="skill_daemon_persistence",
+                    description=(
+                        f"Skill description references daemon/service keyword: "
+                        f"'{match.group()}'"
+                    ),
+                    severity="high",
+                    confidence=0.90,
+                    line=line_map.get("description", 1),
+                    snippet=description[:120],
+                    owasp_id="ASI-03",
+                ))
 
         return findings
 

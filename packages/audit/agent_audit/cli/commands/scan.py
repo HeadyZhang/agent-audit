@@ -14,8 +14,8 @@ from agent_audit.scanners.python_scanner import PythonScanner
 from agent_audit.scanners.mcp_config_scanner import MCPConfigScanner
 from agent_audit.scanners.secret_scanner import SecretScanner
 from agent_audit.scanners.privilege_scanner import PrivilegeScanner
-from agent_audit.scanners.skill_meta_scanner import SkillMetaScanner
-from agent_audit.scanners.skill_body_scanner import SkillBodyScanner
+from agent_audit.scanners.skill_meta_scanner import SkillMetaScanner, SkillMetaFinding
+from agent_audit.scanners.skill_body_scanner import SkillBodyScanner, SkillBodyFinding
 from agent_audit.config.ignore import (
     IgnoreManager, load_baseline, filter_by_baseline, save_baseline
 )
@@ -259,7 +259,8 @@ def run_scan(
     skill_meta_results = skill_meta_scanner.scan(path)
     for skill_meta_result in skill_meta_results:
         scanned_files += 1
-        for sec_finding in skill_meta_result.security_findings:
+        meta_finding: SkillMetaFinding
+        for meta_finding in skill_meta_result.security_findings:
             from agent_audit.models.risk import Location, Category
             from agent_audit.models.finding import Remediation
 
@@ -269,7 +270,7 @@ def run_scan(
                 'medium': Severity.MEDIUM,
                 'low': Severity.LOW,
             }
-            severity = severity_map.get(sec_finding.severity, Severity.MEDIUM)
+            severity = severity_map.get(meta_finding.severity, Severity.MEDIUM)
 
             category_map = {
                 'skill_daemon_persistence': Category.IDENTITY_PRIVILEGE_ABUSE,
@@ -277,24 +278,24 @@ def run_scan(
                 'skill_suspicious_network_endpoint': Category.SUPPLY_CHAIN_AGENTIC,
                 'skill_sandbox_override': Category.UNEXPECTED_CODE_EXECUTION,
             }
-            category = category_map.get(sec_finding.pattern_type, Category.SUPPLY_CHAIN_AGENTIC)
+            category = category_map.get(meta_finding.pattern_type, Category.SUPPLY_CHAIN_AGENTIC)
 
             from agent_audit.models.finding import confidence_to_tier
             finding = Finding(
-                rule_id=sec_finding.rule_id,
-                title=sec_finding.pattern_type.replace('_', ' ').title(),
-                description=sec_finding.description,
+                rule_id=meta_finding.rule_id,
+                title=meta_finding.pattern_type.replace('_', ' ').title(),
+                description=meta_finding.description,
                 severity=severity,
                 category=category,
                 location=Location(
                     file_path=skill_meta_result.source_file,
-                    start_line=sec_finding.line,
-                    end_line=sec_finding.line,
-                    snippet=sec_finding.snippet,
+                    start_line=meta_finding.line,
+                    end_line=meta_finding.line,
+                    snippet=meta_finding.snippet,
                 ),
-                owasp_id=sec_finding.owasp_id,
-                confidence=sec_finding.confidence,
-                tier=confidence_to_tier(sec_finding.confidence),
+                owasp_id=meta_finding.owasp_id,
+                confidence=meta_finding.confidence,
+                tier=confidence_to_tier(meta_finding.confidence),
                 remediation=Remediation(
                     description=f"Review skill metadata in '{Path(skill_meta_result.source_file).name}'"
                 ),
@@ -304,7 +305,8 @@ def run_scan(
     skill_body_scanner = SkillBodyScanner()
     skill_body_results = skill_body_scanner.scan(path)
     for skill_body_result in skill_body_results:
-        for sec_finding in skill_body_result.security_findings:
+        body_finding: SkillBodyFinding
+        for body_finding in skill_body_result.security_findings:
             from agent_audit.models.risk import Location, Category
             from agent_audit.models.finding import Remediation, confidence_to_tier
 
@@ -314,30 +316,30 @@ def run_scan(
                 'medium': Severity.MEDIUM,
                 'low': Severity.LOW,
             }
-            severity = severity_map.get(sec_finding.severity, Severity.MEDIUM)
+            severity = severity_map.get(body_finding.severity, Severity.MEDIUM)
 
             category_map = {
                 'skill_obfuscated_shell': Category.SUPPLY_CHAIN_AGENTIC,
                 'skill_critical_file_modification': Category.GOAL_HIJACK,
                 'skill_fake_dependency': Category.SUPPLY_CHAIN_AGENTIC,
             }
-            category = category_map.get(sec_finding.pattern_type, Category.SUPPLY_CHAIN_AGENTIC)
+            category = category_map.get(body_finding.pattern_type, Category.SUPPLY_CHAIN_AGENTIC)
 
             finding = Finding(
-                rule_id=sec_finding.rule_id,
-                title=sec_finding.pattern_type.replace('_', ' ').title(),
-                description=sec_finding.description,
+                rule_id=body_finding.rule_id,
+                title=body_finding.pattern_type.replace('_', ' ').title(),
+                description=body_finding.description,
                 severity=severity,
                 category=category,
                 location=Location(
                     file_path=skill_body_result.source_file,
-                    start_line=sec_finding.line,
-                    end_line=sec_finding.line,
-                    snippet=sec_finding.snippet,
+                    start_line=body_finding.line,
+                    end_line=body_finding.line,
+                    snippet=body_finding.snippet,
                 ),
-                owasp_id=sec_finding.owasp_id,
-                confidence=sec_finding.confidence,
-                tier=confidence_to_tier(sec_finding.confidence),
+                owasp_id=body_finding.owasp_id,
+                confidence=body_finding.confidence,
+                tier=confidence_to_tier(body_finding.confidence),
                 remediation=Remediation(
                     description=f"Review skill instructions in '{Path(skill_body_result.source_file).name}'"
                 ),
