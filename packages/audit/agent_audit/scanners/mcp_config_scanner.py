@@ -114,12 +114,18 @@ class MCPConfigScanner(BaseScanner):
     # Placeholder values that indicate misconfiguration
     PLACEHOLDER_PATTERNS = [
         r'your[-_]?api[-_]?key[-_]?here',
-        r'<your[-_]?key>',
+        r'your[-_]\w+[-_]here\b',           # your-github-token-here, your-secret-here
+        r'your[-_][\w-]*(?:token|key|secret|password)\b',  # your-slack-bot-token
+        r'<[^>]{2,}>',                       # <your-token-here>, <YOUR_API_KEY>
+        r'^\$\{',                            # ${VAR_NAME} — template variable
         r'xxx+',
         r'TODO',
         r'CHANGEME',
         r'insert[-_]?here',
         r'replace[-_]?me',
+        r'(?i)example[-_]',                  # example-key, example_token
+        r'(?i)placeholder',
+        r'(?i)dummy[-_]',                    # dummy-key, dummy_token
     ]
 
     def __init__(self, config_paths: Optional[List[Path]] = None):
@@ -256,6 +262,20 @@ class MCPConfigScanner(BaseScanner):
 
         return config_files
 
+    @staticmethod
+    def _is_openapi_spec(data: dict) -> bool:
+        """Check if parsed data is an OpenAPI/Swagger spec, not MCP config."""
+        # OpenAPI 3.x
+        if "openapi" in data and isinstance(data.get("openapi"), str):
+            return True
+        # Swagger 2.x
+        if "swagger" in data and isinstance(data.get("swagger"), str):
+            return True
+        # Has 'paths' key (OpenAPI endpoints) but no 'mcpServers'
+        if "paths" in data and "mcpServers" not in data:
+            return True
+        return False
+
     def _looks_like_mcp_config(self, file_path: Path) -> bool:
         """Check if a file looks like an MCP config."""
         try:
@@ -269,6 +289,10 @@ class MCPConfigScanner(BaseScanner):
                 return False
 
             if not isinstance(data, dict):
+                return False
+
+            # Exclude OpenAPI/Swagger specs (they have 'servers' key but are not MCP)
+            if self._is_openapi_spec(data):
                 return False
 
             # Check for MCP config indicators
@@ -293,6 +317,10 @@ class MCPConfigScanner(BaseScanner):
                 return None
 
             if not isinstance(data, dict):
+                return None
+
+            # Exclude OpenAPI/Swagger specs that share 'servers' key
+            if self._is_openapi_spec(data):
                 return None
 
             # Detect config type and parse

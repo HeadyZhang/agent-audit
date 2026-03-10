@@ -599,6 +599,16 @@ class SemanticAnalyzer:
                 "Schema field definition (Pydantic/dataclass) - not a hardcoded credential"
             )
 
+        # === NEW: URL Query Parameter Detection (AGENT-004 FP Reduction) ===
+        # Check if the matched value is actually part of a URL query string
+        # e.g., LinkedIn tracking params: ?rcm=ACoAAAWVqBEBm3KPRIo2...
+        if candidate.raw_text and value and self._is_url_query_param(candidate.raw_text, value):
+            return (
+                False,
+                0.05,
+                "Value is a URL query parameter (not a hardcoded credential)"
+            )
+
         # === NEW v0.8.0: F-String ENV Interpolation Detection ===
         # Check if value appears to be an f-string with env-sourced variables
         # This reduces confidence for patterns like: f"postgres://{DB_USER}:{DB_PASS}@..."
@@ -1142,6 +1152,44 @@ class SemanticAnalyzer:
             if any(value.endswith(suffix) for suffix in class_suffixes):
                 return True
 
+        return False
+
+    @staticmethod
+    def _is_url_query_param(raw_text: str, value: str) -> bool:
+        """Check if a matched 'credential' value is actually a URL query parameter.
+
+        Detects values that appear inside URL query strings (e.g., tracking
+        tokens, UTM parameters, OAuth callback codes) which are not hardcoded
+        credentials.
+        """
+        if not value or not raw_text:
+            return False
+        from urllib.parse import urlparse, parse_qs
+        # Find URLs in the raw text
+        url_pattern = r'https?://[^\s"\'<>\]\)]*'
+        urls = re.findall(url_pattern, raw_text)
+        for url in urls:
+            try:
+                parsed = urlparse(url)
+                if not parsed.query:
+                    continue
+                params = parse_qs(parsed.query)
+                for param_values in params.values():
+                    if value in param_values:
+                        return True
+            except Exception:
+                continue
+        # Also check: if value is embedded in a URL path/fragment (e.g., tracking IDs)
+        for url in urls:
+            if value in url:
+                # Confirm value is in the query/fragment part, not the domain
+                try:
+                    parsed = urlparse(url)
+                    query_fragment = (parsed.query or "") + (parsed.fragment or "")
+                    if value in query_fragment:
+                        return True
+                except Exception:
+                    continue
         return False
 
     def _confidence_to_tier(self, confidence: float) -> str:

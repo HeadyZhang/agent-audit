@@ -1769,6 +1769,42 @@ class PythonASTVisitor(ast.NodeVisitor):
 
         return None
 
+    @staticmethod
+    def _is_import_availability_check(call_node: ast.Call, func_node: Optional[ast.FunctionDef]) -> bool:
+        """Check if __import__ is used for package availability (try/except ImportError).
+
+        Returns True if the __import__ call is inside a try/except block that
+        catches ImportError or ModuleNotFoundError, indicating a package check pattern.
+        """
+        if func_node is None:
+            return False
+
+        target_line = call_node.lineno
+
+        for node in ast.walk(func_node):
+            if not isinstance(node, ast.Try):
+                continue
+            # Check if the __import__ call is in the try body
+            try_lines = {n.lineno for n in ast.walk(node) if hasattr(n, 'lineno')}
+            if target_line not in try_lines:
+                continue
+            # Check if any handler catches ImportError or ModuleNotFoundError
+            for handler in node.handlers:
+                if handler.type is None:
+                    # Bare except catches everything
+                    return True
+                handler_names = set()
+                if isinstance(handler.type, ast.Name):
+                    handler_names.add(handler.type.id)
+                elif isinstance(handler.type, ast.Tuple):
+                    for elt in handler.type.elts:
+                        if isinstance(elt, ast.Name):
+                            handler_names.add(elt.id)
+                if handler_names & {'ImportError', 'ModuleNotFoundError', 'Exception'}:
+                    return True
+
+        return False
+
     def _check_agent_self_modify(self, node: ast.Call) -> Optional[Dict[str, Any]]:
         """
         ASI-10: Detect agent self-modification patterns (v0.15.0).
@@ -1820,6 +1856,9 @@ class PythonASTVisitor(ast.NodeVisitor):
         if func_name == '__import__':
             # Check if the module name is a variable (not a string constant)
             if node.args and not isinstance(node.args[0], ast.Constant):
+                # Suppress if inside try/except ImportError (package availability check)
+                if self._is_import_availability_check(node, self._current_function_node):
+                    return None
                 return {
                     'type': 'agent_self_modify',
                     'subtype': 'dynamic_import',
@@ -3689,6 +3728,11 @@ class PythonASTVisitor(ast.NodeVisitor):
         is_eval_exec = func_name in self.EVAL_EXEC_PATTERNS_PYTHON
         if not is_eval_exec and simple_name in _UNAMBIGUOUS_EVAL_BUILTINS:
             is_eval_exec = True
+
+        # Suppress __import__ inside try/except ImportError (package availability check)
+        if is_eval_exec and simple_name == '__import__':
+            if self._is_import_availability_check(node, self._current_function_node):
+                return None
 
         if not is_eval_exec:
             return None

@@ -109,6 +109,15 @@ RULE_CWE_MAPPING: Dict[str, str] = {
     "AGENT-055": "CWE-706",   # Cross-server Tool Shadowing
     "AGENT-056": "CWE-74",    # Tool Description Poisoning
     "AGENT-057": "CWE-74",    # Tool Argument Poisoning
+
+    # OpenClaw Skill Security (v0.18.0)
+    "AGENT-058": "CWE-506",   # Obfuscated Shell Commands in SKILL.md
+    "AGENT-059": "CWE-74",    # Critical File Modification Instructions
+    "AGENT-060": "CWE-918",   # Suspicious Network Endpoints
+    "AGENT-061": "CWE-250",   # Sandbox Override
+    "AGENT-062": "CWE-494",   # Fake Dependency Social Engineering
+    "AGENT-063": "CWE-269",   # Daemon Persistence
+    "AGENT-064": "CWE-862",   # Auto-Invocation Without Consent
 }
 
 
@@ -237,6 +246,15 @@ class RuleEngine:
         'mcp_tool_description_poisoning': 'AGENT-056',
         'mcp_tool_name_poisoning': 'AGENT-056',
         'mcp_tool_arg_poisoning': 'AGENT-057',
+
+        # v0.18.0: OpenClaw Skill Security
+        'skill_obfuscated_shell': 'AGENT-058',
+        'skill_critical_file_modification': 'AGENT-059',
+        'skill_suspicious_network_endpoint': 'AGENT-060',
+        'skill_sandbox_override': 'AGENT-061',
+        'skill_fake_dependency': 'AGENT-062',
+        'skill_daemon_persistence': 'AGENT-063',
+        'skill_always_true_auto_invoke': 'AGENT-064',
     }
 
     # v0.3.0: MCP finding type to rule metadata
@@ -319,6 +337,49 @@ class RuleEngine:
             'title': 'MCP Baseline Drift - Tool Removed',
             'category': 'supply_chain_agentic',
             'cwe_id': 'CWE-494',
+        },
+        # v0.18.0: OpenClaw Skill Security
+        'skill_obfuscated_shell': {
+            'id': 'AGENT-058',
+            'title': 'Obfuscated Shell Commands in SKILL.md',
+            'category': 'supply_chain_agentic',
+            'cwe_id': 'CWE-506',
+        },
+        'skill_critical_file_modification': {
+            'id': 'AGENT-059',
+            'title': 'Critical File Modification Instructions',
+            'category': 'goal_hijack',
+            'cwe_id': 'CWE-74',
+        },
+        'skill_suspicious_network_endpoint': {
+            'id': 'AGENT-060',
+            'title': 'Suspicious Network Endpoints',
+            'category': 'supply_chain_agentic',
+            'cwe_id': 'CWE-918',
+        },
+        'skill_sandbox_override': {
+            'id': 'AGENT-061',
+            'title': 'Sandbox Override',
+            'category': 'unexpected_code_execution',
+            'cwe_id': 'CWE-250',
+        },
+        'skill_fake_dependency': {
+            'id': 'AGENT-062',
+            'title': 'Fake Dependency Social Engineering',
+            'category': 'supply_chain_agentic',
+            'cwe_id': 'CWE-494',
+        },
+        'skill_daemon_persistence': {
+            'id': 'AGENT-063',
+            'title': 'Daemon Persistence',
+            'category': 'identity_privilege_abuse',
+            'cwe_id': 'CWE-269',
+        },
+        'skill_always_true_auto_invoke': {
+            'id': 'AGENT-064',
+            'title': 'Auto-Invocation Without Consent',
+            'category': 'trust_exploitation',
+            'cwe_id': 'CWE-862',
         },
     }
 

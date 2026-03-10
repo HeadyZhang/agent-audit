@@ -362,64 +362,101 @@ rules:
         - "https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/"
 
   # =============================================================================
-  # ASI-04: Agentic Supply Chain Vulnerabilities (v0.9.0)
+  # ASI-09: Sensitive Data Logging (v0.15.0)
   # =============================================================================
 
-  - id: AGENT-049
-    title: "Unsafe Deserialization in Agent Code"
+  - id: AGENT-052
+    title: "Sensitive Data Logged in Output"
     description: >
-      The code uses unsafe deserialization functions (pickle.load, torch.load,
-      joblib.load, etc.) that can execute arbitrary code when loading untrusted
-      data. In agentic contexts, this is especially dangerous as agents may
-      load model checkpoints, state files, or data from untrusted sources.
+      Logging statements (logger, print) contain f-strings or format calls that
+      interpolate sensitive data such as passwords, tokens, API keys, or PII.
+      This violates ASI-09 (Human-Agent Trust Exploitation) by exposing
+      credentials or sensitive information through logs.
     severity: high
-    category: supply_chain_agentic
-    owasp_agentic_id: "ASI-04"
-    cwe_id: "CWE-502"
+    category: trust_exploitation
+    owasp_agentic_id: "ASI-09"
+    cwe_id: "CWE-532"
 
     detection:
       type: ast
       patterns:
-        - pattern_type: "unsafe_deserialization"
-          functions:
-            - "pickle.load"
-            - "pickle.loads"
-            - "torch.load"
-            - "joblib.load"
-            - "dill.load"
-            - "dill.loads"
-            - "cloudpickle.load"
-            - "cloudpickle.loads"
-            - "pd.read_pickle"
-            - "numpy.load"
+        - pattern_type: "sensitive_logging"
+          log_functions:
+            - "logger.info"
+            - "logger.debug"
+            - "logger.warning"
+            - "logger.error"
+            - "print"
+            - "logging.info"
+          sensitive_identifiers:
+            - "password"
+            - "token"
+            - "api_key"
+            - "secret"
+            - "credential"
 
     remediation:
       description: >
-        Avoid using pickle-based deserialization for untrusted data. Use safer
-        alternatives like JSON, safetensors (for models), or verify data sources.
-        For PyTorch, use weights_only=True when possible. For numpy, avoid
-        allow_pickle=True.
+        Never log sensitive data directly. Use masked representations or
+        omit sensitive fields entirely from log output. Consider using
+        structured logging with automatic PII redaction.
       code_example: |
-        # BAD: Unsafe deserialization
-        import pickle
-        with open('agent_state.pkl', 'rb') as f:
-            state = pickle.load(f)  # Arbitrary code execution risk
+        # BAD: Logging sensitive data
+        logger.info(f"User authenticated with token: {user.token}")
+        print(f"API Key: {api_key}")
 
-        model = torch.load('model.pt')  # Unsafe
-
-        # GOOD: Safe alternatives
-        import json
-        with open('agent_state.json', 'r') as f:
-            state = json.load(f)  # Safe
-
-        # For PyTorch 2.x:
-        model = torch.load('model.pt', weights_only=True)  # Safe
-
-        # For tensors, use safetensors:
-        from safetensors import safe_open
-        with safe_open('model.safetensors', framework='pt') as f:
-            tensors = {k: f.get_tensor(k) for k in f.keys()}
+        # GOOD: Masked or omitted
+        logger.info(f"User {user.id} authenticated successfully")
+        logger.info(f"API Key: {api_key[:4]}****")  # Partial mask
       references:
-        - "https://cwe.mitre.org/data/definitions/502.html"
-        - "https://pytorch.org/docs/stable/notes/security.html"
+        - "https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html"
+        - "https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/"
+
+  # =============================================================================
+  # ASI-10: Rogue Agents - Self-Modification (v0.15.0)
+  # =============================================================================
+
+  - id: AGENT-053
+    title: "Agent Self-Modification Risk"
+    description: >
+      Code writes to Python/code files and/or dynamically loads modified code.
+      This enables agent self-modification attacks where an agent can rewrite
+      its own code or configuration to bypass controls and become a rogue agent
+      (ASI-10). Common patterns include writing user input to .py files and
+      using importlib to reload the modified code.
+    severity: critical
+    category: rogue_agent
+    owasp_agentic_id: "ASI-10"
+    cwe_id: "CWE-94"
+
+    detection:
+      type: ast
+      patterns:
+        - pattern_type: "agent_self_modify"
+          dangerous_patterns:
+            - "file.write to .py file"
+            - "importlib.util.spec_from_file_location"
+            - "exec_module"
+            - "compile + exec"
+
+    remediation:
+      description: >
+        Never allow agent code to modify its own source files or configuration.
+        Use read-only deployment patterns, immutable configuration, and
+        sandboxed execution environments. If dynamic behavior is needed,
+        use declarative configuration with strict validation.
+      code_example: |
+        # BAD: Agent modifies its own code
+        def update_config(new_code: str):
+            with open("agent_config.py", "w") as f:
+                f.write(new_code)
+            import importlib
+            importlib.reload(agent_config)
+
+        # GOOD: Read-only configuration
+        def update_config(config_dict: dict):
+            validate_config(config_dict)  # Strict validation
+            # Store in database, not file
+            db.save_config(config_dict)
+      references:
         - "https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/"

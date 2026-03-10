@@ -428,3 +428,78 @@ class TestMCPConfigFormats:
         results = scanner.scan(tmp_path)
         # May or may not find based on filename patterns, but should not crash
         assert isinstance(results, list)
+
+    def test_openapi_spec_not_treated_as_mcp_config_json(self, scanner, tmp_path):
+        """OpenAPI 3.x JSON specs should not trigger any MCP rules."""
+        openapi_json = {
+            "openapi": "3.0.3",
+            "info": {"title": "My API", "version": "1.0.0"},
+            "servers": [{"url": "https://api.example.com"}],
+            "paths": {"/users": {"get": {"summary": "List users"}}},
+        }
+        config_file = tmp_path / "openapi.json"
+        config_file.write_text(json.dumps(openapi_json))
+
+        results = scanner.scan(config_file)
+        assert len(results) == 0
+
+    def test_openapi_spec_not_treated_as_mcp_config_yaml(self, scanner, tmp_path):
+        """OpenAPI 3.x YAML specs should not trigger any MCP rules."""
+        yaml_content = dedent("""\
+            openapi: "3.0.3"
+            info:
+              title: FarmDash API
+              version: "1.0"
+            servers:
+              - url: https://farmdash.one/api
+            paths:
+              /signals:
+                get:
+                  summary: List signals
+        """)
+        config_file = tmp_path / "openapi.yaml"
+        config_file.write_text(yaml_content)
+
+        results = scanner.scan(config_file)
+        assert len(results) == 0
+
+    def test_swagger2_spec_not_treated_as_mcp_config(self, scanner, tmp_path):
+        """Swagger 2.x JSON specs should not trigger any MCP rules."""
+        swagger_json = {
+            "swagger": "2.0",
+            "info": {"title": "Legacy API", "version": "1.0"},
+            "host": "api.example.com",
+            "basePath": "/v1",
+            "paths": {"/users": {"get": {"summary": "List"}}},
+        }
+        config_file = tmp_path / "swagger.json"
+        config_file.write_text(json.dumps(swagger_json))
+
+        results = scanner.scan(config_file)
+        assert len(results) == 0
+
+    def test_openapi_in_directory_scan_skipped(self, scanner, tmp_path):
+        """OpenAPI specs should be skipped during directory-level scanning."""
+        # Place both an OpenAPI and a real MCP config in same dir
+        openapi = {
+            "openapi": "3.0.0",
+            "info": {"title": "API", "version": "1.0"},
+            "servers": [{"url": "http://localhost:8080"}],
+            "paths": {},
+        }
+        (tmp_path / "api-spec.json").write_text(json.dumps(openapi))
+
+        mcp = {
+            "mcpServers": {
+                "test": {
+                    "command": "npx",
+                    "args": ["test-server"],
+                }
+            }
+        }
+        (tmp_path / "mcp.json").write_text(json.dumps(mcp))
+
+        results = scanner.scan(tmp_path)
+        # Should find only the real MCP config, not the OpenAPI spec
+        assert len(results) == 1
+        assert results[0].config_type == "claude_desktop"
