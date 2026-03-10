@@ -235,23 +235,25 @@ class TestJsonOutput:
         new_rules_found = rule_ids.intersection({"AGENT-055", "AGENT-056", "AGENT-057"})
         assert len(new_rules_found) > 0, f"Expected new rules, got: {rule_ids}"
 
-    def test_json_version_is_017(self):
-        """JSON output version field should be 0.17.0."""
+    def test_json_version_is_current(self):
+        """JSON output version field should match current version."""
+        from agent_audit.version import __version__
         result = run_scan(self.fixture_dir)
         output = parse_json_output(result)
-        assert output.get("version") == "0.17.0", (
-            f"Expected version 0.17.0, got: {output.get('version')}"
+        assert output.get("version") == __version__, (
+            f"Expected version {__version__}, got: {output.get('version')}"
         )
 
 
 class TestVersionBump:
     """Verify version number is correct."""
 
-    def test_version_is_017(self):
-        """E7: CLI version shows 0.17.0."""
+    def test_version_is_current(self):
+        """E7: CLI version shows current version."""
+        from agent_audit.version import __version__
         result = subprocess.run(
             [sys.executable, "-m", "agent_audit.cli.main", "--version"],
             capture_output=True, text=True, timeout=10
         )
         combined = result.stdout + result.stderr
-        assert "0.17.0" in combined, f"Version not 0.17.0: {combined}"
+        assert __version__ in combined, f"Version not {__version__}: {combined}"
