@@ -34,6 +34,7 @@ jobs:
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: packages/audit/dist/
+          skip-existing: true
 
       - name: Upload release assets
         if: github.event_name == 'release'
