@@ -118,6 +118,13 @@ RULE_CWE_MAPPING: Dict[str, str] = {
     "AGENT-062": "CWE-494",   # Fake Dependency Social Engineering
     "AGENT-063": "CWE-269",   # Daemon Persistence
     "AGENT-064": "CWE-862",   # Auto-Invocation Without Consent
+
+    # Solidity Security (v0.20.0)
+    "AGENT-083": "CWE-829",   # Unsafe Delegatecall
+    "AGENT-084": "CWE-287",   # tx.origin Authentication
+
+    # Go Security (v0.20.0)
+    "AGENT-085": "CWE-330",   # Weak Random Number Generation
 }
 
 
@@ -255,6 +262,25 @@ class RuleEngine:
         'skill_fake_dependency': 'AGENT-062',
         'skill_daemon_persistence': 'AGENT-063',
         'skill_always_true_auto_invoke': 'AGENT-064',
+
+        # v0.20.0: Solidity patterns
+        'sol_unsafe_delegatecall': 'AGENT-083',
+        'sol_tx_origin_auth': 'AGENT-084',
+
+        # v0.20.0: TypeScript/JavaScript patterns (mapped to existing rules)
+        'ts_eval_exec': 'AGENT-034',
+        'ts_child_process_exec': 'AGENT-034',
+        'ts_sql_template_injection': 'AGENT-041',
+        'ts_template_prompt_injection': 'AGENT-010',
+        'ts_ssrf_fetch': 'AGENT-026',
+        'ts_unsafe_deserialization': 'AGENT-049',
+
+        # v0.20.0: Go patterns
+        'go_exec_command': 'AGENT-034',
+        'go_sql_concat': 'AGENT-041',
+        'go_weak_rand': 'AGENT-085',
+        'go_http_no_tls': 'AGENT-026',
+        'go_tls_skip_verify': 'AGENT-026',
     }
 
     # v0.3.0: MCP finding type to rule metadata

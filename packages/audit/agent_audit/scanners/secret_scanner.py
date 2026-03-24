@@ -99,6 +99,10 @@ class SecretScanner(BaseScanner):
         (re.compile(r'(?i)(?:mysql|postgres|postgresql|mongodb|redis)://[^\s"\']*:[^\s"\']+@'),
          "Database Connection String with Credentials", "critical", PatternPriority.CRITICAL),
 
+        # Agent Payment: Wallet Mnemonic / Seed Phrase (12 or 24 words)
+        (re.compile(r'(?:MNEMONIC|SEED_PHRASE|seed_phrase|mnemonic)\s*[=:]\s*["\']([a-z]+(?: [a-z]+){11,23})["\']'),
+         "Wallet Mnemonic/Seed Phrase", "critical", PatternPriority.CRITICAL),
+
         # === Priority 2: HIGH - Known API key formats with verified prefixes ===
         # OpenAI
         (re.compile(r'sk-proj-[a-zA-Z0-9]{48,}'),
@@ -142,6 +146,14 @@ class SecretScanner(BaseScanner):
         (re.compile(r'pypi-[A-Za-z0-9_-]{150,}'),
          "PyPI API Token", "critical", PatternPriority.HIGH),
 
+        # Agent Payment: Agent JWT Token
+        (re.compile(r'(?:AGENT_JWT|agent_jwt|AGENT_TOKEN|agent_token|AGENT_BEARER)\s*[=:]\s*["\']?(eyJ[A-Za-z0-9_-]{10,}\.eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,})["\']?'),
+         "Agent JWT/Bearer Token", "critical", PatternPriority.HIGH),
+
+        # Agent Payment: Blockchain Private Key (0x + 64 hex chars)
+        (re.compile(r'(?:DEPLOYER_PK|SP_PK|CLIENT_PK|PAYER_PK|SIGNER_PK|SETTLEMENT_PK|PRIVATE_KEY)\s*[=:]\s*["\']?(0x[0-9a-fA-F]{64})["\']?'),
+         "Blockchain Private Key (Agent Payment)", "critical", PatternPriority.HIGH),
+
         # === Priority 3: MEDIUM - Known service formats ===
         # Stripe
         (re.compile(r'sk_live_[a-zA-Z0-9]{24,}'),
@@ -170,6 +182,14 @@ class SecretScanner(BaseScanner):
         # AWS Secret Key (needs context, so lower than Access Key ID)
         (re.compile(r'(?<![A-Za-z0-9/+=])[A-Za-z0-9/+=]{40}(?![A-Za-z0-9/+=])'),
          "Potential AWS Secret Key", "high", PatternPriority.MEDIUM),
+
+        # Agent Payment: RPC URL with embedded API key
+        (re.compile(r'(?:RPC|RPC_URL|PROVIDER_URL|ALCHEMY_URL|INFURA_URL)\s*[=:]\s*["\']?(https?://[^"\'\s]+(?:apikey|api_key|api-key|key)[=][^"\'\s]+)["\']?'),
+         "RPC URL with Embedded API Key", "high", PatternPriority.MEDIUM),
+
+        # Agent Payment: x402 Payment Header credential
+        (re.compile(r'X-Payment(?:-Mandate|-Authorization)\s*[=:]\s*["\']?([A-Za-z0-9+/=]{32,})["\']?'),
+         "x402 Payment Header Credential", "high", PatternPriority.MEDIUM),
 
         # === Priority 4: LOW - Generic patterns with keyword context ===
         (re.compile(r'(?i)jwt[_-]?secret\s*[=:]\s*["\']?([a-zA-Z0-9_\-]{16,})["\']?'),

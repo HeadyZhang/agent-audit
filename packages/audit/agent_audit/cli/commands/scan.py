@@ -251,6 +251,42 @@ def run_scan(
     privilege_findings = privilege_scanner.scan_and_convert(path)
     all_findings.extend(privilege_findings)
 
+    # Run TypeScript/JavaScript scanner
+    if not quiet and output_format == "terminal":
+        console.print("[dim]Scanning TypeScript/JavaScript files...[/dim]")
+
+    try:
+        from agent_audit.scanners.typescript_scanner import TypeScriptScanner
+        ts_scanner = TypeScriptScanner(exclude_patterns=exclude_patterns)
+        ts_findings = ts_scanner.scan_and_convert(path)
+        all_findings.extend(ts_findings)
+    except ImportError:
+        pass  # TypeScript scanner not available (optional tree-sitter dep)
+
+    # Run Solidity scanner (AGENT-083, AGENT-084)
+    if not quiet and output_format == "terminal":
+        console.print("[dim]Scanning Solidity contracts...[/dim]")
+
+    try:
+        from agent_audit.scanners.solidity_scanner import SolidityScanner
+        sol_scanner = SolidityScanner(exclude_patterns=exclude_patterns)
+        sol_findings = sol_scanner.scan_and_convert(path)
+        all_findings.extend(sol_findings)
+    except ImportError:
+        pass  # Solidity scanner not available
+
+    # Run Go scanner (AGENT-034, AGENT-041, AGENT-085, AGENT-026, AGENT-049)
+    if not quiet and output_format == "terminal":
+        console.print("[dim]Scanning Go files...[/dim]")
+
+    try:
+        from agent_audit.scanners.go_scanner import GoScanner
+        go_scanner = GoScanner(exclude_patterns=exclude_patterns)
+        go_findings = go_scanner.scan_and_convert(path)
+        all_findings.extend(go_findings)
+    except ImportError:
+        pass  # Go scanner not available
+
     # Run skill scanners (AGENT-058~064)
     if not quiet and output_format == "terminal":
         console.print("[dim]Scanning SKILL.md files...[/dim]")

@@ -1,14 +1,17 @@
 """
-Taint Tracking Analyzer - v0.13.0
+Taint Tracking Analyzer - v0.13.0 (Python-specific implementation)
 
 Provides function-level taint analysis for enhanced AGENT-034 detection precision.
 
-This module implements:
+This module implements Python-specific AST analysis:
 1. SourceClassifier - Identifies taint sources (function params, env vars, user input)
 2. DataFlowBuilder - Builds intra-function data flow graph
 3. SanitizationDetector - Detects validation/sanitization operations
 4. SinkReachabilityChecker - Checks if tainted data reaches dangerous sinks
-5. TaintTracker - Main orchestrator combining all components
+5. TaintTracker - Main orchestrator combining all components (inherits BaseTaintTracker)
+
+Language-agnostic enums, dataclasses, and constants are defined in base_taint_tracker.py
+and re-exported here for backward compatibility.
 
 Key design decisions:
 - AST-only: Uses Python stdlib `ast` module, no external dependencies
@@ -20,298 +23,46 @@ Key design decisions:
 from __future__ import annotations
 
 import ast
-from dataclasses import dataclass, field
-from enum import Enum
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Dict, List, Optional, Set, Tuple
 
+# Import shared types from base module and re-export for backward compatibility
+from agent_audit.analysis.base_taint_tracker import (  # noqa: F401
+    BaseTaintTracker,
+    DANGEROUS_SINKS,
+    DataFlowEdge,
+    ENV_VAR_PATTERNS,
+    LLM_OUTPUT_PATTERNS,
+    SANITIZATION_PATTERNS,
+    SanitizationType,
+    SinkReach,
+    SinkType,
+    TaintAnalysisResult,
+    TaintedValue,
+    TaintSource,
+    USER_INPUT_PATTERNS,
+)
 
-class TaintSource(Enum):
-    """Classification of taint sources."""
-
-    FUNCTION_PARAM = "function_param"  # Function parameter (from LLM/user)
-    USER_INPUT = "user_input"  # request.json(), input(), etc.
-    ENV_VAR = "env_var"  # os.getenv(), os.environ[]
-    NETWORK = "network"  # HTTP requests, sockets
-    FILE_READ = "file_read"  # File reads
-    LLM_OUTPUT = "llm_output"  # LLM completion results
-    HARDCODED = "hardcoded"  # String/number literals (NOT tainted)
-    DERIVED = "derived"  # Derived from tainted variable
-    UNKNOWN = "unknown"  # Cannot determine source
-
-
-class SinkType(Enum):
-    """Classification of dangerous sinks."""
-
-    SHELL_EXEC = "shell_exec"  # subprocess, os.system, etc.
-    CODE_EXEC = "code_exec"  # eval, exec, compile
-    SQL_EXEC = "sql_exec"  # cursor.execute, raw SQL
-    FILE_WRITE = "file_write"  # File writes with tainted path/content
-    NETWORK_REQ = "network_req"  # Network requests with tainted URL/data
-    MEMORY_WRITE = "memory_write"  # Agent memory operations
-
-
-class SanitizationType(Enum):
-    """Classification of sanitization operations."""
-
-    TYPE_CHECK = "type_check"  # isinstance, type()
-    STRING_CHECK = "string_check"  # startswith, endswith, isalnum, etc.
-    LENGTH_CHECK = "length_check"  # len() comparison
-    ALLOWLIST_CHECK = "allowlist_check"  # x in ALLOWED, x not in BLOCKED
-    EXPLICIT_VALIDATION = "explicit_validation"  # validate(), sanitize(), etc.
-    ESCAPE_TRANSFORM = "escape_transform"  # escape(), quote(), html.escape()
-
-
-@dataclass
-class TaintedValue:
-    """Represents a value with taint information."""
-
-    name: str
-    source: TaintSource
-    line: int
-    original_param: Optional[str] = None  # Original param if derived
-    is_sanitized: bool = False
-    sanitization_type: Optional[SanitizationType] = None
-    sanitization_line: Optional[int] = None
-
-
-@dataclass
-class DataFlowEdge:
-    """Represents a data flow edge in the flow graph."""
-
-    source: str  # Source variable/expression
-    target: str  # Target variable/expression
-    edge_type: str  # 'assign', 'call_arg', 'format', 'concat', 'attribute'
-    line: int
-
-
-@dataclass
-class SinkReach:
-    """Represents a tainted value reaching a dangerous sink."""
-
-    tainted_var: str
-    sink_function: str
-    sink_type: SinkType
-    line: int
-    is_sanitized: bool
-    flow_path: List[str]  # Variable chain from source to sink
-    source: TaintSource
-    confidence: float
-
-
-@dataclass
-class TaintAnalysisResult:
-    """Result of taint analysis for a function."""
-
-    function_name: str
-    tainted_params: List[str]
-    dangerous_flows: List[SinkReach]
-    sanitization_points: Dict[str, Tuple[SanitizationType, int]]
-    has_unsanitized_flow: bool
-    confidence: float
-    analysis_notes: List[str] = field(default_factory=list)
-
-    def to_metadata_dict(self) -> Dict[str, Any]:
-        """
-        Export taint analysis as metadata dict for engine.py.
-
-        v0.14.0: Returns format expected by oracle_eval.validates_taint_flow():
-        {
-            'dangerous_flows': [
-                {
-                    'var': str,
-                    'sink': str,
-                    'sink_type': str,  # 'eval', 'code_execution', 'shell_execution'
-                    'source': str,     # 'user_input', 'llm_output', 'config'
-                    'line': int,
-                    'path': List[str],
-                    'confidence': float,
-                }
-            ],
-            'sanitization_points': [...]
-        }
-        """
-        # Map internal sink types to oracle-compatible types
-        # Oracle expects: 'eval', 'code_execution', 'shell_execution', 'sql_execution'
-        sink_type_map = {
-            SinkType.CODE_EXEC: 'code_execution',
-            SinkType.SHELL_EXEC: 'shell_execution',
-            SinkType.SQL_EXEC: 'sql_execution',
-            SinkType.FILE_WRITE: 'file_write',
-            SinkType.NETWORK_REQ: 'http_request',
-            SinkType.MEMORY_WRITE: 'memory_write',
-        }
-
-        # Map internal source types to oracle-compatible types
-        # Oracle expects: 'user_input', 'llm_output', 'config'
-        source_type_map = {
-            TaintSource.FUNCTION_PARAM: 'user_input',
-            TaintSource.ENV_VAR: 'config',
-            TaintSource.USER_INPUT: 'user_input',
-            TaintSource.LLM_OUTPUT: 'llm_output',
-            TaintSource.NETWORK: 'user_input',
-            TaintSource.FILE_READ: 'user_input',
-            TaintSource.DERIVED: 'user_input',
-            TaintSource.UNKNOWN: 'user_input',
-        }
-
-        exported_flows = []
-        for flow in self.dangerous_flows:
-            # v0.14.0: Map sink functions to oracle-compatible types
-            # Oracle expects 'code_execution' for eval/exec, 'shell_execution' for subprocess
-            sink_func = flow.sink_function
-            if sink_func in ('eval', 'exec', 'compile'):
-                sink_type_str = 'code_execution'
-            elif sink_func.startswith('subprocess.') or sink_func in ('os.system', 'os.popen'):
-                sink_type_str = 'shell_execution'
-            else:
-                sink_type_str = sink_type_map.get(flow.sink_type, str(flow.sink_type.value))
-
-            exported_flows.append({
-                'var': flow.tainted_var,
-                'sink': flow.sink_function,
-                'sink_type': sink_type_str,
-                'source': source_type_map.get(flow.source, 'user_input'),
-                'line': flow.line,
-                'path': flow.flow_path,
-                'confidence': flow.confidence,
-            })
-
-        # Export sanitization points
-        exported_sanitization = []
-        for var_name, (san_type, line) in self.sanitization_points.items():
-            exported_sanitization.append({
-                'var': var_name,
-                'type': san_type.value,
-                'line': line,
-            })
-
-        return {
-            'dangerous_flows': exported_flows,
-            'sanitization_points': exported_sanitization,
-        }
-
-    @property
-    def has_dangerous_flows(self) -> bool:
-        """Check if there are any unsanitized dangerous flows."""
-        return self.has_unsanitized_flow
-
-
-# === Dangerous Sink Patterns ===
-
-DANGEROUS_SINKS: Dict[str, SinkType] = {
-    # Shell execution
-    "subprocess.run": SinkType.SHELL_EXEC,
-    "subprocess.Popen": SinkType.SHELL_EXEC,
-    "subprocess.call": SinkType.SHELL_EXEC,
-    "subprocess.check_output": SinkType.SHELL_EXEC,
-    "subprocess.check_call": SinkType.SHELL_EXEC,
-    "os.system": SinkType.SHELL_EXEC,
-    "os.popen": SinkType.SHELL_EXEC,
-    "os.spawn": SinkType.SHELL_EXEC,
-    "os.spawnl": SinkType.SHELL_EXEC,
-    "os.spawnle": SinkType.SHELL_EXEC,
-    "os.spawnlp": SinkType.SHELL_EXEC,
-    "os.spawnlpe": SinkType.SHELL_EXEC,
-    "os.spawnv": SinkType.SHELL_EXEC,
-    "os.spawnve": SinkType.SHELL_EXEC,
-    "os.spawnvp": SinkType.SHELL_EXEC,
-    "os.spawnvpe": SinkType.SHELL_EXEC,
-    "os.execl": SinkType.SHELL_EXEC,
-    "os.execle": SinkType.SHELL_EXEC,
-    "os.execlp": SinkType.SHELL_EXEC,
-    "os.execlpe": SinkType.SHELL_EXEC,
-    "os.execv": SinkType.SHELL_EXEC,
-    "os.execve": SinkType.SHELL_EXEC,
-    "os.execvp": SinkType.SHELL_EXEC,
-    "os.execvpe": SinkType.SHELL_EXEC,
-    # Code execution
-    "eval": SinkType.CODE_EXEC,
-    "exec": SinkType.CODE_EXEC,
-    "compile": SinkType.CODE_EXEC,
-    "__import__": SinkType.CODE_EXEC,
-    "importlib.import_module": SinkType.CODE_EXEC,
-    # SQL execution
-    "cursor.execute": SinkType.SQL_EXEC,
-    "cursor.executemany": SinkType.SQL_EXEC,
-    "connection.execute": SinkType.SQL_EXEC,
-    "session.execute": SinkType.SQL_EXEC,
-    "engine.execute": SinkType.SQL_EXEC,
-    "db.execute": SinkType.SQL_EXEC,
-}
-
-# Patterns for env var access
-ENV_VAR_PATTERNS: Set[str] = {
-    "os.getenv",
-    "os.environ.get",
-    "os.environ",
-    "environ.get",
-    "dotenv.get_key",
-}
-
-# Patterns for user input
-USER_INPUT_PATTERNS: Set[str] = {
-    "input",
-    "request.json",
-    "request.form",
-    "request.args",
-    "request.data",
-    "request.get_json",
-    "request.values",
-    "flask.request.json",
-    "fastapi.Request",
-    "sys.stdin.read",
-    "sys.stdin.readline",
-}
-
-# Patterns for LLM output
-LLM_OUTPUT_PATTERNS: Set[str] = {
-    "completion.choices",
-    "response.content",
-    "response.text",
-    "chat.completions.create",
-    "messages.create",
-    "llm.invoke",
-    "llm.predict",
-    "chain.invoke",
-    "chain.run",
-    "agent.run",
-    "agent.invoke",
-}
-
-# Sanitization function patterns
-SANITIZATION_PATTERNS: Dict[str, SanitizationType] = {
-    # Type checks
-    "isinstance": SanitizationType.TYPE_CHECK,
-    "type": SanitizationType.TYPE_CHECK,
-    # String checks
-    "startswith": SanitizationType.STRING_CHECK,
-    "endswith": SanitizationType.STRING_CHECK,
-    "isalnum": SanitizationType.STRING_CHECK,
-    "isalpha": SanitizationType.STRING_CHECK,
-    "isdigit": SanitizationType.STRING_CHECK,
-    "isnumeric": SanitizationType.STRING_CHECK,
-    "isidentifier": SanitizationType.STRING_CHECK,
-    "match": SanitizationType.STRING_CHECK,
-    "fullmatch": SanitizationType.STRING_CHECK,
-    "search": SanitizationType.STRING_CHECK,
-    # Length checks
-    "len": SanitizationType.LENGTH_CHECK,
-    # Explicit validation
-    "validate": SanitizationType.EXPLICIT_VALIDATION,
-    "sanitize": SanitizationType.EXPLICIT_VALIDATION,
-    "check": SanitizationType.EXPLICIT_VALIDATION,
-    "verify": SanitizationType.EXPLICIT_VALIDATION,
-    "is_valid": SanitizationType.EXPLICIT_VALIDATION,
-    "is_safe": SanitizationType.EXPLICIT_VALIDATION,
-    # Escape/transform
-    "escape": SanitizationType.ESCAPE_TRANSFORM,
-    "quote": SanitizationType.ESCAPE_TRANSFORM,
-    "html.escape": SanitizationType.ESCAPE_TRANSFORM,
-    "shlex.quote": SanitizationType.ESCAPE_TRANSFORM,
-    "urllib.parse.quote": SanitizationType.ESCAPE_TRANSFORM,
-    "markupsafe.escape": SanitizationType.ESCAPE_TRANSFORM,
-    "bleach.clean": SanitizationType.ESCAPE_TRANSFORM,
-}
+# Re-export __all__ for explicit backward compatibility
+__all__ = [
+    "BaseTaintTracker",
+    "DANGEROUS_SINKS",
+    "DataFlowBuilder",
+    "DataFlowEdge",
+    "ENV_VAR_PATTERNS",
+    "LLM_OUTPUT_PATTERNS",
+    "SANITIZATION_PATTERNS",
+    "SanitizationDetector",
+    "SanitizationType",
+    "SinkReach",
+    "SinkReachabilityChecker",
+    "SinkType",
+    "SourceClassifier",
+    "TaintAnalysisResult",
+    "TaintedValue",
+    "TaintSource",
+    "TaintTracker",
+    "USER_INPUT_PATTERNS",
+]
 
 
 class SourceClassifier(ast.NodeVisitor):
@@ -1091,9 +842,12 @@ class SinkReachabilityChecker:
         return ".".join(reversed(parts))
 
 
-class TaintTracker:
+class TaintTracker(BaseTaintTracker):
     """
-    Main orchestrator for taint analysis.
+    Python-specific taint analysis orchestrator.
+
+    Inherits from BaseTaintTracker for shared algorithms.
+    Uses Python stdlib `ast` module for AST analysis.
 
     Combines all phases:
     1. SourceClassifier - Identify taint sources
@@ -1105,7 +859,7 @@ class TaintTracker:
     def __init__(self, func_node: ast.FunctionDef) -> None:
         self.func_node = func_node
 
-    def analyze(self) -> TaintAnalysisResult:
+    def analyze(self) -> TaintAnalysisResult:  # type: ignore[override]
         """Run full taint analysis on the function."""
         notes: List[str] = []
 

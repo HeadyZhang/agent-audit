@@ -221,6 +221,25 @@ KNOWN_CREDENTIAL_FORMATS: List[CredentialFormat] = [
         expected_entropy=4.0,
         confidence_boost=0.3,
     ),
+
+    # Agent Payment credential formats
+    CredentialFormat(
+        name="Agent JWT Token",
+        pattern=r'^eyJ[a-zA-Z0-9_-]*\.eyJ[a-zA-Z0-9_-]*\.[a-zA-Z0-9_-]*$',
+        prefix='eyJ',
+        min_length=50,
+        expected_entropy=4.0,
+        confidence_boost=0.3,
+    ),
+    CredentialFormat(
+        name="Ethereum Private Key",
+        pattern=r'^0x[0-9a-fA-F]{64}$',
+        prefix='0x',
+        min_length=66,
+        max_length=66,
+        expected_entropy=3.8,
+        confidence_boost=0.4,
+    ),
 ]
 
 
