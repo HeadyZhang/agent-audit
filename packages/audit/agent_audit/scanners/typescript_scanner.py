@@ -26,7 +26,10 @@ import logging
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List, Optional, Set, Sequence, Tuple
+from typing import TYPE_CHECKING, Dict, List, Optional, Set, Sequence, Tuple
+
+if TYPE_CHECKING:
+    from agent_audit.parsers.treesitter_parser import FunctionCall, StringLiteral
 
 from agent_audit.models.finding import (
     Finding,
@@ -361,8 +364,7 @@ class TypeScriptScanner(BaseScanner):
         return findings
 
     def _analyze_ts_call(
-        self, call: "FunctionCall", content: str, file_str: str  # noqa: F821
-    ) -> List[TSFinding]:
+        self, call: "FunctionCall", content: str, file_str: str    ) -> List[TSFinding]:
         """Analyze a function call from tree-sitter for dangerous patterns."""
         findings: List[TSFinding] = []
         call_name = call.name
@@ -426,8 +428,7 @@ class TypeScriptScanner(BaseScanner):
         return findings
 
     def _analyze_ts_literal(
-        self, literal: "StringLiteral", content: str, file_str: str  # noqa: F821
-    ) -> List[TSFinding]:
+        self, literal: "StringLiteral", content: str, file_str: str    ) -> List[TSFinding]:
         """Analyze a string literal for SQL/prompt injection patterns."""
         findings: List[TSFinding] = []
 
@@ -834,8 +835,7 @@ class TypeScriptScanner(BaseScanner):
         return base_confidence
 
     def _is_prompt_context(
-        self, literal: "StringLiteral", content: str  # noqa: F821
-    ) -> bool:
+        self, literal: "StringLiteral", content: str    ) -> bool:
         """Check if a template string is used in a prompt context."""
         # Check if template string has interpolation
         if "${" not in literal.raw_value:
