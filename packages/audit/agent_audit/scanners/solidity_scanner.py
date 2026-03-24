@@ -17,7 +17,7 @@ import re
 import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Sequence, Tuple
+from typing import Any, Dict, List, Optional, Sequence
 
 from agent_audit.scanners.base import BaseScanner, ScanResult
 from agent_audit.models.finding import Finding, Remediation, confidence_to_tier

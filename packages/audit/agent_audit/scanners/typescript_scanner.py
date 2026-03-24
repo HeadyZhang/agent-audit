@@ -822,7 +822,7 @@ class TypeScriptScanner(BaseScanner):
         # Hardcoded string literal - low confidence
         if (
             first_arg.startswith(("'", '"', "`"))
-            and not "${" in first_arg
+            and "${" not in first_arg
         ):
             return 0.25
 
