@@ -377,10 +377,10 @@ def make_finding(
         file_path=file_path,
         line=line,
         column=column,
-        message=message or rule.get('description', ''),
+        message=message or str(rule.get('description', '')),
         confidence=confidence,
-        severity=rule.get('severity', Severity.MEDIUM),
-        cwe=rule.get('cwe', ''),
-        owasp_agentic=rule.get('owasp', ''),
-        remediation=rule.get('remediation', ''),
+        severity=rule.get('severity') or Severity.MEDIUM,  # type: ignore[arg-type]
+        cwe=str(rule.get('cwe', '')),
+        owasp_agentic=str(rule.get('owasp', '')),
+        remediation=str(rule.get('remediation', '')),
     )

@@ -92,7 +92,7 @@ class Web3ASTVisitor(ast.NodeVisitor):
         self.generic_visit(node)
         self._exit_function()
 
-    visit_AsyncFunctionDef = visit_FunctionDef
+    visit_AsyncFunctionDef = visit_FunctionDef  # type: ignore[assignment]
 
     def visit_Call(self, node: ast.Call):
         func_name = self._get_call_name(node)
@@ -493,7 +493,7 @@ class Web3ASTVisitor(ast.NodeVisitor):
             return node.func.id
         if isinstance(node.func, ast.Attribute):
             parts = []
-            current = node.func
+            current: ast.expr = node.func
             while isinstance(current, ast.Attribute):
                 parts.append(current.attr)
                 current = current.value

@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import math
 import re
-from typing import List
+from typing import Any, Dict, List
 
 from agent_audit.profiles.defi.constants.defi_protocols import (
     BIP39_COMMON_WORDS,
@@ -27,7 +27,7 @@ _PLACEHOLDER_PATTERNS = [
 ]
 
 # Core detection patterns
-DEFI_SECRET_PATTERNS = [
+DEFI_SECRET_PATTERNS: List[Dict[str, Any]] = [
     {
         'name': 'ethereum_private_key_0x',
         'pattern': re.compile(
@@ -134,7 +134,7 @@ class DeFiSecretScanner:
         lines = content.split('\n')
 
         for pattern_def in DEFI_SECRET_PATTERNS:
-            regex = pattern_def['pattern']
+            regex: re.Pattern[str] = pattern_def['pattern']
             for i, line_text in enumerate(lines, start=1):
                 for match in regex.finditer(line_text):
                     confidence = self._compute_confidence(
@@ -143,8 +143,8 @@ class DeFiSecretScanner:
                     if confidence < 0.30:
                         continue
                     finding = make_finding(
-                        rule_id=pattern_def['rule_id'],
-                        pattern_type=pattern_def['pattern_type'],
+                        rule_id=str(pattern_def['rule_id']),
+                        pattern_type=str(pattern_def['pattern_type']),
                         file_path=file_path,
                         line=i,
                         confidence=confidence,
