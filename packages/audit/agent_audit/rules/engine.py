@@ -125,6 +125,28 @@ RULE_CWE_MAPPING: Dict[str, str] = {
 
     # Go Security (v0.20.0)
     "AGENT-085": "CWE-330",   # Weak Random Number Generation
+
+    # DeFi Agent Security Profile (--profile defi)
+    "AGENT-090": "CWE-798",   # DeFi Private Key / Seed Phrase Exposure
+    "AGENT-091": "CWE-770",   # DeFi Transaction Without Amount Limit
+    "AGENT-092": "CWE-862",   # DeFi Transaction Without Human Approval
+    "AGENT-093": "CWE-74",    # Prompt Input to Blockchain Transaction
+    "AGENT-094": "CWE-319",   # Blockchain RPC Endpoint Without TLS
+    "AGENT-095": "CWE-770",   # Missing Gas Limit Configuration
+    "AGENT-096": "CWE-250",   # Unlimited Token Approval
+    "AGENT-097": "CWE-362",   # Missing Transaction Nonce Management
+    "AGENT-098": "CWE-311",   # Missing MEV Protection
+    "AGENT-099": "CWE-841",   # Reentrancy Vulnerability (Solidity)
+    "AGENT-100": "CWE-190",   # Integer Overflow (Solidity)
+    "AGENT-101": "CWE-284",   # Access Control Violation (Solidity)
+    "AGENT-102": "CWE-840",   # Flash Loan / Oracle Manipulation
+    "AGENT-103": "CWE-770",   # Agent Payment Mandate Without Amount Cap
+    "AGENT-104": "CWE-798",   # Hardcoded Settlement Processor Address
+    "AGENT-105": "CWE-294",   # Payment Header Without Replay Protection
+    "AGENT-106": "CWE-269",   # Withdrawal Delay Bypass Risk
+    "AGENT-107": "CWE-798",   # Agent JWT/Bearer Token in Code
+    "AGENT-108": "CWE-20",    # MCP Tool Without Payment Amount Validation
+    "AGENT-109": "CWE-778",   # Settlement Without Event Emission
 }
 
 

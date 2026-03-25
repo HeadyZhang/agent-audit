@@ -38,7 +38,8 @@ def run_scan(
     quiet: bool = False,
     min_tier: Optional[str] = None,
     no_color: bool = False,
-    fail_on_new: bool = False
+    fail_on_new: bool = False,
+    profile: Optional[str] = None
 ) -> int:
     """
     Run the security scan.
@@ -382,6 +383,64 @@ def run_scan(
             )
             all_findings.append(finding)
 
+    # Profile-specific scanning (e.g., --profile defi)
+    if profile:
+        profile_lower = profile.lower()
+        if profile_lower == 'defi':
+            if not quiet and output_format == "terminal":
+                console.print("[dim]Running DeFi profile scanners...[/dim]")
+            try:
+                from agent_audit.profiles.defi import scan_target as defi_scan
+                from agent_audit.profiles.defi.rules import DeFiFinding
+                defi_findings = defi_scan(str(path), exclude_patterns)
+                # Convert DeFiFinding to agent-audit Finding model
+                for df in defi_findings:
+                    from agent_audit.models.risk import Location, Category
+                    from agent_audit.models.finding import Remediation, confidence_to_tier
+                    severity_map = {
+                        'critical': Severity.CRITICAL,
+                        'high': Severity.HIGH,
+                        'medium': Severity.MEDIUM,
+                        'low': Severity.LOW,
+                        'info': Severity.LOW,
+                    }
+                    category_map = {
+                        'ASI-01': Category.GOAL_HIJACK,
+                        'ASI-02': Category.TOOL_MISUSE,
+                        'ASI-03': Category.IDENTITY_PRIVILEGE_ABUSE,
+                        'ASI-07': Category.INSECURE_INTER_AGENT_COMM,
+                        'ASI-08': Category.CASCADING_FAILURES,
+                        'ASI-09': Category.TRUST_EXPLOITATION,
+                    }
+                    finding = Finding(
+                        rule_id=df.rule_id,
+                        title=df.pattern_type.replace('_', ' ').title(),
+                        description=df.message,
+                        severity=severity_map.get(df.severity.value, Severity.MEDIUM),
+                        category=category_map.get(df.owasp_agentic, Category.TOOL_MISUSE),
+                        location=Location(
+                            file_path=df.file_path,
+                            start_line=df.line,
+                            end_line=df.line,
+                            start_column=df.column,
+                            end_column=df.column,
+                        ),
+                        cwe_id=df.cwe,
+                        owasp_id=df.owasp_agentic,
+                        confidence=df.confidence,
+                        tier=confidence_to_tier(df.confidence),
+                        remediation=Remediation(description=df.remediation),
+                    )
+                    all_findings.append(finding)
+                if not quiet and output_format == "terminal":
+                    console.print(f"[dim]DeFi profile: {len(defi_findings)} findings[/dim]")
+            except ImportError as e:
+                if not quiet and output_format == "terminal":
+                    console.print(f"[yellow]DeFi profile not available: {e}[/yellow]")
+        else:
+            if not quiet and output_format == "terminal":
+                console.print(f"[yellow]Unknown profile: {profile}[/yellow]")
+
     # v0.9.0: Deduplicate findings (same-line, rule subsumption)
     # This reduces noise from redundant findings like AGENT-001 + AGENT-047 + AGENT-034
     # all firing on the same subprocess.run(shell=True) line
@@ -550,13 +609,15 @@ def _output_markdown(findings: List[Finding], scan_path: str, output_path: Optio
               help='MCP baseline file for drift detection (used with --dynamic)')
 @click.option('--dynamic-timeout', type=int, default=120,
               help='Timeout for dynamic MCP scanning in seconds')
+@click.option('--profile', '-p', type=str, default=None,
+              help='Load domain-specific rules (e.g., defi)')
 @click.pass_context
 def scan(ctx: click.Context, path: str, output_format: str, output: Optional[str],
          severity: str, rules: tuple, rules_dir: Optional[str], fail_on: str,
          baseline: Optional[str], save_baseline: Optional[str],
          fail_on_new: bool, min_tier: Optional[str], no_color: bool,
          dynamic: bool, dynamic_only: bool, mcp_baseline: Optional[str],
-         dynamic_timeout: int):
+         dynamic_timeout: int, profile: Optional[str]):
     """
     Scan agent code and configurations for security issues.
 
@@ -590,7 +651,8 @@ def scan(ctx: click.Context, path: str, output_format: str, output: Optional[str
         quiet=ctx.obj.get('quiet', False),
         min_tier=min_tier.upper() if min_tier else None,
         no_color=no_color,
-        fail_on_new=fail_on_new
+        fail_on_new=fail_on_new,
+        profile=profile
     )
 
     ctx.exit(exit_code)

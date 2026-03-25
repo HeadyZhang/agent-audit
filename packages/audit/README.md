@@ -23,7 +23,7 @@ You likely need this before every merge if agent code can trigger tools, command
 
 Agent Audit catches these issues before deployment with an analysis core designed for agent workflows today: tool-boundary taint tracking, MCP configuration auditing, and semantic secret detection, with room to extend into learning-assisted detection over time.
 
-Think of it as **security linting for AI agents**, with 40+ rules mapped to the [OWASP Agentic Top 10 (2026)](https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/).
+Think of it as **security linting for AI agents**, with 60+ rules mapped to the [OWASP Agentic Top 10 (2026)](https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/). Includes a dedicated **DeFi Agent Security** profile for blockchain interactions.
 
 ---
 
@@ -132,6 +132,27 @@ agent-audit scan . --fail-on critical
 # Inspect a live MCP server (read-only, never calls tools)
 agent-audit inspect stdio -- npx -y @modelcontextprotocol/server-filesystem /tmp
 ```
+
+### DeFi Agent Security Scanning
+
+Agent Audit includes specialized detection rules for AI Agent x DeFi/Blockchain interactions. These rules cover vulnerabilities unique to agents that interact with on-chain protocols:
+
+- **Transaction signing without validation** -- agent tool calls that sign and submit transactions without verifying amounts, recipients, or gas parameters
+- **Overprivileged DeFi tool definitions** -- agent tools with unnecessarily broad access to wallet operations
+- **Credential leakage in agent configs** -- private keys, API secrets, or wallet mnemonics exposed in agent orchestration code
+- **Gas limit governance** -- on-chain transactions submitted without explicit gas limits, vulnerable to manipulation
+- **Weak randomness in settlement code** -- use of non-cryptographic random number generators in transaction flows
+- **Oracle manipulation vectors** -- agent pipelines that consume price oracle data without staleness or deviation checks
+
+```bash
+# Standard agent security scan
+agent-audit scan .
+
+# DeFi-specific agent security scan (includes all standard rules + DeFi rules)
+agent-audit scan . --profile defi
+```
+
+The DeFi profile adds 20 additional detection rules (AGENT-090 through AGENT-109) mapped to the OWASP Agentic Security Index, specifically targeting the agent-to-chain interaction boundary that traditional SAST tools (Semgrep, Bandit) cannot detect.
 
 ### Baseline Scanning
 
