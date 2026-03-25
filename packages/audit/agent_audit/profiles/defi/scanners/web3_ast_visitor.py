@@ -22,11 +22,9 @@ from agent_audit.profiles.defi.constants.defi_protocols import (
 from agent_audit.profiles.defi.constants.web3_apis import (
     AMOUNT_VARIABLE_NAMES,
     CONTRACT_TRANSACT_FUNCTIONS,
-    DEFI_FUND_TRANSFER_FUNCTIONS,
     HUMAN_APPROVAL_FUNCTION_PATTERNS,
     SWAP_FUNCTIONS_WITH_SLIPPAGE_PARAM,
     TRANSACTION_SEND_FUNCTIONS,
-    WEB3_PROVIDER_CONSTRUCTORS,
 )
 from agent_audit.profiles.defi.rules import DeFiFinding, make_finding
 

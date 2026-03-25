@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import math
 import re
-from typing import List, Tuple
+from typing import List
 
 from agent_audit.profiles.defi.constants.defi_protocols import (
     BIP39_COMMON_WORDS,

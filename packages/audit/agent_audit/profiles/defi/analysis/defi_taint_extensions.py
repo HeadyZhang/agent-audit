@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import ast
 import re
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Dict, List, Optional, Set
 
 from agent_audit.profiles.defi.constants.web3_apis import (
     CONTRACT_TRANSACT_FUNCTIONS,

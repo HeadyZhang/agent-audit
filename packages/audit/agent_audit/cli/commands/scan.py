@@ -391,7 +391,6 @@ def run_scan(
                 console.print("[dim]Running DeFi profile scanners...[/dim]")
             try:
                 from agent_audit.profiles.defi import scan_target as defi_scan
-                from agent_audit.profiles.defi.rules import DeFiFinding
                 defi_findings = defi_scan(str(path), exclude_patterns)
                 # Convert DeFiFinding to agent-audit Finding model
                 for df in defi_findings:
