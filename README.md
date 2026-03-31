@@ -111,6 +111,12 @@ Details: [Benchmark Results](docs/BENCHMARK-RESULTS.md) | [Competitive Compariso
 | **MCP rug pull / drift** | Server tools change after initial security audit | AGENT-054 |
 | **No guardrails** | Agent runs without iteration limits or human approval | AGENT-028, AGENT-037 |
 | **Unrestricted code execution** | Tools run `eval()` or `shell=True` without sandboxing | AGENT-035 |
+| **Source map leakage** | Debug artifacts (.map, .pdb) included in published agent packages | AGENT-110 |
+| **Sub-agent privilege escalation** | Child agents inherit parent's full tool set without restriction | AGENT-112 |
+| **Delegation without auth** | Cross-agent delegation without identity verification | AGENT-113 |
+| **Auto-approve all tools** | Agent auto-approves tool execution without safety classification | AGENT-117 |
+| **HITL bypass** | Human-in-the-loop approval bypassed via delegation or self-modification | AGENT-118 |
+| **Trace suppression** | AI attribution removed from git commits, logs, or outputs | AGENT-119 |
 
 Full coverage of all 10 OWASP Agentic Security categories. Framework-specific detection for **LangChain**, **CrewAI**, **AutoGen**, and **AgentScope**. [See all rules ->](docs/RULES.md)
 

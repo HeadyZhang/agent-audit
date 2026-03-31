@@ -50,6 +50,16 @@ This document provides a comprehensive reference for all agent-audit security ru
 | [AGENT-055](#agent-055-tool-shadowing) | HIGH | CWE-706 | ASI-04 | Cross-server Tool Shadowing |
 | [AGENT-056](#agent-056-tool-description-poisoning) | HIGH | CWE-74 | ASI-01 | Tool Description Poisoning |
 | [AGENT-057](#agent-057-tool-argument-poisoning) | HIGH | CWE-74 | ASI-01 | Tool Argument Poisoning |
+| [AGENT-110](#agent-110-source-map-leakage) | HIGH | CWE-540 | ASI-04 | Source Map / Debug Artifact in Package Distribution |
+| [AGENT-111](#agent-111-internal-config-exposed) | HIGH | CWE-200 | ASI-04 | Sensitive Internal Configuration Exposed |
+| [AGENT-112](#agent-112-subagent-no-boundary) | CRITICAL | CWE-250 | ASI-03 | Sub-Agent Spawn Without Permission Boundary |
+| [AGENT-113](#agent-113-delegation-no-auth) | CRITICAL | CWE-287 | ASI-09 | Cross-Agent Delegation Without Identity Verification |
+| [AGENT-114](#agent-114-coordinator-no-scope) | HIGH | CWE-269 | ASI-03 | Multi-Agent Coordinator Without Scope Restriction |
+| [AGENT-115](#agent-115-daemon-no-lifecycle) | HIGH | CWE-400 | ASI-03 | Agent Background Daemon Without Lifecycle Control |
+| [AGENT-116](#agent-116-memory-no-isolation) | HIGH | CWE-1321 | ASI-06 | Persistent Session Without Memory Isolation |
+| [AGENT-117](#agent-117-auto-approve) | CRITICAL | CWE-862 | ASI-03 | Automatic Tool Permission Approval Without Safety Classification |
+| [AGENT-118](#agent-118-hitl-bypass) | CRITICAL | CWE-862 | ASI-09 | Human-in-the-Loop Bypass in Execution Chain |
+| [AGENT-119](#agent-119-trace-suppression) | HIGH | CWE-778 | ASI-09 | Agent Activity Trace Suppression |
 
 ---
 
@@ -1579,4 +1589,4 @@ agent-audit scan . --baseline baseline.json
 
 ---
 
-*53 rules as of v0.17.0*
+*63 rules as of v0.19.0 (includes AGENT-110 to AGENT-119 agent architecture security rules)*

@@ -383,6 +383,18 @@ def run_scan(
             )
             all_findings.append(finding)
 
+    # Run package scanner (AGENT-110, AGENT-111)
+    if not quiet and output_format == "terminal":
+        console.print("[dim]Scanning package configurations...[/dim]")
+
+    try:
+        from agent_audit.scanners.package_scanner import PackageScanner
+        pkg_scanner = PackageScanner(exclude_patterns=exclude_patterns)
+        pkg_findings = pkg_scanner.scan_and_convert(path)
+        all_findings.extend(pkg_findings)
+    except ImportError:
+        pass  # Package scanner not available
+
     # Profile-specific scanning (e.g., --profile defi)
     if profile:
         profile_lower = profile.lower()

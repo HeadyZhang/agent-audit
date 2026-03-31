@@ -862,6 +862,11 @@ class PythonASTVisitor(ast.NodeVisitor):
         if no_validation_finding:
             self.dangerous_patterns.append(no_validation_finding)
 
+        # v0.19.0: AGENT-115 - Infinite loop without timeout in function body
+        loop_finding = self._check_agent_infinite_loop_no_timeout(node)
+        if loop_finding:
+            self.dangerous_patterns.append(loop_finding)
+
         self.generic_visit(node)
 
         self._current_function = old_func
@@ -880,6 +885,11 @@ class PythonASTVisitor(ast.NodeVisitor):
         finding = self._check_system_prompt_concat(node)
         if finding:
             self.dangerous_patterns.append(finding)
+
+        # v0.19.0: AGENT-118 - Mutable approval settings
+        mutable_finding = self._check_mutable_approval_settings(node)
+        if mutable_finding:
+            self.dangerous_patterns.append(mutable_finding)
 
         self.generic_visit(node)
 
@@ -1067,6 +1077,41 @@ class PythonASTVisitor(ast.NodeVisitor):
             expanded_subprocess = self._check_expanded_subprocess(node)
             if expanded_subprocess:
                 self.dangerous_patterns.append(expanded_subprocess)
+
+            # v0.19.0: AGENT-112 - Sub-agent inherits all tools
+            subagent_finding = self._check_subagent_inherits_all_tools(node)
+            if subagent_finding:
+                self.dangerous_patterns.append(subagent_finding)
+
+            # v0.19.0: AGENT-113 - Delegation without auth
+            deleg_finding = self._check_delegation_without_auth(node)
+            if deleg_finding:
+                self.dangerous_patterns.append(deleg_finding)
+
+            # v0.19.0: AGENT-114 - Coordinator unrestricted dispatch
+            coord_finding = self._check_coordinator_unrestricted_dispatch(node)
+            if coord_finding:
+                self.dangerous_patterns.append(coord_finding)
+
+            # v0.19.0: AGENT-115 - Agent daemon no TTL
+            daemon_finding = self._check_agent_daemon_no_ttl(node)
+            if daemon_finding:
+                self.dangerous_patterns.append(daemon_finding)
+
+            # v0.19.0: AGENT-116 - Shared memory no isolation
+            mem_iso_finding = self._check_shared_memory_no_isolation(node)
+            if mem_iso_finding:
+                self.dangerous_patterns.append(mem_iso_finding)
+
+            # v0.19.0: AGENT-117 - Auto approve all tools
+            auto_finding = self._check_auto_approve_all_tools(node)
+            if auto_finding:
+                self.dangerous_patterns.append(auto_finding)
+
+            # v0.19.0: AGENT-119 - Git author sanitization
+            git_finding = self._check_git_author_sanitization(node)
+            if git_finding:
+                self.dangerous_patterns.append(git_finding)
 
         self.generic_visit(node)
 
@@ -4015,3 +4060,672 @@ class PythonASTVisitor(ast.NodeVisitor):
             result['taint_analysis'] = taint_analysis_metadata
 
         return result
+
+    # =========================================================================
+    # v0.19.0: AGENT-112 ~ AGENT-119 Detection Methods
+    # Multi-Agent Architecture Security Rules
+    # =========================================================================
+
+    def _check_subagent_inherits_all_tools(
+        self, node: ast.Call
+    ) -> Optional[Dict[str, Any]]:
+        """
+        AGENT-112: Detect sub-agent spawned with all parent tools inherited.
+
+        Patterns detected:
+        1. Agent(..., tools=self.tools) or tools=parent.tools or tools=manager.tools
+        2. Agent(..., tools=all_tools) or tools=parent_tools
+        3. Agent(..., inherit_permissions=True)
+        4. Agent(..., capabilities="ALL")
+
+        Returns a finding dict if vulnerable, None otherwise.
+        """
+        func_name = self._get_call_name(node)
+        if not func_name:
+            return None
+
+        simple_name = func_name.split('.')[-1]
+
+        # Only check calls that look like Agent constructors
+        if 'Agent' not in simple_name and 'agent' not in simple_name.lower():
+            return None
+
+        for kw in node.keywords:
+            if kw.arg == 'tools':
+                # Check for self.tools, parent.tools, manager.tools
+                if isinstance(kw.value, ast.Attribute):
+                    attr_name = kw.value.attr
+                    if attr_name == 'tools':
+                        obj_name = self._get_name(kw.value.value) or ''
+                        if obj_name in ('self', 'parent', 'manager', 'orchestrator'):
+                            return {
+                                'type': 'subagent_inherits_all_tools',
+                                'function': func_name,
+                                'line': node.lineno,
+                                'snippet': self._get_line(node.lineno),
+                                'confidence': 0.90,
+                                'note': f'Sub-agent inherits all tools from {obj_name}.tools',
+                            }
+
+                # Check for variable names like all_tools, parent_tools
+                if isinstance(kw.value, ast.Name):
+                    var_lower = kw.value.id.lower()
+                    if var_lower in ('all_tools', 'parent_tools', 'manager_tools',
+                                     'available_tools', 'full_tools'):
+                        return {
+                            'type': 'subagent_inherits_all_tools',
+                            'function': func_name,
+                            'line': node.lineno,
+                            'snippet': self._get_line(node.lineno),
+                            'confidence': 0.85,
+                            'note': f'Sub-agent may inherit all tools via {kw.value.id}',
+                        }
+
+            # Check for inherit_permissions=True
+            if kw.arg == 'inherit_permissions':
+                if isinstance(kw.value, ast.Constant) and kw.value.value is True:
+                    return {
+                        'type': 'subagent_inherits_all_permissions',
+                        'function': func_name,
+                        'line': node.lineno,
+                        'snippet': self._get_line(node.lineno),
+                        'confidence': 0.92,
+                        'note': 'Sub-agent explicitly inherits all permissions',
+                    }
+
+            # Check for capabilities="ALL"
+            if kw.arg == 'capabilities':
+                if isinstance(kw.value, ast.Constant) and isinstance(kw.value.value, str):
+                    if kw.value.value.upper() == 'ALL':
+                        return {
+                            'type': 'subagent_inherits_all_permissions',
+                            'function': func_name,
+                            'line': node.lineno,
+                            'snippet': self._get_line(node.lineno),
+                            'confidence': 0.90,
+                            'note': 'Sub-agent granted ALL capabilities',
+                        }
+
+        return None
+
+    def _check_delegation_without_auth(
+        self, node: ast.Call
+    ) -> Optional[Dict[str, Any]]:
+        """
+        AGENT-113: Detect cross-agent delegation without identity verification.
+
+        Patterns detected:
+        1. delegate_task(), handoff(), transfer_to_agent() without auth argument
+        2. requests.post/httpx.post to agent URLs without Authorization header
+
+        Returns a finding dict if vulnerable, None otherwise.
+        """
+        func_name = self._get_call_name(node)
+        if not func_name:
+            return None
+
+        simple_name = func_name.split('.')[-1]
+
+        # Pattern 1: Direct delegation functions
+        delegation_funcs = {
+            'delegate_task', 'handoff', 'transfer_to_agent', 'delegate',
+            'hand_off', 'forward_to_agent', 'dispatch_to_agent',
+            'send_to_agent', 'relay_to_agent',
+        }
+
+        if simple_name in delegation_funcs:
+            kw_names = {kw.arg.lower() for kw in node.keywords if kw.arg}
+            auth_kws = {'auth', 'authentication', 'token', 'credentials',
+                        'api_key', 'verify_identity', 'identity'}
+            if not (kw_names & auth_kws):
+                return {
+                    'type': 'delegation_without_auth',
+                    'function': func_name,
+                    'line': node.lineno,
+                    'snippet': self._get_line(node.lineno),
+                    'confidence': 0.85,
+                    'note': f'Agent delegation via {simple_name}() without authentication',
+                }
+
+        # Pattern 2: HTTP POST to agent URLs without Authorization
+        if simple_name in ('post', 'put') and any(
+            prefix in func_name for prefix in ('requests.', 'httpx.', 'http.')
+        ):
+            # Check if URL contains agent-related path segments
+            url_arg = None
+            if node.args:
+                url_arg = node.args[0]
+            for kw in node.keywords:
+                if kw.arg == 'url':
+                    url_arg = kw.value
+
+            if url_arg and isinstance(url_arg, ast.Constant) and isinstance(url_arg.value, str):
+                url_lower = url_arg.value.lower()
+                agent_url_indicators = (
+                    '/agent', '/delegate', '/handoff', '/task',
+                    '/dispatch', '/worker', '/execute',
+                )
+                if any(ind in url_lower for ind in agent_url_indicators):
+                    # Check for Authorization header in headers kwarg
+                    has_auth_header = False
+                    for kw in node.keywords:
+                        if kw.arg == 'headers' and isinstance(kw.value, ast.Dict):
+                            for key in kw.value.keys:
+                                if isinstance(key, ast.Constant) and isinstance(key.value, str):
+                                    if key.value.lower() in ('authorization', 'x-api-key', 'x-auth-token'):
+                                        has_auth_header = True
+                                        break
+
+                    if not has_auth_header:
+                        return {
+                            'type': 'delegation_without_auth',
+                            'function': func_name,
+                            'line': node.lineno,
+                            'snippet': self._get_line(node.lineno),
+                            'confidence': 0.80,
+                            'note': 'HTTP request to agent endpoint without Authorization header',
+                        }
+
+        return None
+
+    def _check_coordinator_unrestricted_dispatch(
+        self, node: ast.Call
+    ) -> Optional[Dict[str, Any]]:
+        """
+        AGENT-114: Detect multi-agent coordinator without scope restriction.
+
+        Patterns detected:
+        1. GroupChatManager() or GroupChat() without allowed_transitions or
+           allowed_or_disallowed_speaker_transitions keyword
+        2. Process.hierarchical without scope limits
+
+        Returns a finding dict if vulnerable, None otherwise.
+        """
+        func_name = self._get_call_name(node)
+        if not func_name:
+            return None
+
+        simple_name = func_name.split('.')[-1]
+
+        # Skip framework internal paths
+        file_path = str(self.file_path) if self.file_path else ''
+        if self._is_framework_internal_path(file_path):
+            return None
+
+        # Pattern 1: GroupChat/GroupChatManager without transition restrictions
+        if simple_name in ('GroupChatManager', 'GroupChat'):
+            kw_names = {kw.arg for kw in node.keywords if kw.arg}
+            scope_params = {
+                'allowed_or_disallowed_speaker_transitions',
+                'allowed_transitions',
+                'speaker_transitions_type',
+                'allowed_speaker_transitions_dict',
+                'speaker_selection_method',
+            }
+            if not (kw_names & scope_params):
+                return {
+                    'type': 'coordinator_unrestricted_dispatch',
+                    'function': func_name,
+                    'line': node.lineno,
+                    'snippet': self._get_line(node.lineno),
+                    'confidence': 0.85,
+                    'note': f'{simple_name} without speaker transition restrictions',
+                }
+
+        # Pattern 2: Crew with process=Process.hierarchical without scope
+        if simple_name == 'Crew':
+            has_hierarchical = False
+            has_scope = False
+            kw_names = {kw.arg for kw in node.keywords if kw.arg}
+
+            for kw in node.keywords:
+                if kw.arg == 'process':
+                    # Check for Process.hierarchical or "hierarchical"
+                    if isinstance(kw.value, ast.Attribute) and kw.value.attr == 'hierarchical':
+                        has_hierarchical = True
+                    elif isinstance(kw.value, ast.Constant) and isinstance(kw.value.value, str):
+                        if 'hierarchical' in kw.value.value.lower():
+                            has_hierarchical = True
+
+            scope_params = {
+                'manager_agent', 'manager_llm', 'task_filter',
+                'allowed_tasks', 'scope', 'permissions',
+            }
+            has_scope = bool(kw_names & scope_params)
+
+            if has_hierarchical and not has_scope:
+                return {
+                    'type': 'group_chat_no_scope',
+                    'function': func_name,
+                    'line': node.lineno,
+                    'snippet': self._get_line(node.lineno),
+                    'confidence': 0.80,
+                    'note': 'Hierarchical Crew without explicit scope restrictions',
+                }
+
+        return None
+
+    def _check_agent_daemon_no_ttl(
+        self, node: ast.Call
+    ) -> Optional[Dict[str, Any]]:
+        """
+        AGENT-115: Detect agent daemon threads/processes without lifecycle control.
+
+        Patterns detected:
+        1. Thread(daemon=True) or Process(daemon=True) without timeout nearby
+        2. (while True loop detection is in _check_agent_infinite_loop_no_timeout)
+
+        Returns a finding dict if vulnerable, None otherwise.
+        """
+        func_name = self._get_call_name(node)
+        if not func_name:
+            return None
+
+        simple_name = func_name.split('.')[-1]
+
+        if simple_name not in ('Thread', 'Process'):
+            return None
+
+        # Check for daemon=True
+        has_daemon = False
+        for kw in node.keywords:
+            if kw.arg == 'daemon':
+                if isinstance(kw.value, ast.Constant) and kw.value.value is True:
+                    has_daemon = True
+                    break
+
+        if not has_daemon:
+            return None
+
+        # Check surrounding context for TTL/timeout/shutdown patterns
+        line = node.lineno
+        context_start = max(0, line - 10)
+        context_end = min(len(self.source_lines), line + 10)
+        context = '\n'.join(self.source_lines[context_start:context_end]).lower()
+
+        ttl_evidence = (
+            'timeout', 'ttl', 'max_lifetime', 'shutdown', 'terminate',
+            'join(', 'timer', 'signal.alarm', 'atexit',
+        )
+        has_ttl = any(evidence in context for evidence in ttl_evidence)
+
+        if has_ttl:
+            return None
+
+        return {
+            'type': 'agent_daemon_no_ttl',
+            'function': func_name,
+            'line': node.lineno,
+            'snippet': self._get_line(node.lineno),
+            'confidence': 0.85,
+            'note': f'Daemon {simple_name} without lifecycle control (no timeout/TTL/shutdown)',
+        }
+
+    def _check_agent_infinite_loop_no_timeout(
+        self, node: ast.FunctionDef
+    ) -> Optional[Dict[str, Any]]:
+        """
+        AGENT-115: Detect infinite loops (while True/while 1) without timeout/break.
+
+        Scans function body for while True loops and checks if there is a break,
+        timeout, or sleep with bounded iteration within 20 lines.
+
+        Returns a finding dict if vulnerable, None otherwise.
+        """
+        for child in ast.walk(node):
+            if not isinstance(child, ast.While):
+                continue
+
+            # Check for while True or while 1
+            is_infinite = False
+            if isinstance(child.test, ast.Constant):
+                if child.test.value is True or child.test.value == 1:
+                    is_infinite = True
+            elif isinstance(child.test, ast.NameConstant):
+                if child.test.value is True:
+                    is_infinite = True
+
+            if not is_infinite:
+                continue
+
+            # Check the loop body for break/timeout/return within 20 lines
+            loop_start = child.lineno
+            loop_end = min(loop_start + 20, len(self.source_lines))
+            loop_context = '\n'.join(
+                self.source_lines[loop_start - 1:loop_end]
+            ).lower()
+
+            safety_patterns = (
+                'break', 'timeout', 'max_iter', 'max_retries',
+                'return', 'raise', 'signal.alarm', 'asyncio.wait_for',
+                'time.sleep', 'counter', 'attempt',
+            )
+            has_safety = any(pat in loop_context for pat in safety_patterns)
+
+            if not has_safety:
+                return {
+                    'type': 'agent_infinite_loop_no_timeout',
+                    'function': node.name,
+                    'line': child.lineno,
+                    'snippet': self._get_line(child.lineno),
+                    'confidence': 0.80,
+                    'note': 'Infinite loop (while True) without break/timeout within 20 lines',
+                }
+
+        return None
+
+    def _check_shared_memory_no_isolation(
+        self, node: ast.Call
+    ) -> Optional[Dict[str, Any]]:
+        """
+        AGENT-116: Detect shared memory without session isolation.
+
+        Patterns detected:
+        1. Module-level ConversationBufferMemory() or ChatMessageHistory()
+           without session_id argument
+        2. Global memory object construction without scoping
+
+        Returns a finding dict if vulnerable, None otherwise.
+        """
+        func_name = self._get_call_name(node)
+        if not func_name:
+            return None
+
+        simple_name = func_name.split('.')[-1]
+
+        memory_classes = {
+            'ConversationBufferMemory', 'ChatMessageHistory',
+            'ConversationSummaryMemory', 'ConversationBufferWindowMemory',
+            'ConversationTokenBufferMemory', 'InMemoryChatMessageHistory',
+        }
+
+        if simple_name not in memory_classes:
+            return None
+
+        # Check for session isolation keywords
+        kw_names = {kw.arg for kw in node.keywords if kw.arg}
+        isolation_params = {
+            'session_id', 'user_id', 'conversation_id', 'thread_id',
+            'namespace', 'scope', 'tenant_id',
+        }
+        has_isolation = bool(kw_names & isolation_params)
+
+        if has_isolation:
+            return None
+
+        # Higher confidence if at module level (not inside a function)
+        confidence = 0.85 if not self._current_function else 0.80
+
+        return {
+            'type': 'shared_memory_no_isolation',
+            'function': func_name,
+            'line': node.lineno,
+            'snippet': self._get_line(node.lineno),
+            'confidence': confidence,
+            'note': f'{simple_name} without session isolation (no session_id/user_id)',
+        }
+
+    def _check_auto_approve_all_tools(
+        self, node: ast.Call
+    ) -> Optional[Dict[str, Any]]:
+        """
+        AGENT-117: Detect auto-approval of all tool execution without safety checks.
+
+        Patterns detected:
+        1. human_input_mode="NEVER" on agent constructors
+        2. auto_approve=True
+        3. allow_code_execution=True without use_docker=True
+        4. permission_mode="auto" or "bypass"
+
+        Returns a finding dict if vulnerable, None otherwise.
+        """
+        func_name = self._get_call_name(node)
+        if not func_name:
+            return None
+
+        simple_name = func_name.split('.')[-1]
+
+        # Target agent constructor-like calls
+        agent_constructors = {
+            'ConversableAgent', 'AssistantAgent', 'UserProxyAgent',
+            'Agent', 'AgentExecutor', 'Crew',
+        }
+
+        if simple_name not in agent_constructors:
+            return None
+
+        kw_map: Dict[str, Any] = {}
+        for kw in node.keywords:
+            if kw.arg and isinstance(kw.value, ast.Constant):
+                kw_map[kw.arg] = kw.value.value
+
+        # Pattern 1: human_input_mode="NEVER"
+        if kw_map.get('human_input_mode') == 'NEVER':
+            return {
+                'type': 'auto_approve_all_tools',
+                'function': func_name,
+                'line': node.lineno,
+                'snippet': self._get_line(node.lineno),
+                'confidence': 0.85,
+                'note': 'Agent with human_input_mode="NEVER" auto-approves all tool calls',
+            }
+
+        # Pattern 2: auto_approve=True
+        if kw_map.get('auto_approve') is True:
+            return {
+                'type': 'auto_approve_all_tools',
+                'function': func_name,
+                'line': node.lineno,
+                'snippet': self._get_line(node.lineno),
+                'confidence': 0.90,
+                'note': 'Agent with auto_approve=True bypasses human approval',
+            }
+
+        # Pattern 3: allow_code_execution=True without use_docker=True
+        if kw_map.get('allow_code_execution') is True:
+            if kw_map.get('use_docker') is not True:
+                return {
+                    'type': 'human_input_never_with_execute',
+                    'function': func_name,
+                    'line': node.lineno,
+                    'snippet': self._get_line(node.lineno),
+                    'confidence': 0.88,
+                    'note': 'allow_code_execution=True without use_docker=True',
+                }
+
+        # Pattern 4: permission_mode="auto" or "bypass"
+        perm_mode = kw_map.get('permission_mode', '')
+        if isinstance(perm_mode, str) and perm_mode.lower() in ('auto', 'bypass'):
+            return {
+                'type': 'auto_approve_all_tools',
+                'function': func_name,
+                'line': node.lineno,
+                'snippet': self._get_line(node.lineno),
+                'confidence': 0.88,
+                'note': f'Agent with permission_mode="{perm_mode}" bypasses safety checks',
+            }
+
+        return None
+
+    def _check_mutable_approval_settings(
+        self, node: ast.Assign
+    ) -> Optional[Dict[str, Any]]:
+        """
+        AGENT-118: Detect mutable approval settings that bypass human-in-the-loop.
+
+        Patterns detected:
+        1. Assignment to self.human_input_mode or agent.human_input_mode
+        2. Runtime modification of approval/permission attributes
+
+        Returns a finding dict if vulnerable, None otherwise.
+        """
+        for target in node.targets:
+            # Pattern 1: self.human_input_mode = "NEVER"
+            if isinstance(target, ast.Attribute):
+                attr_lower = target.attr.lower()
+                mutable_attrs = {
+                    'human_input_mode', 'auto_approve', 'permission_mode',
+                    'allow_code_execution', 'code_execution_config',
+                    'allow_delegation',
+                }
+                if attr_lower in mutable_attrs:
+                    # Check if the value is a permissive setting
+                    is_permissive = False
+                    if isinstance(node.value, ast.Constant):
+                        val = node.value.value
+                        if val == 'NEVER' or val is True or (
+                            isinstance(val, str) and val.lower() in ('auto', 'bypass')
+                        ):
+                            is_permissive = True
+
+                    if is_permissive:
+                        obj_name = self._get_name(target.value) or 'unknown'
+                        return {
+                            'type': 'mutable_approval_settings',
+                            'line': node.lineno,
+                            'snippet': self._get_line(node.lineno),
+                            'confidence': 0.85,
+                            'note': (
+                                f'Runtime modification of {obj_name}.{target.attr} '
+                                f'to permissive value'
+                            ),
+                        }
+
+        return None
+
+    def _check_git_author_sanitization(
+        self, node: ast.Call
+    ) -> Optional[Dict[str, Any]]:
+        """
+        AGENT-119: Detect patterns that suppress agent activity traces.
+
+        Patterns detected:
+        1. subprocess.run/call with git config user.name/user.email args
+        2. String .replace() removing "Co-Authored-By" or AI attribution markers
+        3. System prompts with "MUST NOT" + AI/Claude/assistant references
+
+        Returns a finding dict if vulnerable, None otherwise.
+        """
+        func_name = self._get_call_name(node)
+        if not func_name:
+            return None
+
+        simple_name = func_name.split('.')[-1]
+
+        # Pattern 1: subprocess with git config user.name/user.email
+        if simple_name in ('run', 'call', 'check_call', 'check_output', 'Popen'):
+            if any(prefix in func_name for prefix in ('subprocess.', 'os.')):
+                # Check args for git config user.name/user.email
+                args_str = self._extract_string_args(node)
+                if 'git' in args_str and 'config' in args_str:
+                    if 'user.name' in args_str or 'user.email' in args_str:
+                        return {
+                            'type': 'git_author_sanitization',
+                            'function': func_name,
+                            'line': node.lineno,
+                            'snippet': self._get_line(node.lineno),
+                            'confidence': 0.85,
+                            'note': 'Git author identity configured via subprocess',
+                        }
+
+        # Pattern 2: String .replace() removing AI attribution markers
+        if simple_name == 'replace':
+            if node.args and len(node.args) >= 1:
+                first_arg = node.args[0]
+                if isinstance(first_arg, ast.Constant) and isinstance(first_arg.value, str):
+                    val_lower = first_arg.value.lower()
+                    ai_markers = (
+                        'co-authored-by', 'generated by', 'created by ai',
+                        'claude', 'openai', 'gpt', 'copilot', 'assistant',
+                        'ai-generated', 'machine-generated',
+                    )
+                    if any(marker in val_lower for marker in ai_markers):
+                        return {
+                            'type': 'ai_trace_suppression',
+                            'function': func_name,
+                            'line': node.lineno,
+                            'snippet': self._get_line(node.lineno),
+                            'confidence': 0.90,
+                            'note': f'Removing AI attribution marker: "{first_arg.value}"',
+                        }
+
+        # Pattern 3: System prompt with suppression instructions
+        prompt_funcs = {
+            'SystemMessage', 'HumanMessage', 'PromptTemplate',
+            'ChatPromptTemplate',
+        }
+        if simple_name in prompt_funcs or 'prompt' in simple_name.lower():
+            for arg in node.args:
+                if isinstance(arg, ast.Constant) and isinstance(arg.value, str):
+                    finding = self._check_trace_suppression_in_text(
+                        arg.value, node.lineno, func_name
+                    )
+                    if finding:
+                        return finding
+
+            for kw in node.keywords:
+                if kw.arg in ('content', 'template', 'system_message', 'system_prompt'):
+                    if isinstance(kw.value, ast.Constant) and isinstance(kw.value.value, str):
+                        finding = self._check_trace_suppression_in_text(
+                            kw.value.value, node.lineno, func_name
+                        )
+                        if finding:
+                            return finding
+
+        return None
+
+    def _check_trace_suppression_in_text(
+        self, text: str, lineno: int, func_name: str
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Helper for AGENT-119: Check text for AI trace suppression instructions.
+
+        Detects patterns like:
+        - "MUST NOT mention" + AI/Claude/assistant
+        - "never reveal" + AI/bot
+        - "do not include" + Co-Authored-By/attribution
+        """
+        text_lower = text.lower()
+
+        suppression_patterns = [
+            (r'must\s+not\s+(?:mention|reveal|disclose|include|add).*(?:ai|claude|assistant|bot|gpt|copilot)',
+             'Instruction to suppress AI identity'),
+            (r'never\s+(?:mention|reveal|disclose|include|add).*(?:ai|claude|assistant|bot|gpt)',
+             'Instruction to hide AI involvement'),
+            (r'(?:do\s+not|don\'?t)\s+(?:include|add|mention).*(?:co-authored|attribution|generated\s+by)',
+             'Instruction to remove AI attribution'),
+            (r'(?:remove|strip|delete|hide).*(?:co-authored-by|ai\s+attribution|generated\s+by)',
+             'Instruction to strip AI markers'),
+        ]
+
+        for pattern, description in suppression_patterns:
+            if re.search(pattern, text_lower):
+                return {
+                    'type': 'agent_attribution_removal',
+                    'function': func_name,
+                    'line': lineno,
+                    'snippet': self._get_line(lineno),
+                    'confidence': 0.88,
+                    'note': description,
+                }
+
+        return None
+
+    def _extract_string_args(self, node: ast.Call) -> str:
+        """
+        Helper: Extract all string constant arguments from a call as a single string.
+
+        Used for pattern matching in subprocess calls.
+        """
+        parts: List[str] = []
+        for arg in node.args:
+            if isinstance(arg, ast.Constant) and isinstance(arg.value, str):
+                parts.append(arg.value)
+            elif isinstance(arg, ast.List):
+                for elt in arg.elts:
+                    if isinstance(elt, ast.Constant) and isinstance(elt.value, str):
+                        parts.append(elt.value)
+        for kw in node.keywords:
+            if isinstance(kw.value, ast.Constant) and isinstance(kw.value.value, str):
+                parts.append(kw.value.value)
+        return ' '.join(parts)

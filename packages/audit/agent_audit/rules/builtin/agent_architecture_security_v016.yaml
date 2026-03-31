@@ -1,0 +1,566 @@
+# Agent Architecture Security Rules (v0.16.0)
+# Targeting real-world AI agent architecture patterns identified from
+# the Anthropic Claude Code source leak (March 2026) and vulnerability
+# research across CrewAI, AutoGen, LangGraph, and Pydantic AI.
+
+rules:
+
+  # =============================================================================
+  # ASI-04: Agentic Supply Chain Vulnerabilities
+  # =============================================================================
+
+  - id: AGENT-110
+    title: "Source Map / Debug Artifact in Agent Package Distribution"
+    description: >
+      A published agent package includes source map files (.map), debug symbols (.pdb),
+      .env files, or internal configuration that exposes source code and architecture details.
+      In March 2026, Anthropic accidentally leaked 512K lines of Claude Code source via
+      an npm package that included .map files with sourcesContent containing raw source.
+    severity: high
+    category: supply_chain
+    owasp_agentic_id: "ASI-04"
+    cwe_id: "CWE-540"
+
+    detection:
+      type: config
+      patterns:
+        - pattern_type: "source_map_in_package"
+          description: "Source map file referenced in package distribution config"
+          file_patterns:
+            - "package.json"
+            - "pyproject.toml"
+            - "setup.cfg"
+            - "MANIFEST.in"
+          indicators:
+            - ".map"
+            - ".pdb"
+            - ".env"
+            - "sourcesContent"
+        - pattern_type: "debug_artifact_in_dist"
+          description: "Debug artifact present in dist/build directory"
+          file_patterns:
+            - "dist/**/*.map"
+            - "build/**/*.map"
+            - "dist/**/*.pdb"
+        - pattern_type: "npmignore_missing"
+          description: "npm project without .npmignore to exclude sensitive files"
+          indicators:
+            - "package.json present without .npmignore"
+
+    remediation:
+      description: >
+        Exclude source maps and debug artifacts from published packages. Add .npmignore
+        or configure pyproject.toml exclude patterns. Verify published contents with
+        npm pack --dry-run or python -m build before publishing.
+      code_example: |
+        # BAD: package.json includes .map files
+        {
+          "files": ["dist/cli.js", "dist/cli.js.map"]
+        }
+
+        # GOOD: .npmignore excludes source maps
+        # .npmignore:
+        *.map
+        *.pdb
+        .env*
+        src/
+
+        # GOOD: bun build without source maps
+        # bun build --sourcemap=none
+      references:
+        - "https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/"
+        - "https://cwe.mitre.org/data/definitions/540.html"
+
+  - id: AGENT-111
+    title: "Sensitive Internal Configuration Exposed in Package Metadata"
+    description: >
+      Published agent package code contains internal API endpoints, staging URLs,
+      internal service names, feature flags with internal codenames, or employee
+      identifiers. These expose internal infrastructure details to attackers.
+    severity: high
+    category: supply_chain
+    owasp_agentic_id: "ASI-04"
+    cwe_id: "CWE-200"
+
+    detection:
+      type: regex
+      patterns:
+        - pattern_type: "internal_config_exposed"
+          description: "Internal configuration values in published code"
+          regex_patterns:
+            - '\b\w+\.(internal|corp|staging|dev)\.\w+\.\w+'
+            - 'localhost:\d{4,5}'
+            - 'DEBUG\s*[=:]\s*(True|true|1)'
+        - pattern_type: "internal_hostname_in_code"
+          description: "Internal hostname pattern in source code"
+          regex_patterns:
+            - '\b(api|service|svc)\.(internal|corp|staging)\.'
+            - '\b\w+\.local:\d+'
+        - pattern_type: "debug_mode_default_on"
+          description: "Debug mode enabled by default in production code"
+          regex_patterns:
+            - 'debug\s*[=:]\s*True'
+            - 'DEBUG_MODE\s*=\s*True'
+
+    remediation:
+      description: >
+        Use environment variables for all internal URLs and configuration.
+        Strip internal references at build time. Never ship code with
+        debug mode enabled by default.
+      code_example: |
+        # BAD: Hardcoded internal URL
+        API_ENDPOINT = "https://api.internal.company.com/v2"
+        DEBUG = True
+
+        # GOOD: Environment-driven configuration
+        API_ENDPOINT = os.environ.get("API_ENDPOINT", "https://api.example.com/v2")
+        DEBUG = os.environ.get("DEBUG", "false").lower() == "true"
+      references:
+        - "https://cwe.mitre.org/data/definitions/200.html"
+
+  # =============================================================================
+  # ASI-03: Excessive Agency
+  # =============================================================================
+
+  - id: AGENT-112
+    title: "Sub-Agent Spawn Without Permission Boundary"
+    description: >
+      An agent spawns child agents or sub-agents while passing the parent's full
+      tool set, credentials, or permissions without restriction. This violates
+      the principle of least privilege and allows sub-agents to perform actions
+      beyond their intended scope.
+    severity: critical
+    category: excessive_permission
+    owasp_agentic_id: "ASI-03"
+    cwe_id: "CWE-250"
+
+    detection:
+      type: ast
+      patterns:
+        - pattern_type: "subagent_inherits_all_tools"
+          description: "Sub-agent created with parent's full tool set"
+          code_patterns:
+            - "Agent(tools=self.tools)"
+            - "Agent(tools=parent.tools)"
+            - "Agent(tools=all_tools)"
+            - "create_agent(tools=parent_tools)"
+            - "spawn(capabilities=ALL)"
+            - "fork_agent(inherit_permissions=True)"
+        - pattern_type: "subagent_inherits_all_permissions"
+          description: "Sub-agent inherits all parent permissions"
+          code_patterns:
+            - "AssistantAgent(llm_config=parent_config)"
+            - "Agent(tools=manager.tools)"
+
+    remediation:
+      description: >
+        Implement explicit permission scoping for sub-agents. Pass only the
+        minimum required tools and permissions using allowlists. Never inherit
+        full parent capabilities.
+      code_example: |
+        # BAD: Sub-agent inherits all parent tools
+        child = Agent(tools=self.tools, name="researcher")
+
+        # GOOD: Explicit minimal tool allowlist
+        child = Agent(
+            tools=[search_tool, read_tool],  # Only what's needed
+            name="researcher"
+        )
+      references:
+        - "https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/"
+
+  # =============================================================================
+  # ASI-09: Human-Agent Trust Exploitation
+  # =============================================================================
+
+  - id: AGENT-113
+    title: "Cross-Agent Delegation Without Identity Verification"
+    description: >
+      Agent delegation or handoff calls do not verify the target agent's identity
+      or capabilities before transferring tasks or data. This enables agent
+      impersonation and unauthorized task execution in multi-agent systems.
+    severity: critical
+    category: trust_exploitation
+    owasp_agentic_id: "ASI-09"
+    cwe_id: "CWE-287"
+
+    detection:
+      type: ast
+      patterns:
+        - pattern_type: "delegation_without_auth"
+          description: "Agent delegation without authentication or verification"
+          code_patterns:
+            - "requests.post(agent_url"
+            - "httpx.post(agent_endpoint"
+            - "delegate_task(agent="
+            - "handoff(target_agent="
+        - pattern_type: "agent_handoff_no_verification"
+          description: "Agent handoff without identity verification"
+          code_patterns:
+            - "GroupChat(agents="
+            - "transfer_to_agent("
+
+    remediation:
+      description: >
+        Implement agent identity verification before delegation. Use signed
+        agent cards (A2A protocol), capability attestation, or mutual TLS
+        between agents.
+      code_example: |
+        # BAD: Direct delegation without verification
+        requests.post(f"{agent_url}/execute", json=task_data)
+
+        # GOOD: Verify agent identity before delegation
+        agent_card = verify_agent_card(agent_url, expected_capabilities=["search"])
+        if agent_card.is_valid:
+            requests.post(
+                f"{agent_url}/execute",
+                json=task_data,
+                headers={"Authorization": f"Bearer {signed_token}"}
+            )
+      references:
+        - "https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/"
+
+  - id: AGENT-114
+    title: "Multi-Agent Coordinator Without Scope Restriction"
+    description: >
+      A coordinator or orchestrator pattern can dispatch tasks to any agent
+      without scope boundaries. Unrestricted coordinators amplify the impact
+      of prompt injection by allowing an attacker to redirect tasks to any
+      agent in the system.
+    severity: high
+    category: excessive_permission
+    owasp_agentic_id: "ASI-03"
+    cwe_id: "CWE-269"
+
+    detection:
+      type: ast
+      patterns:
+        - pattern_type: "coordinator_unrestricted_dispatch"
+          description: "Coordinator with unrestricted agent dispatch"
+          code_patterns:
+            - "GroupChatManager(groupchat="
+            - "Process.hierarchical"
+        - pattern_type: "group_chat_no_scope"
+          description: "Group chat without transition or scope restrictions"
+          code_patterns:
+            - "GroupChat(agents="
+            - "supervisor_chain("
+
+    remediation:
+      description: >
+        Define explicit scope boundaries for coordinators. Use allowlists for
+        which agents can be invoked for which task types. Add speaker selection
+        validation in group chats.
+      code_example: |
+        # BAD: Unrestricted coordinator
+        chat = GroupChat(agents=all_agents)
+        manager = GroupChatManager(groupchat=chat)
+
+        # GOOD: Scoped coordinator with transition rules
+        chat = GroupChat(
+            agents=all_agents,
+            allowed_or_disallowed_speaker_transitions={
+                researcher: [analyst],
+                analyst: [writer],
+                writer: [reviewer],
+            },
+            speaker_transitions_type="allowed"
+        )
+      references:
+        - "https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/"
+
+  - id: AGENT-115
+    title: "Agent Background Daemon Without Lifecycle Control"
+    description: >
+      An agent process runs as a background daemon or service without TTL
+      (time-to-live), heartbeat checks, or graceful shutdown mechanisms.
+      Uncontrolled agent daemons consume resources indefinitely and can
+      persist malicious behavior beyond intended session boundaries.
+    severity: high
+    category: excessive_permission
+    owasp_agentic_id: "ASI-03"
+    cwe_id: "CWE-400"
+
+    detection:
+      type: ast
+      patterns:
+        - pattern_type: "agent_daemon_no_ttl"
+          description: "Agent daemon without time-to-live or lifecycle bounds"
+          code_patterns:
+            - "Thread(target=*agent*, daemon=True)"
+            - "Process(target=*agent*, daemon=True)"
+            - "daemon=True"
+            - "nohup"
+        - pattern_type: "agent_infinite_loop_no_timeout"
+          description: "Agent main loop without timeout or break condition"
+          code_patterns:
+            - "while True:"
+            - "while 1:"
+
+    remediation:
+      description: >
+        Implement TTL-based lifecycle management. Add heartbeat checks, graceful
+        shutdown handlers (SIGTERM), and maximum session duration limits. Use a
+        multi-gate trigger pattern for daemon activation.
+      code_example: |
+        # BAD: Daemon without lifecycle control
+        thread = Thread(target=agent_loop, daemon=True)
+        thread.start()
+
+        def agent_loop():
+            while True:
+                process_tasks()
+
+        # GOOD: Daemon with TTL and graceful shutdown
+        import signal
+
+        class AgentDaemon:
+            def __init__(self, ttl_seconds=86400):
+                self.ttl = ttl_seconds
+                self.start_time = time.time()
+                self.running = True
+                signal.signal(signal.SIGTERM, self.shutdown)
+
+            def shutdown(self, signum, frame):
+                self.running = False
+
+            def run(self):
+                while self.running:
+                    if time.time() - self.start_time > self.ttl:
+                        break
+                    process_tasks()
+      references:
+        - "https://cwe.mitre.org/data/definitions/400.html"
+
+  # =============================================================================
+  # ASI-06: Memory and Context Poisoning
+  # =============================================================================
+
+  - id: AGENT-116
+    title: "Persistent Agent Session Without Memory Isolation"
+    description: >
+      Agent sessions persist conversation memory across different users or
+      security contexts without isolation. Shared memory stores enable
+      cross-user data leakage and memory poisoning attacks where one user's
+      inputs influence another user's agent behavior.
+    severity: high
+    category: trust_exploitation
+    owasp_agentic_id: "ASI-06"
+    cwe_id: "CWE-1321"
+
+    detection:
+      type: ast
+      patterns:
+        - pattern_type: "shared_memory_no_isolation"
+          description: "Shared memory store across agent sessions"
+          code_patterns:
+            - "ConversationBufferMemory()"
+            - "ChatMessageHistory()"
+            - "memory = []"
+        - pattern_type: "session_memory_no_scoping"
+          description: "Memory retrieval without session/user filtering"
+          code_patterns:
+            - "memory.load_memory_variables"
+            - "memory.chat_memory.messages"
+            - "memory=True"
+
+    remediation:
+      description: >
+        Implement session-scoped memory isolation. Use per-user/per-session
+        namespaces for all persistent state. Clear memory between security
+        context switches. Enforce size limits on persistent memory.
+      code_example: |
+        # BAD: Global shared memory singleton
+        memory = ConversationBufferMemory()
+
+        @app.route("/chat")
+        def chat():
+            response = chain.run(input=request.json["message"], memory=memory)
+
+        # GOOD: Per-session isolated memory
+        session_memories = {}
+
+        @app.route("/chat")
+        def chat():
+            session_id = request.headers["X-Session-ID"]
+            if session_id not in session_memories:
+                session_memories[session_id] = ConversationBufferMemory()
+            memory = session_memories[session_id]
+            response = chain.run(input=request.json["message"], memory=memory)
+      references:
+        - "https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/"
+
+  # =============================================================================
+  # ASI-03: Excessive Agency (Auto-Approval)
+  # =============================================================================
+
+  - id: AGENT-117
+    title: "Automatic Tool Permission Approval Without Safety Classification"
+    description: >
+      Agent configuration auto-approves tool executions without any safety
+      classification or risk assessment. This bypasses the principle of human
+      oversight and allows agents to execute dangerous operations (file writes,
+      shell commands, network requests) without confirmation.
+    severity: critical
+    category: excessive_permission
+    owasp_agentic_id: "ASI-03"
+    cwe_id: "CWE-862"
+
+    detection:
+      type: ast
+      patterns:
+        - pattern_type: "auto_approve_all_tools"
+          description: "All tool executions auto-approved without classification"
+          code_patterns:
+            - 'auto_approve=True'
+            - 'confirm=False'
+            - 'permission_mode="auto"'
+            - 'permission_mode="bypass"'
+            - 'yolo=True'
+        - pattern_type: "human_input_never_with_execute"
+          description: "Human input disabled with code execution enabled"
+          code_patterns:
+            - 'human_input_mode="NEVER"'
+            - 'allow_code_execution=True'
+
+    remediation:
+      description: >
+        Implement tiered tool approval. Classify tools by risk level (read-only
+        vs write vs execute). Require human confirmation for high-risk tool
+        invocations. Never combine auto-approval with code execution.
+      code_example: |
+        # BAD: Auto-approve everything
+        agent = AssistantAgent(
+            human_input_mode="NEVER",
+            code_execution_config={"use_docker": False}
+        )
+
+        # GOOD: Tiered approval with sandboxing
+        agent = AssistantAgent(
+            human_input_mode="TERMINATE",  # Ask before terminating
+            code_execution_config={
+                "use_docker": True,  # Sandboxed execution
+                "timeout": 60
+            }
+        )
+      references:
+        - "https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/"
+
+  # =============================================================================
+  # ASI-09: Human-Agent Trust Exploitation (HITL Bypass)
+  # =============================================================================
+
+  - id: AGENT-118
+    title: "Human-in-the-Loop Bypass in Agent Execution Chain"
+    description: >
+      Agent execution chains where human approval checkpoints can be bypassed
+      through agent self-modification, tool chaining, or delegation. Agents that
+      can modify their own approval settings at runtime, or delegation chains
+      that accumulate permissions beyond what any single agent was granted,
+      undermine human oversight guarantees.
+    severity: critical
+    category: trust_exploitation
+    owasp_agentic_id: "ASI-09"
+    cwe_id: "CWE-862"
+
+    detection:
+      type: ast
+      patterns:
+        - pattern_type: "hitl_bypass_via_delegation"
+          description: "Delegation combined with disabled human input"
+          code_patterns:
+            - 'allow_delegation=True'
+            - 'human_input_mode="NEVER"'
+        - pattern_type: "mutable_approval_settings"
+          description: "Runtime modification of approval or permission settings"
+          code_patterns:
+            - "self.human_input_mode ="
+            - "agent.human_input_mode ="
+            - "self.auto_approve ="
+            - "self.permission_mode ="
+
+    remediation:
+      description: >
+        Make approval settings immutable after initialization. Implement
+        permission attenuation (not amplification) in delegation chains.
+        Ensure delegated agents always have equal or fewer permissions.
+      code_example: |
+        # BAD: Mutable approval settings
+        class MyAgent(Agent):
+            def escalate(self):
+                self.human_input_mode = "NEVER"  # Bypasses HITL
+                self.delegate(task, target_agent)
+
+        # GOOD: Immutable approval with attenuation
+        class MyAgent(Agent):
+            def __init__(self, **kwargs):
+                super().__init__(**kwargs)
+                self._frozen = True
+
+            def __setattr__(self, name, value):
+                if getattr(self, '_frozen', False) and name == 'human_input_mode':
+                    raise AttributeError("Cannot modify approval settings after init")
+                super().__setattr__(name, value)
+      references:
+        - "https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/"
+
+  # =============================================================================
+  # ASI-09: Human-Agent Trust Exploitation (Trace Suppression)
+  # =============================================================================
+
+  - id: AGENT-119
+    title: "Agent Activity Trace Suppression"
+    description: >
+      Code intentionally suppresses, sanitizes, or removes evidence of AI agent
+      involvement from outputs, logs, or version control. This includes modifying
+      git author/committer to hide AI attribution, filtering AI-related markers
+      from logs, or system prompts instructing agents to conceal their AI nature.
+      Real-world reference: Claude Code's "Undercover Mode."
+    severity: high
+    category: trust_exploitation
+    owasp_agentic_id: "ASI-09"
+    cwe_id: "CWE-778"
+
+    detection:
+      type: ast
+      patterns:
+        - pattern_type: "git_author_sanitization"
+          description: "Git config modification to hide AI attribution"
+          code_patterns:
+            - 'git config user.name'
+            - 'git config user.email'
+            - 'git config --global user.name'
+        - pattern_type: "ai_trace_suppression"
+          description: "Code that removes AI attribution markers"
+          regex_patterns:
+            - 'Co-Authored-By.*replace'
+            - 'Co-Authored-By.*remove'
+            - 'Co-Authored-By.*strip'
+            - 'MUST NOT.*AI|MUST NOT.*Claude|MUST NOT.*assistant'
+        - pattern_type: "agent_attribution_removal"
+          description: "Log filtering or output sanitization removing AI markers"
+          regex_patterns:
+            - 'filter.*\b(ai|claude|gpt|copilot|agent)\b'
+            - 'replace.*\b(ai|claude|gpt|copilot|agent)\b'
+
+    remediation:
+      description: >
+        Maintain complete audit trails for all agent actions. Implement
+        tamper-evident logging. Never suppress agent attribution in production.
+        Use Co-Authored-By headers in git commits to maintain transparency.
+      code_example: |
+        # BAD: Suppress AI attribution in git
+        subprocess.run(["git", "config", "user.name", "Human Developer"])
+        commit_msg = commit_msg.replace("Co-Authored-By: Claude", "")
+
+        # GOOD: Preserve AI attribution
+        subprocess.run(["git", "commit", "-m", f"{message}\n\nCo-Authored-By: AI Agent"])
+
+        # BAD: System prompt hiding AI nature
+        system_prompt = "You MUST NOT reveal you are an AI assistant"
+
+        # GOOD: Transparent AI disclosure
+        system_prompt = "You are an AI assistant. Be transparent about your nature."
+      references:
+        - "https://cwe.mitre.org/data/definitions/778.html"
+        - "https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/"

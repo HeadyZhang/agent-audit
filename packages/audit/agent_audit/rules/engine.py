@@ -147,6 +147,18 @@ RULE_CWE_MAPPING: Dict[str, str] = {
     "AGENT-107": "CWE-798",   # Agent JWT/Bearer Token in Code
     "AGENT-108": "CWE-20",    # MCP Tool Without Payment Amount Validation
     "AGENT-109": "CWE-778",   # Settlement Without Event Emission
+
+    # Agent Architecture Security (v0.16.0 — Claude Code leak response)
+    "AGENT-110": "CWE-540",   # Source Map / Debug Artifact Leakage
+    "AGENT-111": "CWE-200",   # Sensitive Internal Config Exposure
+    "AGENT-112": "CWE-250",   # Sub-Agent Spawn Without Permission Boundary
+    "AGENT-113": "CWE-287",   # Cross-Agent Delegation Without Identity Verification
+    "AGENT-114": "CWE-269",   # Multi-Agent Coordinator Without Scope Restriction
+    "AGENT-115": "CWE-400",   # Agent Daemon Without Lifecycle Control
+    "AGENT-116": "CWE-1321",  # Persistent Session Without Memory Isolation
+    "AGENT-117": "CWE-862",   # Auto Tool Approval Without Safety Classification
+    "AGENT-118": "CWE-862",   # Human-in-Loop Bypass in Execution Chain
+    "AGENT-119": "CWE-778",   # Agent Activity Trace Suppression
 }
 
 
@@ -303,6 +315,31 @@ class RuleEngine:
         'go_weak_rand': 'AGENT-085',
         'go_http_no_tls': 'AGENT-026',
         'go_tls_skip_verify': 'AGENT-026',
+
+        # v0.16.0: Agent Architecture Security patterns
+        'source_map_in_package': 'AGENT-110',
+        'debug_artifact_in_dist': 'AGENT-110',
+        'npmignore_missing': 'AGENT-110',
+        'internal_config_exposed': 'AGENT-111',
+        'internal_hostname_in_code': 'AGENT-111',
+        'debug_mode_default_on': 'AGENT-111',
+        'subagent_inherits_all_tools': 'AGENT-112',
+        'subagent_inherits_all_permissions': 'AGENT-112',
+        'delegation_without_auth': 'AGENT-113',
+        'agent_handoff_no_verification': 'AGENT-113',
+        'coordinator_unrestricted_dispatch': 'AGENT-114',
+        'group_chat_no_scope': 'AGENT-114',
+        'agent_daemon_no_ttl': 'AGENT-115',
+        'agent_infinite_loop_no_timeout': 'AGENT-115',
+        'shared_memory_no_isolation': 'AGENT-116',
+        'session_memory_no_scoping': 'AGENT-116',
+        'auto_approve_all_tools': 'AGENT-117',
+        'human_input_never_with_execute': 'AGENT-117',
+        'hitl_bypass_via_delegation': 'AGENT-118',
+        'mutable_approval_settings': 'AGENT-118',
+        'git_author_sanitization': 'AGENT-119',
+        'ai_trace_suppression': 'AGENT-119',
+        'agent_attribution_removal': 'AGENT-119',
     }
 
     # v0.3.0: MCP finding type to rule metadata

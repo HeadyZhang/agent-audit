@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.19.0] - 2026-03-31
+
+### Added — Agent Architecture Security Rules
+
+10 new detection rules (AGENT-110 to AGENT-119) targeting real-world AI agent architecture patterns identified from the Anthropic Claude Code source leak and vulnerability research across CrewAI, AutoGen, LangGraph, and Pydantic AI.
+
+- **AGENT-110** (CWE-540): Source Map / Debug Artifact in Agent Package Distribution
+- **AGENT-111** (CWE-200): Sensitive Internal Configuration Exposed in Package Metadata
+- **AGENT-112** (CWE-250): Sub-Agent Spawn Without Permission Boundary
+- **AGENT-113** (CWE-287): Cross-Agent Delegation Without Identity Verification
+- **AGENT-114** (CWE-269): Multi-Agent Coordinator Without Scope Restriction
+- **AGENT-115** (CWE-400): Agent Background Daemon Without Lifecycle Control
+- **AGENT-116** (CWE-1321): Persistent Agent Session Without Memory Isolation
+- **AGENT-117** (CWE-862): Automatic Tool Permission Approval Without Safety Classification
+- **AGENT-118** (CWE-862): Human-in-the-Loop Bypass in Agent Execution Chain
+- **AGENT-119** (CWE-778): Agent Activity Trace Suppression
+
+### New Scanner
+- `package_scanner.py` — Detects source map leakage and internal config exposure in agent package distributions (npm, PyPI)
+
 ## [0.17.0] - 2026-03-04
 
 ### New Rules (4)

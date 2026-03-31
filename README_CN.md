@@ -109,6 +109,12 @@ Summary:
 | **不安全 MCP 服务** | 无鉴权、未固定版本、权限过宽 | AGENT-005, AGENT-029, AGENT-030, AGENT-033 |
 | **缺少护栏** | Agent 无迭代上限或人工审批 | AGENT-028, AGENT-037 |
 | **无限制代码执行** | 工具里 `eval()` 或 `shell=True` 无沙箱 | AGENT-035 |
+| **Source Map 泄露** | 发布包含 .map/.pdb 调试文件 | AGENT-110 |
+| **子 Agent 权限继承** | 子 Agent 继承父级全部工具无限制 | AGENT-112 |
+| **委派无认证** | 跨 Agent 委派任务未验证身份 | AGENT-113 |
+| **自动批准所有工具** | Agent 无安全分级自动批准工具执行 | AGENT-117 |
+| **人在回路绕过** | 通过委派或自修改绕过人工审批 | AGENT-118 |
+| **痕迹抹除** | 从 git、日志、输出中移除 AI 归因 | AGENT-119 |
 
 覆盖 OWASP Agentic Security 全部 10 个类别。框架层面支持 **LangChain**、**CrewAI**、**AutoGen**、**AgentScope**。 [查看全部规则 ->](docs/RULES.md)
 

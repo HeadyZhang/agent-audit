@@ -1,0 +1,5 @@
+{
+  "name": "my-agent",
+  "version": "1.0.0",
+  "files": ["dist/index.js", "dist/index.js.map", "dist/cli.js.map"]
+}
