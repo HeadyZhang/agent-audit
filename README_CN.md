@@ -115,6 +115,7 @@ Summary:
 | **自动批准所有工具** | Agent 无安全分级自动批准工具执行 | AGENT-117 |
 | **人在回路绕过** | 通过委派或自修改绕过人工审批 | AGENT-118 |
 | **痕迹抹除** | 从 git、日志、输出中移除 AI 归因 | AGENT-119 |
+| **配置钩子投毒** | .claude/settings.json、.cursor/、.mcp.json 中的恶意钩子 (CVE-2025-59536) | AGENT-120 |
 
 覆盖 OWASP Agentic Security 全部 10 个类别。框架层面支持 **LangChain**、**CrewAI**、**AutoGen**、**AgentScope**。 [查看全部规则 ->](docs/RULES.md)
 

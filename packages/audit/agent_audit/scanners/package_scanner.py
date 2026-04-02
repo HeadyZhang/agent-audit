@@ -143,6 +143,10 @@ class PackageScanner(BaseScanner):
         if npm_result is not None:
             results.append(npm_result)
 
+        # AGENT-120: Scan AI tool config files for malicious hooks
+        hooks_results = self._scan_ai_tool_hooks(path)
+        results.extend(hooks_results)
+
         return results
 
     def scan_and_convert(self, path: Path) -> List[Finding]:
@@ -566,3 +570,196 @@ class PackageScanner(BaseScanner):
                 "scanner": self.name,
             },
         )
+
+    # ─── AGENT-120: AI Tool Config Hooks Poisoning ──────────────────────
+
+    # AI tool config paths to scan for malicious hooks
+    _AI_TOOL_CONFIG_PATHS = [
+        ".claude/settings.json",
+        ".cursor/settings.json",
+        ".windsurf/settings.json",
+        ".aider/settings.json",
+    ]
+
+    # Dangerous command patterns in hooks
+    _DANGEROUS_HOOK_PATTERNS: List[Tuple[re.Pattern, str, float]] = [
+        # Shell interpreters with inline commands
+        (re.compile(r'\b(powershell|pwsh)\b', re.I), "PowerShell execution", 0.95),
+        (re.compile(r'\bbash\s+-c\b'), "bash -c inline execution", 0.95),
+        (re.compile(r'\bsh\s+-c\b'), "sh -c inline execution", 0.95),
+        (re.compile(r'\bcmd\s+/c\b', re.I), "cmd /c inline execution", 0.95),
+        # Network tools
+        (re.compile(r'\b(curl|wget)\b'), "Network download tool", 0.90),
+        (re.compile(r'\b(nc|ncat|netcat)\b'), "Netcat connection", 0.95),
+        # Scripting inline
+        (re.compile(r'\bpython[23]?\s+-c\b'), "Python inline execution", 0.90),
+        (re.compile(r'\bnode\s+-e\b'), "Node.js inline execution", 0.90),
+        (re.compile(r'\bruby\s+-e\b'), "Ruby inline execution", 0.90),
+        (re.compile(r'\bperl\s+-e\b'), "Perl inline execution", 0.90),
+        # Encoding / obfuscation
+        (re.compile(r'\bbase64\b.*\b(decode|--decode|-d)\b'), "Base64 decode", 0.90),
+        (re.compile(r'\bopenssl\b'), "OpenSSL command", 0.85),
+        # Pipe to shell
+        (re.compile(r'\|\s*(sh|bash|zsh|dash)\b'), "Pipe to shell interpreter", 0.95),
+        # URL patterns in commands
+        (re.compile(r'https?://\S+'), "URL in hook command", 0.80),
+    ]
+
+    def _scan_ai_tool_hooks(self, path: Path) -> List[PackageScanResult]:
+        """Scan AI tool configuration files for malicious hooks (AGENT-120)."""
+        results: List[PackageScanResult] = []
+
+        if not path.is_dir():
+            return results
+
+        for config_rel in self._AI_TOOL_CONFIG_PATHS:
+            config_path = path / config_rel
+            if not config_path.is_file():
+                continue
+
+            try:
+                content = config_path.read_text(encoding="utf-8", errors="ignore")
+                data = json.loads(content)
+            except (json.JSONDecodeError, OSError):
+                continue
+
+            hooks = data.get("hooks", {})
+            if not hooks or not isinstance(hooks, dict):
+                continue
+
+            tool_name = config_rel.split("/")[0]  # .claude, .cursor, etc.
+            pattern_type = f"{tool_name.lstrip('.')}_settings_malicious_hooks"
+            if pattern_type not in (
+                "claude_settings_malicious_hooks",
+                "cursor_settings_malicious_hooks",
+            ):
+                pattern_type = "ai_tool_hooks_poisoning"
+
+            findings: List[PackageFinding] = []
+            lines = content.split("\n")
+
+            for hook_name, hook_entries in hooks.items():
+                if not isinstance(hook_entries, list):
+                    continue
+                for entry in hook_entries:
+                    if not isinstance(entry, dict):
+                        continue
+                    command = entry.get("command", "")
+                    if not command:
+                        continue
+
+                    # Find line number
+                    line_num = 1
+                    for i, line in enumerate(lines, 1):
+                        if command[:40] in line:
+                            line_num = i
+                            break
+
+                    # Check against dangerous patterns
+                    for pattern, desc, confidence in self._DANGEROUS_HOOK_PATTERNS:
+                        if pattern.search(command):
+                            findings.append(PackageFinding(
+                                rule_id="AGENT-120",
+                                title=f"AI Tool Config Hooks Poisoning ({desc})",
+                                description=(
+                                    f"Hook '{hook_name}' in {config_rel} contains "
+                                    f"dangerous command: {desc}. "
+                                    f"Command: {command[:100]}. "
+                                    f"CVE-2025-59536 demonstrated this exact attack vector."
+                                ),
+                                severity=Severity.CRITICAL,
+                                category=Category.SUPPLY_CHAIN_AGENTIC,
+                                confidence=confidence,
+                                line=line_num,
+                                snippet=command[:150],
+                                file_path=str(config_path),
+                                pattern_type=pattern_type,
+                                cwe_id="CWE-78",
+                                owasp_id="ASI-04",
+                                remediation_text=(
+                                    "Review AI tool config hooks before opening untrusted repos. "
+                                    "Add .claude/settings.json to .gitignore."
+                                ),
+                            ))
+                            break  # One finding per command
+
+            if findings:
+                result = PackageScanResult(
+                    source_file=str(config_path),
+                    findings=findings,
+                )
+                results.append(result)
+
+        # Also scan .mcp.json for suspicious commands
+        mcp_results = self._scan_mcp_json_commands(path)
+        results.extend(mcp_results)
+
+        return results
+
+    def _scan_mcp_json_commands(self, path: Path) -> List[PackageScanResult]:
+        """Scan .mcp.json for suspicious command fields (AGENT-120)."""
+        results: List[PackageScanResult] = []
+        mcp_path = path / ".mcp.json"
+
+        if not mcp_path.is_file():
+            return results
+
+        try:
+            content = mcp_path.read_text(encoding="utf-8", errors="ignore")
+            data = json.loads(content)
+        except (json.JSONDecodeError, OSError):
+            return results
+
+        servers = data.get("mcpServers", {})
+        if not servers or not isinstance(servers, dict):
+            return results
+
+        findings: List[PackageFinding] = []
+        lines = content.split("\n")
+
+        for server_name, server_config in servers.items():
+            if not isinstance(server_config, dict):
+                continue
+            command = server_config.get("command", "")
+            if not command:
+                continue
+
+            line_num = 1
+            for i, line in enumerate(lines, 1):
+                if command[:30] in line:
+                    line_num = i
+                    break
+
+            for pattern, desc, confidence in self._DANGEROUS_HOOK_PATTERNS:
+                if pattern.search(command):
+                    findings.append(PackageFinding(
+                        rule_id="AGENT-120",
+                        title=f"MCP Config Suspicious Command ({desc})",
+                        description=(
+                            f"MCP server '{server_name}' in .mcp.json has "
+                            f"suspicious command: {desc}. "
+                            f"Command: {command[:100]}"
+                        ),
+                        severity=Severity.CRITICAL,
+                        category=Category.SUPPLY_CHAIN_AGENTIC,
+                        confidence=confidence,
+                        line=line_num,
+                        snippet=command[:150],
+                        file_path=str(mcp_path),
+                        pattern_type="mcp_json_suspicious_command",
+                        cwe_id="CWE-78",
+                        owasp_id="ASI-04",
+                        remediation_text=(
+                            "Review MCP server commands before trusting. "
+                            "Verify server source and integrity."
+                        ),
+                    ))
+                    break
+
+        if findings:
+            results.append(PackageScanResult(
+                source_file=str(mcp_path),
+                findings=findings,
+            ))
+
+        return results

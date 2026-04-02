@@ -117,6 +117,7 @@ Details: [Benchmark Results](docs/BENCHMARK-RESULTS.md) | [Competitive Compariso
 | **Auto-approve all tools** | Agent auto-approves tool execution without safety classification | AGENT-117 |
 | **HITL bypass** | Human-in-the-loop approval bypassed via delegation or self-modification | AGENT-118 |
 | **Trace suppression** | AI attribution removed from git commits, logs, or outputs | AGENT-119 |
+| **Config hooks poisoning** | Malicious hooks in .claude/settings.json, .cursor/, .mcp.json (CVE-2025-59536) | AGENT-120 |
 
 Full coverage of all 10 OWASP Agentic Security categories. Framework-specific detection for **LangChain**, **CrewAI**, **AutoGen**, and **AgentScope**. [See all rules ->](docs/RULES.md)
 

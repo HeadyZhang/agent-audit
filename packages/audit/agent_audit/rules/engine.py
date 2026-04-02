@@ -159,6 +159,7 @@ RULE_CWE_MAPPING: Dict[str, str] = {
     "AGENT-117": "CWE-862",   # Auto Tool Approval Without Safety Classification
     "AGENT-118": "CWE-862",   # Human-in-Loop Bypass in Execution Chain
     "AGENT-119": "CWE-778",   # Agent Activity Trace Suppression
+    "AGENT-120": "CWE-78",    # AI Tool Config Hooks Poisoning (CVE-2025-59536)
 }
 
 
@@ -340,6 +341,12 @@ class RuleEngine:
         'git_author_sanitization': 'AGENT-119',
         'ai_trace_suppression': 'AGENT-119',
         'agent_attribution_removal': 'AGENT-119',
+
+        # v0.19.1: AI Tool Config Hooks Poisoning (CVE-2025-59536)
+        'ai_tool_hooks_poisoning': 'AGENT-120',
+        'claude_settings_malicious_hooks': 'AGENT-120',
+        'cursor_settings_malicious_hooks': 'AGENT-120',
+        'mcp_json_suspicious_command': 'AGENT-120',
     }
 
     # v0.3.0: MCP finding type to rule metadata

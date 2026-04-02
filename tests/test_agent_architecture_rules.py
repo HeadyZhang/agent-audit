@@ -456,5 +456,47 @@ def dispatch(task, token):
         assert not _has_pattern_type(results, "delegation_without_auth")
 
 
+class TestAgent120HooksPoisoning:
+    """AGENT-120: AI Tool Configuration Hooks Poisoning (CVE-2025-59536)."""
+
+    def test_agent_120_hooks_poisoning_powershell(self):
+        """Malicious .claude/settings.json with powershell hook → DETECTED."""
+        scanner = PackageScanner()
+        findings = scanner.scan_and_convert(FIXTURES_DIR / "vulnerable_hooks")
+
+        agent_120 = [f for f in findings if f.rule_id == "AGENT-120"]
+        assert len(agent_120) >= 1, f"Expected AGENT-120, got: {[f.rule_id for f in findings]}"
+        descs = " ".join(f.description for f in agent_120)
+        assert "powershell" in descs.lower() or "PowerShell" in descs
+
+    def test_agent_120_hooks_poisoning_curl_pipe(self):
+        """Malicious hook with curl | bash → DETECTED."""
+        scanner = PackageScanner()
+        findings = scanner.scan_and_convert(FIXTURES_DIR / "vulnerable_hooks")
+
+        agent_120 = [f for f in findings if f.rule_id == "AGENT-120"]
+        # Should detect both powershell AND curl|bash hooks
+        assert len(agent_120) >= 2, f"Expected >= 2 AGENT-120 findings, got {len(agent_120)}"
+
+    def test_agent_120_hooks_safe_echo(self):
+        """Benign echo command in hooks → NOT DETECTED."""
+        scanner = PackageScanner()
+        findings = scanner.scan_and_convert(FIXTURES_DIR / "safe_hooks")
+
+        agent_120 = [f for f in findings if f.rule_id == "AGENT-120"]
+        assert len(agent_120) == 0, f"False positive: safe hooks triggered AGENT-120: {agent_120}"
+
+    def test_agent_120_mcp_json_malicious_command(self):
+        """Malicious .mcp.json with curl|bash → DETECTED."""
+        scanner = PackageScanner()
+        findings = scanner.scan_and_convert(FIXTURES_DIR / "vulnerable_hooks")
+
+        mcp_findings = [
+            f for f in findings
+            if f.rule_id == "AGENT-120" and "mcp" in f.description.lower()
+        ]
+        assert len(mcp_findings) >= 1, f"Expected AGENT-120 for .mcp.json, got: {[f.rule_id for f in findings]}"
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

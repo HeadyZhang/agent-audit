@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.19.1] - 2026-04-01
+
+### Added
+- **AGENT-120** (CWE-78): AI Tool Configuration Hooks Poisoning — detects malicious hooks in .claude/settings.json, .cursor/settings.json, .mcp.json. Ref: CVE-2025-59536 (CVSS 8.7)
+
 ## [0.19.0] - 2026-03-31
 
 ### Added — Agent Architecture Security Rules

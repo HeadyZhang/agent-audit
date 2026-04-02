@@ -60,6 +60,7 @@ This document provides a comprehensive reference for all agent-audit security ru
 | [AGENT-117](#agent-117-auto-approve) | CRITICAL | CWE-862 | ASI-03 | Automatic Tool Permission Approval Without Safety Classification |
 | [AGENT-118](#agent-118-hitl-bypass) | CRITICAL | CWE-862 | ASI-09 | Human-in-the-Loop Bypass in Execution Chain |
 | [AGENT-119](#agent-119-trace-suppression) | HIGH | CWE-778 | ASI-09 | Agent Activity Trace Suppression |
+| [AGENT-120](#agent-120-hooks-poisoning) | CRITICAL | CWE-78 | ASI-04 | AI Tool Configuration Hooks Poisoning (CVE-2025-59536) |
 
 ---
 
