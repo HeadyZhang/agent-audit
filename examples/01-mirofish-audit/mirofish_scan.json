@@ -1,0 +1,1325 @@
+{
+  "version": "0.18.2",
+  "scan_timestamp": "2026-04-06T23:25:16.695948",
+  "scan_path": "/tmp/MiroFish",
+  "scanned_files": 35,
+  "summary": {
+    "total": 30,
+    "actionable": 30,
+    "suppressed": 0,
+    "by_severity": {
+      "critical": 14,
+      "high": 14,
+      "low": 2
+    },
+    "by_category": {
+      "goal_hijack": 14,
+      "tool_misuse": 9,
+      "excessive_permission": 5,
+      "supply_chain_agentic": 2
+    },
+    "by_tier": {
+      "BLOCK": 15,
+      "WARN": 10,
+      "INFO": 5,
+      "SUPPRESSED": 0
+    },
+    "risk_score": 9.2,
+    "risk_label": "HIGH"
+  },
+  "findings": [
+    {
+      "rule_id": "AGENT-010",
+      "title": "System Prompt Injection Vector in User Input Path",
+      "description": "User-controlled input is concatenated directly into system prompts or agent instructions without sanitization. This enables Agent Goal Hijack (ASI-01) where attackers can redirect the agent's planning and objectives.\n",
+      "severity": "critical",
+      "category": "goal_hijack",
+      "location": {
+        "file_path": "/tmp/MiroFish/backend/app/api/simulation.py",
+        "start_line": 43,
+        "end_line": 43,
+        "start_column": null,
+        "end_column": null,
+        "snippet": "return f\"{INTERVIEW_PROMPT_PREFIX}{prompt}\""
+      },
+      "confidence": 1.0,
+      "tier": "BLOCK",
+      "suppressed": false,
+      "suppressed_reason": null,
+      "suppressed_by": null,
+      "needs_review": false,
+      "cwe_id": "CWE-74",
+      "owasp_id": "ASI-01",
+      "asi_categories": [
+        "ASI-01"
+      ],
+      "remediation": {
+        "description": "Never concatenate user input directly into system prompts. Use structured prompt templates with clear separation between system instructions and user data. Implement input validation and sanitization before passing to any prompt template.\n",
+        "code_example": "# BAD: Direct concatenation\nprompt = f\"You are an agent. User says: {user_input}\"\n\n# GOOD: Structured separation\nmessages = [\n    SystemMessage(content=\"You are a helpful agent.\"),\n    HumanMessage(content=sanitize(user_input))\n]\n",
+        "reference_url": "https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/"
+      },
+      "metadata": {},
+      "detected_at": "2026-04-06T23:25:16.205277",
+      "reason": "User-controlled input is concatenated directly into system prompts or agent instructions without sanitization. This enables Agent Goal Hijack (ASI-01) where attackers can redirect the agent's planning and objectives.\n"
+    },
+    {
+      "rule_id": "AGENT-010",
+      "title": "System Prompt Injection Vector in User Input Path",
+      "description": "User-controlled input is concatenated directly into system prompts or agent instructions without sanitization. This enables Agent Goal Hijack (ASI-01) where attackers can redirect the agent's planning and objectives.\n",
+      "severity": "critical",
+      "category": "goal_hijack",
+      "location": {
+        "file_path": "/tmp/MiroFish/backend/app/services/report_agent.py",
+        "start_line": 1166,
+        "end_line": 1166,
+        "start_column": null,
+        "end_column": null,
+        "snippet": "system_prompt = f\"{PLAN_SYSTEM_PROMPT}\\n\\n{get_language_instruction()}\""
+      },
+      "confidence": 1.0,
+      "tier": "BLOCK",
+      "suppressed": false,
+      "suppressed_reason": null,
+      "suppressed_by": null,
+      "needs_review": false,
+      "cwe_id": "CWE-74",
+      "owasp_id": "ASI-01",
+      "asi_categories": [
+        "ASI-01"
+      ],
+      "remediation": {
+        "description": "Never concatenate user input directly into system prompts. Use structured prompt templates with clear separation between system instructions and user data. Implement input validation and sanitization before passing to any prompt template.\n",
+        "code_example": "# BAD: Direct concatenation\nprompt = f\"You are an agent. User says: {user_input}\"\n\n# GOOD: Structured separation\nmessages = [\n    SystemMessage(content=\"You are a helpful agent.\"),\n    HumanMessage(content=sanitize(user_input))\n]\n",
+        "reference_url": "https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/"
+      },
+      "metadata": {},
+      "detected_at": "2026-04-06T23:25:16.206127",
+      "reason": "User-controlled input is concatenated directly into system prompts or agent instructions without sanitization. This enables Agent Goal Hijack (ASI-01) where attackers can redirect the agent's planning and objectives.\n"
+    },
+    {
+      "rule_id": "AGENT-010",
+      "title": "System Prompt Injection Vector in User Input Path",
+      "description": "User-controlled input is concatenated directly into system prompts or agent instructions without sanitization. This enables Agent Goal Hijack (ASI-01) where attackers can redirect the agent's planning and objectives.\n",
+      "severity": "critical",
+      "category": "goal_hijack",
+      "location": {
+        "file_path": "/tmp/MiroFish/backend/app/services/report_agent.py",
+        "start_line": 1255,
+        "end_line": 1255,
+        "start_column": null,
+        "end_column": null,
+        "snippet": "system_prompt = SECTION_SYSTEM_PROMPT_TEMPLATE.format("
+      },
+      "confidence": 1.0,
+      "tier": "BLOCK",
+      "suppressed": false,
+      "suppressed_reason": null,
+      "suppressed_by": null,
+      "needs_review": false,
+      "cwe_id": "CWE-74",
+      "owasp_id": "ASI-01",
+      "asi_categories": [
+        "ASI-01"
+      ],
+      "remediation": {
+        "description": "Never concatenate user input directly into system prompts. Use structured prompt templates with clear separation between system instructions and user data. Implement input validation and sanitization before passing to any prompt template.\n",
+        "code_example": "# BAD: Direct concatenation\nprompt = f\"You are an agent. User says: {user_input}\"\n\n# GOOD: Structured separation\nmessages = [\n    SystemMessage(content=\"You are a helpful agent.\"),\n    HumanMessage(content=sanitize(user_input))\n]\n",
+        "reference_url": "https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/"
+      },
+      "metadata": {},
+      "detected_at": "2026-04-06T23:25:16.206160",
+      "reason": "User-controlled input is concatenated directly into system prompts or agent instructions without sanitization. This enables Agent Goal Hijack (ASI-01) where attackers can redirect the agent's planning and objectives.\n"
+    },
+    {
+      "rule_id": "AGENT-010",
+      "title": "System Prompt Injection Vector in User Input Path",
+      "description": "User-controlled input is concatenated directly into system prompts or agent instructions without sanitization. This enables Agent Goal Hijack (ASI-01) where attackers can redirect the agent's planning and objectives.\n",
+      "severity": "critical",
+      "category": "goal_hijack",
+      "location": {
+        "file_path": "/tmp/MiroFish/backend/app/services/report_agent.py",
+        "start_line": 1262,
+        "end_line": 1262,
+        "start_column": null,
+        "end_column": null,
+        "snippet": "system_prompt = f\"{system_prompt}\\n\\n{get_language_instruction()}\""
+      },
+      "confidence": 1.0,
+      "tier": "BLOCK",
+      "suppressed": false,
+      "suppressed_reason": null,
+      "suppressed_by": null,
+      "needs_review": false,
+      "cwe_id": "CWE-74",
+      "owasp_id": "ASI-01",
+      "asi_categories": [
+        "ASI-01"
+      ],
+      "remediation": {
+        "description": "Never concatenate user input directly into system prompts. Use structured prompt templates with clear separation between system instructions and user data. Implement input validation and sanitization before passing to any prompt template.\n",
+        "code_example": "# BAD: Direct concatenation\nprompt = f\"You are an agent. User says: {user_input}\"\n\n# GOOD: Structured separation\nmessages = [\n    SystemMessage(content=\"You are a helpful agent.\"),\n    HumanMessage(content=sanitize(user_input))\n]\n",
+        "reference_url": "https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/"
+      },
+      "metadata": {},
+      "detected_at": "2026-04-06T23:25:16.206192",
+      "reason": "User-controlled input is concatenated directly into system prompts or agent instructions without sanitization. This enables Agent Goal Hijack (ASI-01) where attackers can redirect the agent's planning and objectives.\n"
+    },
+    {
+      "rule_id": "AGENT-010",
+      "title": "System Prompt Injection Vector in User Input Path",
+      "description": "User-controlled input is concatenated directly into system prompts or agent instructions without sanitization. This enables Agent Goal Hijack (ASI-01) where attackers can redirect the agent's planning and objectives.\n",
+      "severity": "critical",
+      "category": "goal_hijack",
+      "location": {
+        "file_path": "/tmp/MiroFish/backend/app/services/report_agent.py",
+        "start_line": 1803,
+        "end_line": 1803,
+        "start_column": null,
+        "end_column": null,
+        "snippet": "system_prompt = CHAT_SYSTEM_PROMPT_TEMPLATE.format("
+      },
+      "confidence": 1.0,
+      "tier": "BLOCK",
+      "suppressed": false,
+      "suppressed_reason": null,
+      "suppressed_by": null,
+      "needs_review": false,
+      "cwe_id": "CWE-74",
+      "owasp_id": "ASI-01",
+      "asi_categories": [
+        "ASI-01"
+      ],
+      "remediation": {
+        "description": "Never concatenate user input directly into system prompts. Use structured prompt templates with clear separation between system instructions and user data. Implement input validation and sanitization before passing to any prompt template.\n",
+        "code_example": "# BAD: Direct concatenation\nprompt = f\"You are an agent. User says: {user_input}\"\n\n# GOOD: Structured separation\nmessages = [\n    SystemMessage(content=\"You are a helpful agent.\"),\n    HumanMessage(content=sanitize(user_input))\n]\n",
+        "reference_url": "https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/"
+      },
+      "metadata": {},
+      "detected_at": "2026-04-06T23:25:16.206224",
+      "reason": "User-controlled input is concatenated directly into system prompts or agent instructions without sanitization. This enables Agent Goal Hijack (ASI-01) where attackers can redirect the agent's planning and objectives.\n"
+    },
+    {
+      "rule_id": "AGENT-010",
+      "title": "System Prompt Injection Vector in User Input Path",
+      "description": "User-controlled input is concatenated directly into system prompts or agent instructions without sanitization. This enables Agent Goal Hijack (ASI-01) where attackers can redirect the agent's planning and objectives.\n",
+      "severity": "critical",
+      "category": "goal_hijack",
+      "location": {
+        "file_path": "/tmp/MiroFish/backend/app/services/report_agent.py",
+        "start_line": 1808,
+        "end_line": 1808,
+        "start_column": null,
+        "end_column": null,
+        "snippet": "system_prompt = f\"{system_prompt}\\n\\n{get_language_instruction()}\""
+      },
+      "confidence": 1.0,
+      "tier": "BLOCK",
+      "suppressed": false,
+      "suppressed_reason": null,
+      "suppressed_by": null,
+      "needs_review": false,
+      "cwe_id": "CWE-74",
+      "owasp_id": "ASI-01",
+      "asi_categories": [
+        "ASI-01"
+      ],
+      "remediation": {
+        "description": "Never concatenate user input directly into system prompts. Use structured prompt templates with clear separation between system instructions and user data. Implement input validation and sanitization before passing to any prompt template.\n",
+        "code_example": "# BAD: Direct concatenation\nprompt = f\"You are an agent. User says: {user_input}\"\n\n# GOOD: Structured separation\nmessages = [\n    SystemMessage(content=\"You are a helpful agent.\"),\n    HumanMessage(content=sanitize(user_input))\n]\n",
+        "reference_url": "https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/"
+      },
+      "metadata": {},
+      "detected_at": "2026-04-06T23:25:16.206256",
+      "reason": "User-controlled input is concatenated directly into system prompts or agent instructions without sanitization. This enables Agent Goal Hijack (ASI-01) where attackers can redirect the agent's planning and objectives.\n"
+    },
+    {
+      "rule_id": "AGENT-010",
+      "title": "System Prompt Injection Vector in User Input Path",
+      "description": "User-controlled input is concatenated directly into system prompts or agent instructions without sanitization. This enables Agent Goal Hijack (ASI-01) where attackers can redirect the agent's planning and objectives.\n",
+      "severity": "critical",
+      "category": "goal_hijack",
+      "location": {
+        "file_path": "/tmp/MiroFish/backend/app/services/zep_tools.py",
+        "start_line": 1699,
+        "end_line": 1699,
+        "start_column": null,
+        "end_column": null,
+        "snippet": "system_prompt = f\"\"\"\u4f60\u662f\u4e00\u4e2a\u4e13\u4e1a\u7684\u65b0\u95fb\u7f16\u8f91\u3002\u8bf7\u6839\u636e\u591a\u4f4d\u53d7\u8bbf\u8005\u7684\u56de\u7b54\uff0c\u751f\u6210\u4e00\u4efd\u91c7\u8bbf\u6458\u8981\u3002"
+      },
+      "confidence": 1.0,
+      "tier": "BLOCK",
+      "suppressed": false,
+      "suppressed_reason": null,
+      "suppressed_by": null,
+      "needs_review": false,
+      "cwe_id": "CWE-74",
+      "owasp_id": "ASI-01",
+      "asi_categories": [
+        "ASI-01"
+      ],
+      "remediation": {
+        "description": "Never concatenate user input directly into system prompts. Use structured prompt templates with clear separation between system instructions and user data. Implement input validation and sanitization before passing to any prompt template.\n",
+        "code_example": "# BAD: Direct concatenation\nprompt = f\"You are an agent. User says: {user_input}\"\n\n# GOOD: Structured separation\nmessages = [\n    SystemMessage(content=\"You are a helpful agent.\"),\n    HumanMessage(content=sanitize(user_input))\n]\n",
+        "reference_url": "https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/"
+      },
+      "metadata": {},
+      "detected_at": "2026-04-06T23:25:16.206711",
+      "reason": "User-controlled input is concatenated directly into system prompts or agent instructions without sanitization. This enables Agent Goal Hijack (ASI-01) where attackers can redirect the agent's planning and objectives.\n"
+    },
+    {
+      "rule_id": "AGENT-010",
+      "title": "System Prompt Injection Vector in User Input Path",
+      "description": "User-controlled input is concatenated directly into system prompts or agent instructions without sanitization. This enables Agent Goal Hijack (ASI-01) where attackers can redirect the agent's planning and objectives.\n",
+      "severity": "critical",
+      "category": "goal_hijack",
+      "location": {
+        "file_path": "/tmp/MiroFish/backend/app/services/oasis_profile_generator.py",
+        "start_line": 675,
+        "end_line": 675,
+        "start_column": null,
+        "end_column": null,
+        "snippet": "return f\"{base_prompt}\\n\\n{get_language_instruction()}\""
+      },
+      "confidence": 1.0,
+      "tier": "BLOCK",
+      "suppressed": false,
+      "suppressed_reason": null,
+      "suppressed_by": null,
+      "needs_review": false,
+      "cwe_id": "CWE-74",
+      "owasp_id": "ASI-01",
+      "asi_categories": [
+        "ASI-01"
+      ],
+      "remediation": {
+        "description": "Never concatenate user input directly into system prompts. Use structured prompt templates with clear separation between system instructions and user data. Implement input validation and sanitization before passing to any prompt template.\n",
+        "code_example": "# BAD: Direct concatenation\nprompt = f\"You are an agent. User says: {user_input}\"\n\n# GOOD: Structured separation\nmessages = [\n    SystemMessage(content=\"You are a helpful agent.\"),\n    HumanMessage(content=sanitize(user_input))\n]\n",
+        "reference_url": "https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/"
+      },
+      "metadata": {},
+      "detected_at": "2026-04-06T23:25:16.206870",
+      "reason": "User-controlled input is concatenated directly into system prompts or agent instructions without sanitization. This enables Agent Goal Hijack (ASI-01) where attackers can redirect the agent's planning and objectives.\n"
+    },
+    {
+      "rule_id": "AGENT-010",
+      "title": "System Prompt Injection Vector in User Input Path",
+      "description": "User-controlled input is concatenated directly into system prompts or agent instructions without sanitization. This enables Agent Goal Hijack (ASI-01) where attackers can redirect the agent's planning and objectives.\n",
+      "severity": "critical",
+      "category": "goal_hijack",
+      "location": {
+        "file_path": "/tmp/MiroFish/backend/app/services/oasis_profile_generator.py",
+        "start_line": 690,
+        "end_line": 690,
+        "start_column": null,
+        "end_column": null,
+        "snippet": "return f\"\"\"\u4e3a\u5b9e\u4f53\u751f\u6210\u8be6\u7ec6\u7684\u793e\u4ea4\u5a92\u4f53\u7528\u6237\u4eba\u8bbe,\u6700\u5927\u7a0b\u5ea6\u8fd8\u539f\u5df2\u6709\u73b0\u5b9e\u60c5\u51b5\u3002"
+      },
+      "confidence": 1.0,
+      "tier": "BLOCK",
+      "suppressed": false,
+      "suppressed_reason": null,
+      "suppressed_by": null,
+      "needs_review": false,
+      "cwe_id": "CWE-74",
+      "owasp_id": "ASI-01",
+      "asi_categories": [
+        "ASI-01"
+      ],
+      "remediation": {
+        "description": "Never concatenate user input directly into system prompts. Use structured prompt templates with clear separation between system instructions and user data. Implement input validation and sanitization before passing to any prompt template.\n",
+        "code_example": "# BAD: Direct concatenation\nprompt = f\"You are an agent. User says: {user_input}\"\n\n# GOOD: Structured separation\nmessages = [\n    SystemMessage(content=\"You are a helpful agent.\"),\n    HumanMessage(content=sanitize(user_input))\n]\n",
+        "reference_url": "https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/"
+      },
+      "metadata": {},
+      "detected_at": "2026-04-06T23:25:16.206908",
+      "reason": "User-controlled input is concatenated directly into system prompts or agent instructions without sanitization. This enables Agent Goal Hijack (ASI-01) where attackers can redirect the agent's planning and objectives.\n"
+    },
+    {
+      "rule_id": "AGENT-010",
+      "title": "System Prompt Injection Vector in User Input Path",
+      "description": "User-controlled input is concatenated directly into system prompts or agent instructions without sanitization. This enables Agent Goal Hijack (ASI-01) where attackers can redirect the agent's planning and objectives.\n",
+      "severity": "critical",
+      "category": "goal_hijack",
+      "location": {
+        "file_path": "/tmp/MiroFish/backend/app/services/oasis_profile_generator.py",
+        "start_line": 739,
+        "end_line": 739,
+        "start_column": null,
+        "end_column": null,
+        "snippet": "return f\"\"\"\u4e3a\u673a\u6784/\u7fa4\u4f53\u5b9e\u4f53\u751f\u6210\u8be6\u7ec6\u7684\u793e\u4ea4\u5a92\u4f53\u8d26\u53f7\u8bbe\u5b9a,\u6700\u5927\u7a0b\u5ea6\u8fd8\u539f\u5df2\u6709\u73b0\u5b9e\u60c5\u51b5\u3002"
+      },
+      "confidence": 1.0,
+      "tier": "BLOCK",
+      "suppressed": false,
+      "suppressed_reason": null,
+      "suppressed_by": null,
+      "needs_review": false,
+      "cwe_id": "CWE-74",
+      "owasp_id": "ASI-01",
+      "asi_categories": [
+        "ASI-01"
+      ],
+      "remediation": {
+        "description": "Never concatenate user input directly into system prompts. Use structured prompt templates with clear separation between system instructions and user data. Implement input validation and sanitization before passing to any prompt template.\n",
+        "code_example": "# BAD: Direct concatenation\nprompt = f\"You are an agent. User says: {user_input}\"\n\n# GOOD: Structured separation\nmessages = [\n    SystemMessage(content=\"You are a helpful agent.\"),\n    HumanMessage(content=sanitize(user_input))\n]\n",
+        "reference_url": "https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/"
+      },
+      "metadata": {},
+      "detected_at": "2026-04-06T23:25:16.206946",
+      "reason": "User-controlled input is concatenated directly into system prompts or agent instructions without sanitization. This enables Agent Goal Hijack (ASI-01) where attackers can redirect the agent's planning and objectives.\n"
+    },
+    {
+      "rule_id": "AGENT-010",
+      "title": "System Prompt Injection Vector in User Input Path",
+      "description": "User-controlled input is concatenated directly into system prompts or agent instructions without sanitization. This enables Agent Goal Hijack (ASI-01) where attackers can redirect the agent's planning and objectives.\n",
+      "severity": "critical",
+      "category": "goal_hijack",
+      "location": {
+        "file_path": "/tmp/MiroFish/backend/app/services/ontology_generator.py",
+        "start_line": 210,
+        "end_line": 210,
+        "start_column": null,
+        "end_column": null,
+        "snippet": "system_prompt = f\"{ONTOLOGY_SYSTEM_PROMPT}\\n\\n{lang_instruction}\\nIMPORTANT: Entity type names MUST be in English PascalCase (e.g., 'PersonEntity', 'MediaOrganization'). Relationship type names MUST be in English UPPER_SNAKE_CASE (e.g., 'WORKS_FOR'). Attribute names MUST be in English snake_case. Only description fields and analysis_summary should use the specified language above.\""
+      },
+      "confidence": 1.0,
+      "tier": "BLOCK",
+      "suppressed": false,
+      "suppressed_reason": null,
+      "suppressed_by": null,
+      "needs_review": false,
+      "cwe_id": "CWE-74",
+      "owasp_id": "ASI-01",
+      "asi_categories": [
+        "ASI-01"
+      ],
+      "remediation": {
+        "description": "Never concatenate user input directly into system prompts. Use structured prompt templates with clear separation between system instructions and user data. Implement input validation and sanitization before passing to any prompt template.\n",
+        "code_example": "# BAD: Direct concatenation\nprompt = f\"You are an agent. User says: {user_input}\"\n\n# GOOD: Structured separation\nmessages = [\n    SystemMessage(content=\"You are a helpful agent.\"),\n    HumanMessage(content=sanitize(user_input))\n]\n",
+        "reference_url": "https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/"
+      },
+      "metadata": {},
+      "detected_at": "2026-04-06T23:25:16.207068",
+      "reason": "User-controlled input is concatenated directly into system prompts or agent instructions without sanitization. This enables Agent Goal Hijack (ASI-01) where attackers can redirect the agent's planning and objectives.\n"
+    },
+    {
+      "rule_id": "AGENT-010",
+      "title": "System Prompt Injection Vector in User Input Path",
+      "description": "User-controlled input is concatenated directly into system prompts or agent instructions without sanitization. This enables Agent Goal Hijack (ASI-01) where attackers can redirect the agent's planning and objectives.\n",
+      "severity": "critical",
+      "category": "goal_hijack",
+      "location": {
+        "file_path": "/tmp/MiroFish/backend/app/services/simulation_config_generator.py",
+        "start_line": 589,
+        "end_line": 589,
+        "start_column": null,
+        "end_column": null,
+        "snippet": "system_prompt = f\"{system_prompt}\\n\\n{get_language_instruction()}\""
+      },
+      "confidence": 1.0,
+      "tier": "BLOCK",
+      "suppressed": false,
+      "suppressed_reason": null,
+      "suppressed_by": null,
+      "needs_review": false,
+      "cwe_id": "CWE-74",
+      "owasp_id": "ASI-01",
+      "asi_categories": [
+        "ASI-01"
+      ],
+      "remediation": {
+        "description": "Never concatenate user input directly into system prompts. Use structured prompt templates with clear separation between system instructions and user data. Implement input validation and sanitization before passing to any prompt template.\n",
+        "code_example": "# BAD: Direct concatenation\nprompt = f\"You are an agent. User says: {user_input}\"\n\n# GOOD: Structured separation\nmessages = [\n    SystemMessage(content=\"You are a helpful agent.\"),\n    HumanMessage(content=sanitize(user_input))\n]\n",
+        "reference_url": "https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/"
+      },
+      "metadata": {},
+      "detected_at": "2026-04-06T23:25:16.207355",
+      "reason": "User-controlled input is concatenated directly into system prompts or agent instructions without sanitization. This enables Agent Goal Hijack (ASI-01) where attackers can redirect the agent's planning and objectives.\n"
+    },
+    {
+      "rule_id": "AGENT-010",
+      "title": "System Prompt Injection Vector in User Input Path",
+      "description": "User-controlled input is concatenated directly into system prompts or agent instructions without sanitization. This enables Agent Goal Hijack (ASI-01) where attackers can redirect the agent's planning and objectives.\n",
+      "severity": "critical",
+      "category": "goal_hijack",
+      "location": {
+        "file_path": "/tmp/MiroFish/backend/app/services/simulation_config_generator.py",
+        "start_line": 706,
+        "end_line": 706,
+        "start_column": null,
+        "end_column": null,
+        "snippet": "system_prompt = f\"{system_prompt}\\n\\n{get_language_instruction()}\\nIMPORTANT: The 'poster_type' field value MUST be in English PascalCase exactly matching the available entity types. Only 'content', 'narrative_direction', 'hot_topics' and 'reasoning' fields should use the specified language.\""
+      },
+      "confidence": 1.0,
+      "tier": "BLOCK",
+      "suppressed": false,
+      "suppressed_reason": null,
+      "suppressed_by": null,
+      "needs_review": false,
+      "cwe_id": "CWE-74",
+      "owasp_id": "ASI-01",
+      "asi_categories": [
+        "ASI-01"
+      ],
+      "remediation": {
+        "description": "Never concatenate user input directly into system prompts. Use structured prompt templates with clear separation between system instructions and user data. Implement input validation and sanitization before passing to any prompt template.\n",
+        "code_example": "# BAD: Direct concatenation\nprompt = f\"You are an agent. User says: {user_input}\"\n\n# GOOD: Structured separation\nmessages = [\n    SystemMessage(content=\"You are a helpful agent.\"),\n    HumanMessage(content=sanitize(user_input))\n]\n",
+        "reference_url": "https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/"
+      },
+      "metadata": {},
+      "detected_at": "2026-04-06T23:25:16.207394",
+      "reason": "User-controlled input is concatenated directly into system prompts or agent instructions without sanitization. This enables Agent Goal Hijack (ASI-01) where attackers can redirect the agent's planning and objectives.\n"
+    },
+    {
+      "rule_id": "AGENT-010",
+      "title": "System Prompt Injection Vector in User Input Path",
+      "description": "User-controlled input is concatenated directly into system prompts or agent instructions without sanitization. This enables Agent Goal Hijack (ASI-01) where attackers can redirect the agent's planning and objectives.\n",
+      "severity": "critical",
+      "category": "goal_hijack",
+      "location": {
+        "file_path": "/tmp/MiroFish/backend/app/services/simulation_config_generator.py",
+        "start_line": 870,
+        "end_line": 870,
+        "start_column": null,
+        "end_column": null,
+        "snippet": "system_prompt = f\"{system_prompt}\\n\\n{get_language_instruction()}\\nIMPORTANT: The 'stance' field value MUST be one of the English strings: 'supportive', 'opposing', 'neutral', 'observer'. All JSON field names and numeric values must remain unchanged. Only natural language text fields should use the specified language.\""
+      },
+      "confidence": 1.0,
+      "tier": "BLOCK",
+      "suppressed": false,
+      "suppressed_reason": null,
+      "suppressed_by": null,
+      "needs_review": false,
+      "cwe_id": "CWE-74",
+      "owasp_id": "ASI-01",
+      "asi_categories": [
+        "ASI-01"
+      ],
+      "remediation": {
+        "description": "Never concatenate user input directly into system prompts. Use structured prompt templates with clear separation between system instructions and user data. Implement input validation and sanitization before passing to any prompt template.\n",
+        "code_example": "# BAD: Direct concatenation\nprompt = f\"You are an agent. User says: {user_input}\"\n\n# GOOD: Structured separation\nmessages = [\n    SystemMessage(content=\"You are a helpful agent.\"),\n    HumanMessage(content=sanitize(user_input))\n]\n",
+        "reference_url": "https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/"
+      },
+      "metadata": {},
+      "detected_at": "2026-04-06T23:25:16.207433",
+      "reason": "User-controlled input is concatenated directly into system prompts or agent instructions without sanitization. This enables Agent Goal Hijack (ASI-01) where attackers can redirect the agent's planning and objectives.\n"
+    },
+    {
+      "rule_id": "AGENT-034",
+      "title": "Tool Function Without Input Validation",
+      "description": "A tool function accepts string or Any parameters without performing input validation in the function body. This enables tool misuse where attackers can pass malicious inputs to trigger unauthorized actions.\n",
+      "severity": "high",
+      "category": "tool_misuse",
+      "location": {
+        "file_path": "/tmp/MiroFish/backend/app/services/simulation_runner.py",
+        "start_line": 438,
+        "end_line": 438,
+        "start_column": null,
+        "end_column": null,
+        "snippet": "process = subprocess.Popen("
+      },
+      "confidence": 0.95,
+      "tier": "BLOCK",
+      "suppressed": false,
+      "suppressed_reason": null,
+      "suppressed_by": null,
+      "needs_review": false,
+      "cwe_id": "CWE-20",
+      "owasp_id": "ASI-02",
+      "asi_categories": [
+        "ASI-02"
+      ],
+      "remediation": {
+        "description": "Add input validation at the start of tool functions. Use isinstance() checks, regex validation, or pydantic Field constraints to ensure inputs are safe before processing.\n",
+        "code_example": "# BAD: No validation\n@tool\ndef run_query(query: str) -> str:\n    return cursor.execute(query)\n\n# GOOD: With validation\n@tool\ndef run_query(query: str) -> str:\n    if not isinstance(query, str) or len(query) > 1000:\n        raise ValueError(\"Invalid query\")\n    if not re.match(r\"^SELECT \", query, re.IGNORECASE):\n        raise ValueError(\"Only SELECT queries allowed\")\n    return cursor.execute(query)\n",
+        "reference_url": "https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/"
+      },
+      "metadata": {
+        "taint_analysis": {
+          "dangerous_flows": [
+            {
+              "var": "simulation_id",
+              "sink": "subprocess.Popen",
+              "sink_type": "shell_execution",
+              "source": "user_input",
+              "line": 438,
+              "path": [
+                "simulation_id",
+                "sim_dir"
+              ],
+              "confidence": 0.85
+            },
+            {
+              "var": "simulation_id",
+              "sink": "open",
+              "sink_type": "shell_execution",
+              "source": "user_input",
+              "line": 346,
+              "path": [
+                "simulation_id",
+                "sim_dir",
+                "config_path"
+              ],
+              "confidence": 0.8
+            },
+            {
+              "var": "simulation_id",
+              "sink": "open",
+              "sink_type": "shell_execution",
+              "source": "user_input",
+              "line": 428,
+              "path": [
+                "simulation_id",
+                "sim_dir",
+                "main_log_path"
+              ],
+              "confidence": 0.8
+            },
+            {
+              "var": "simulation_id",
+              "sink": "subprocess.Popen",
+              "sink_type": "shell_execution",
+              "source": "user_input",
+              "line": 438,
+              "path": [
+                "simulation_id",
+                "sim_dir",
+                "main_log_path",
+                "main_log_file"
+              ],
+              "confidence": 0.75
+            },
+            {
+              "var": "sim_dir",
+              "sink": "subprocess.Popen",
+              "sink_type": "shell_execution",
+              "source": "user_input",
+              "line": 438,
+              "path": [
+                "sim_dir"
+              ],
+              "confidence": 0.85
+            },
+            {
+              "var": "sim_dir",
+              "sink": "open",
+              "sink_type": "shell_execution",
+              "source": "user_input",
+              "line": 346,
+              "path": [
+                "sim_dir",
+                "config_path"
+              ],
+              "confidence": 0.7999999999999999
+            },
+            {
+              "var": "sim_dir",
+              "sink": "open",
+              "sink_type": "shell_execution",
+              "source": "user_input",
+              "line": 428,
+              "path": [
+                "sim_dir",
+                "main_log_path"
+              ],
+              "confidence": 0.7999999999999999
+            },
+            {
+              "var": "sim_dir",
+              "sink": "subprocess.Popen",
+              "sink_type": "shell_execution",
+              "source": "user_input",
+              "line": 438,
+              "path": [
+                "sim_dir",
+                "main_log_path",
+                "main_log_file"
+              ],
+              "confidence": 0.75
+            },
+            {
+              "var": "config_path",
+              "sink": "open",
+              "sink_type": "shell_execution",
+              "source": "user_input",
+              "line": 346,
+              "path": [
+                "config_path"
+              ],
+              "confidence": 0.85
+            },
+            {
+              "var": "cmd",
+              "sink": "subprocess.Popen",
+              "sink_type": "shell_execution",
+              "source": "user_input",
+              "line": 438,
+              "path": [
+                "cmd"
+              ],
+              "confidence": 0.5
+            },
+            {
+              "var": "main_log_path",
+              "sink": "open",
+              "sink_type": "shell_execution",
+              "source": "user_input",
+              "line": 428,
+              "path": [
+                "main_log_path"
+              ],
+              "confidence": 0.85
+            },
+            {
+              "var": "main_log_path",
+              "sink": "subprocess.Popen",
+              "sink_type": "shell_execution",
+              "source": "user_input",
+              "line": 438,
+              "path": [
+                "main_log_path",
+                "main_log_file"
+              ],
+              "confidence": 0.7999999999999999
+            },
+            {
+              "var": "main_log_file",
+              "sink": "subprocess.Popen",
+              "sink_type": "shell_execution",
+              "source": "user_input",
+              "line": 438,
+              "path": [
+                "main_log_file"
+              ],
+              "confidence": 0.85
+            },
+            {
+              "var": "env",
+              "sink": "subprocess.Popen",
+              "sink_type": "shell_execution",
+              "source": "config",
+              "line": 438,
+              "path": [
+                "env"
+              ],
+              "confidence": 0.7
+            }
+          ],
+          "sanitization_points": []
+        }
+      },
+      "detected_at": "2026-04-06T23:25:16.206381",
+      "reason": "A tool function accepts string or Any parameters without performing input validation in the function body. This enables tool misuse where attackers can pass malicious inputs to trigger unauthorized actions.\n"
+    },
+    {
+      "rule_id": "AGENT-115",
+      "title": "Agent Background Daemon Without Lifecycle Control",
+      "description": "An agent process runs as a background daemon or service without TTL (time-to-live), heartbeat checks, or graceful shutdown mechanisms. Uncontrolled agent daemons consume resources indefinitely and can persist malicious behavior beyond intended session boundaries.\n",
+      "severity": "high",
+      "category": "excessive_permission",
+      "location": {
+        "file_path": "/tmp/MiroFish/backend/app/api/simulation.py",
+        "start_line": 611,
+        "end_line": 611,
+        "start_column": null,
+        "end_column": null,
+        "snippet": "thread = threading.Thread(target=run_prepare, daemon=True)"
+      },
+      "confidence": 0.85,
+      "tier": "WARN",
+      "suppressed": false,
+      "suppressed_reason": null,
+      "suppressed_by": null,
+      "needs_review": false,
+      "cwe_id": "CWE-400",
+      "owasp_id": "ASI-03",
+      "asi_categories": [
+        "ASI-03"
+      ],
+      "remediation": {
+        "description": "Implement TTL-based lifecycle management. Add heartbeat checks, graceful shutdown handlers (SIGTERM), and maximum session duration limits. Use a multi-gate trigger pattern for daemon activation.\n",
+        "code_example": "# BAD: Daemon without lifecycle control\nthread = Thread(target=agent_loop, daemon=True)\nthread.start()\n\ndef agent_loop():\n    while True:\n        process_tasks()\n\n# GOOD: Daemon with TTL and graceful shutdown\nimport signal\n\nclass AgentDaemon:\n    def __init__(self, ttl_seconds=86400):\n        self.ttl = ttl_seconds\n        self.start_time = time.time()\n        self.running = True\n        signal.signal(signal.SIGTERM, self.shutdown)\n\n    def shutdown(self, signum, frame):\n        self.running = False\n\n    def run(self):\n        while self.running:\n            if time.time() - self.start_time > self.ttl:\n                break\n            process_tasks()\n",
+        "reference_url": "https://cwe.mitre.org/data/definitions/400.html"
+      },
+      "metadata": {},
+      "detected_at": "2026-04-06T23:25:16.205612",
+      "reason": "An agent process runs as a background daemon or service without TTL (time-to-live), heartbeat checks, or graceful shutdown mechanisms. Uncontrolled agent daemons consume resources indefinitely and can persist malicious behavior beyond intended session boundaries.\n"
+    },
+    {
+      "rule_id": "AGENT-115",
+      "title": "Agent Background Daemon Without Lifecycle Control",
+      "description": "An agent process runs as a background daemon or service without TTL (time-to-live), heartbeat checks, or graceful shutdown mechanisms. Uncontrolled agent daemons consume resources indefinitely and can persist malicious behavior beyond intended session boundaries.\n",
+      "severity": "high",
+      "category": "excessive_permission",
+      "location": {
+        "file_path": "/tmp/MiroFish/backend/app/api/graph.py",
+        "start_line": 512,
+        "end_line": 512,
+        "start_column": null,
+        "end_column": null,
+        "snippet": "thread = threading.Thread(target=build_task, daemon=True)"
+      },
+      "confidence": 0.85,
+      "tier": "WARN",
+      "suppressed": false,
+      "suppressed_reason": null,
+      "suppressed_by": null,
+      "needs_review": false,
+      "cwe_id": "CWE-400",
+      "owasp_id": "ASI-03",
+      "asi_categories": [
+        "ASI-03"
+      ],
+      "remediation": {
+        "description": "Implement TTL-based lifecycle management. Add heartbeat checks, graceful shutdown handlers (SIGTERM), and maximum session duration limits. Use a multi-gate trigger pattern for daemon activation.\n",
+        "code_example": "# BAD: Daemon without lifecycle control\nthread = Thread(target=agent_loop, daemon=True)\nthread.start()\n\ndef agent_loop():\n    while True:\n        process_tasks()\n\n# GOOD: Daemon with TTL and graceful shutdown\nimport signal\n\nclass AgentDaemon:\n    def __init__(self, ttl_seconds=86400):\n        self.ttl = ttl_seconds\n        self.start_time = time.time()\n        self.running = True\n        signal.signal(signal.SIGTERM, self.shutdown)\n\n    def shutdown(self, signum, frame):\n        self.running = False\n\n    def run(self):\n        while self.running:\n            if time.time() - self.start_time > self.ttl:\n                break\n            process_tasks()\n",
+        "reference_url": "https://cwe.mitre.org/data/definitions/400.html"
+      },
+      "metadata": {},
+      "detected_at": "2026-04-06T23:25:16.205727",
+      "reason": "An agent process runs as a background daemon or service without TTL (time-to-live), heartbeat checks, or graceful shutdown mechanisms. Uncontrolled agent daemons consume resources indefinitely and can persist malicious behavior beyond intended session boundaries.\n"
+    },
+    {
+      "rule_id": "AGENT-115",
+      "title": "Agent Background Daemon Without Lifecycle Control",
+      "description": "An agent process runs as a background daemon or service without TTL (time-to-live), heartbeat checks, or graceful shutdown mechanisms. Uncontrolled agent daemons consume resources indefinitely and can persist malicious behavior beyond intended session boundaries.\n",
+      "severity": "high",
+      "category": "excessive_permission",
+      "location": {
+        "file_path": "/tmp/MiroFish/backend/app/api/report.py",
+        "start_line": 179,
+        "end_line": 179,
+        "start_column": null,
+        "end_column": null,
+        "snippet": "thread = threading.Thread(target=run_generate, daemon=True)"
+      },
+      "confidence": 0.85,
+      "tier": "WARN",
+      "suppressed": false,
+      "suppressed_reason": null,
+      "suppressed_by": null,
+      "needs_review": false,
+      "cwe_id": "CWE-400",
+      "owasp_id": "ASI-03",
+      "asi_categories": [
+        "ASI-03"
+      ],
+      "remediation": {
+        "description": "Implement TTL-based lifecycle management. Add heartbeat checks, graceful shutdown handlers (SIGTERM), and maximum session duration limits. Use a multi-gate trigger pattern for daemon activation.\n",
+        "code_example": "# BAD: Daemon without lifecycle control\nthread = Thread(target=agent_loop, daemon=True)\nthread.start()\n\ndef agent_loop():\n    while True:\n        process_tasks()\n\n# GOOD: Daemon with TTL and graceful shutdown\nimport signal\n\nclass AgentDaemon:\n    def __init__(self, ttl_seconds=86400):\n        self.ttl = ttl_seconds\n        self.start_time = time.time()\n        self.running = True\n        signal.signal(signal.SIGTERM, self.shutdown)\n\n    def shutdown(self, signum, frame):\n        self.running = False\n\n    def run(self):\n        while self.running:\n            if time.time() - self.start_time > self.ttl:\n                break\n            process_tasks()\n",
+        "reference_url": "https://cwe.mitre.org/data/definitions/400.html"
+      },
+      "metadata": {},
+      "detected_at": "2026-04-06T23:25:16.205866",
+      "reason": "An agent process runs as a background daemon or service without TTL (time-to-live), heartbeat checks, or graceful shutdown mechanisms. Uncontrolled agent daemons consume resources indefinitely and can persist malicious behavior beyond intended session boundaries.\n"
+    },
+    {
+      "rule_id": "AGENT-115",
+      "title": "Agent Background Daemon Without Lifecycle Control",
+      "description": "An agent process runs as a background daemon or service without TTL (time-to-live), heartbeat checks, or graceful shutdown mechanisms. Uncontrolled agent daemons consume resources indefinitely and can persist malicious behavior beyond intended session boundaries.\n",
+      "severity": "high",
+      "category": "excessive_permission",
+      "location": {
+        "file_path": "/tmp/MiroFish/backend/app/services/simulation_runner.py",
+        "start_line": 463,
+        "end_line": 463,
+        "start_column": null,
+        "end_column": null,
+        "snippet": "monitor_thread = threading.Thread("
+      },
+      "confidence": 0.85,
+      "tier": "WARN",
+      "suppressed": false,
+      "suppressed_reason": null,
+      "suppressed_by": null,
+      "needs_review": false,
+      "cwe_id": "CWE-400",
+      "owasp_id": "ASI-03",
+      "asi_categories": [
+        "ASI-03"
+      ],
+      "remediation": {
+        "description": "Implement TTL-based lifecycle management. Add heartbeat checks, graceful shutdown handlers (SIGTERM), and maximum session duration limits. Use a multi-gate trigger pattern for daemon activation.\n",
+        "code_example": "# BAD: Daemon without lifecycle control\nthread = Thread(target=agent_loop, daemon=True)\nthread.start()\n\ndef agent_loop():\n    while True:\n        process_tasks()\n\n# GOOD: Daemon with TTL and graceful shutdown\nimport signal\n\nclass AgentDaemon:\n    def __init__(self, ttl_seconds=86400):\n        self.ttl = ttl_seconds\n        self.start_time = time.time()\n        self.running = True\n        signal.signal(signal.SIGTERM, self.shutdown)\n\n    def shutdown(self, signum, frame):\n        self.running = False\n\n    def run(self):\n        while self.running:\n            if time.time() - self.start_time > self.ttl:\n                break\n            process_tasks()\n",
+        "reference_url": "https://cwe.mitre.org/data/definitions/400.html"
+      },
+      "metadata": {},
+      "detected_at": "2026-04-06T23:25:16.206453",
+      "reason": "An agent process runs as a background daemon or service without TTL (time-to-live), heartbeat checks, or graceful shutdown mechanisms. Uncontrolled agent daemons consume resources indefinitely and can persist malicious behavior beyond intended session boundaries.\n"
+    },
+    {
+      "rule_id": "AGENT-115",
+      "title": "Agent Background Daemon Without Lifecycle Control",
+      "description": "An agent process runs as a background daemon or service without TTL (time-to-live), heartbeat checks, or graceful shutdown mechanisms. Uncontrolled agent daemons consume resources indefinitely and can persist malicious behavior beyond intended session boundaries.\n",
+      "severity": "high",
+      "category": "excessive_permission",
+      "location": {
+        "file_path": "/tmp/MiroFish/backend/app/services/zep_graph_memory_updater.py",
+        "start_line": 284,
+        "end_line": 284,
+        "start_column": null,
+        "end_column": null,
+        "snippet": "self._worker_thread = threading.Thread("
+      },
+      "confidence": 0.85,
+      "tier": "WARN",
+      "suppressed": false,
+      "suppressed_reason": null,
+      "suppressed_by": null,
+      "needs_review": false,
+      "cwe_id": "CWE-400",
+      "owasp_id": "ASI-03",
+      "asi_categories": [
+        "ASI-03"
+      ],
+      "remediation": {
+        "description": "Implement TTL-based lifecycle management. Add heartbeat checks, graceful shutdown handlers (SIGTERM), and maximum session duration limits. Use a multi-gate trigger pattern for daemon activation.\n",
+        "code_example": "# BAD: Daemon without lifecycle control\nthread = Thread(target=agent_loop, daemon=True)\nthread.start()\n\ndef agent_loop():\n    while True:\n        process_tasks()\n\n# GOOD: Daemon with TTL and graceful shutdown\nimport signal\n\nclass AgentDaemon:\n    def __init__(self, ttl_seconds=86400):\n        self.ttl = ttl_seconds\n        self.start_time = time.time()\n        self.running = True\n        signal.signal(signal.SIGTERM, self.shutdown)\n\n    def shutdown(self, signum, frame):\n        self.running = False\n\n    def run(self):\n        while self.running:\n            if time.time() - self.start_time > self.ttl:\n                break\n            process_tasks()\n",
+        "reference_url": "https://cwe.mitre.org/data/definitions/400.html"
+      },
+      "metadata": {},
+      "detected_at": "2026-04-06T23:25:16.207257",
+      "reason": "An agent process runs as a background daemon or service without TTL (time-to-live), heartbeat checks, or graceful shutdown mechanisms. Uncontrolled agent daemons consume resources indefinitely and can persist malicious behavior beyond intended session boundaries.\n"
+    },
+    {
+      "rule_id": "AGENT-047",
+      "title": "Subprocess Execution Without Sandbox",
+      "description": "Agent executes subprocess (subprocess.Popen) without sandbox isolation. Subprocess execution with dynamic input can lead to command injection.",
+      "severity": "high",
+      "category": "tool_misuse",
+      "location": {
+        "file_path": "/tmp/MiroFish/backend/app/services/simulation_runner.py",
+        "start_line": 438,
+        "end_line": 438,
+        "start_column": null,
+        "end_column": null,
+        "snippet": "process = subprocess.Popen("
+      },
+      "confidence": 0.8,
+      "tier": "WARN",
+      "suppressed": false,
+      "suppressed_reason": null,
+      "suppressed_by": null,
+      "needs_review": false,
+      "cwe_id": "CWE-78",
+      "owasp_id": "ASI-02",
+      "asi_categories": [
+        "ASI-02"
+      ],
+      "remediation": {
+        "description": "Avoid shell=True. Use parameterized commands with shlex.quote(). Consider sandboxing subprocess execution with containers or restricted shells.",
+        "code_example": null,
+        "reference_url": null
+      },
+      "metadata": {},
+      "detected_at": "2026-04-06T23:25:16.629278",
+      "reason": "Agent executes subprocess (subprocess.Popen) without sandbox isolation. Subprocess execution with dynamic input can lead to command injection."
+    },
+    {
+      "rule_id": "AGENT-034",
+      "title": "Tool Function Without Input Validation",
+      "description": "A tool function accepts string or Any parameters without performing input validation in the function body. This enables tool misuse where attackers can pass malicious inputs to trigger unauthorized actions.\n",
+      "severity": "high",
+      "category": "tool_misuse",
+      "location": {
+        "file_path": "/tmp/MiroFish/backend/app/services/simulation_runner.py",
+        "start_line": 736,
+        "end_line": 736,
+        "start_column": null,
+        "end_column": null,
+        "snippet": "subprocess.run("
+      },
+      "confidence": 0.65,
+      "tier": "WARN",
+      "suppressed": false,
+      "suppressed_reason": null,
+      "suppressed_by": null,
+      "needs_review": false,
+      "cwe_id": "CWE-20",
+      "owasp_id": "ASI-02",
+      "asi_categories": [
+        "ASI-02"
+      ],
+      "remediation": {
+        "description": "Add input validation at the start of tool functions. Use isinstance() checks, regex validation, or pydantic Field constraints to ensure inputs are safe before processing.\n",
+        "code_example": "# BAD: No validation\n@tool\ndef run_query(query: str) -> str:\n    return cursor.execute(query)\n\n# GOOD: With validation\n@tool\ndef run_query(query: str) -> str:\n    if not isinstance(query, str) or len(query) > 1000:\n        raise ValueError(\"Invalid query\")\n    if not re.match(r\"^SELECT \", query, re.IGNORECASE):\n        raise ValueError(\"Only SELECT queries allowed\")\n    return cursor.execute(query)\n",
+        "reference_url": "https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/"
+      },
+      "metadata": {},
+      "detected_at": "2026-04-06T23:25:16.206489",
+      "reason": "A tool function accepts string or Any parameters without performing input validation in the function body. This enables tool misuse where attackers can pass malicious inputs to trigger unauthorized actions.\n"
+    },
+    {
+      "rule_id": "AGENT-034",
+      "title": "Tool Function Without Input Validation",
+      "description": "A tool function accepts string or Any parameters without performing input validation in the function body. This enables tool misuse where attackers can pass malicious inputs to trigger unauthorized actions.\n",
+      "severity": "high",
+      "category": "tool_misuse",
+      "location": {
+        "file_path": "/tmp/MiroFish/backend/app/services/simulation_runner.py",
+        "start_line": 746,
+        "end_line": 746,
+        "start_column": null,
+        "end_column": null,
+        "snippet": "subprocess.run("
+      },
+      "confidence": 0.65,
+      "tier": "WARN",
+      "suppressed": false,
+      "suppressed_reason": null,
+      "suppressed_by": null,
+      "needs_review": false,
+      "cwe_id": "CWE-20",
+      "owasp_id": "ASI-02",
+      "asi_categories": [
+        "ASI-02"
+      ],
+      "remediation": {
+        "description": "Add input validation at the start of tool functions. Use isinstance() checks, regex validation, or pydantic Field constraints to ensure inputs are safe before processing.\n",
+        "code_example": "# BAD: No validation\n@tool\ndef run_query(query: str) -> str:\n    return cursor.execute(query)\n\n# GOOD: With validation\n@tool\ndef run_query(query: str) -> str:\n    if not isinstance(query, str) or len(query) > 1000:\n        raise ValueError(\"Invalid query\")\n    if not re.match(r\"^SELECT \", query, re.IGNORECASE):\n        raise ValueError(\"Only SELECT queries allowed\")\n    return cursor.execute(query)\n",
+        "reference_url": "https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/"
+      },
+      "metadata": {},
+      "detected_at": "2026-04-06T23:25:16.206559",
+      "reason": "A tool function accepts string or Any parameters without performing input validation in the function body. This enables tool misuse where attackers can pass malicious inputs to trigger unauthorized actions.\n"
+    },
+    {
+      "rule_id": "AGENT-110",
+      "title": "Missing .npmignore in npm Project",
+      "description": "No .npmignore file found in npm project root. Without .npmignore, source maps, debug symbols, and environment files may be included in published packages.",
+      "severity": "low",
+      "category": "supply_chain_agentic",
+      "location": {
+        "file_path": "/tmp/MiroFish/package.json",
+        "start_line": 1,
+        "end_line": 1,
+        "start_column": null,
+        "end_column": null,
+        "snippet": ""
+      },
+      "confidence": 0.65,
+      "tier": "WARN",
+      "suppressed": false,
+      "suppressed_reason": null,
+      "suppressed_by": null,
+      "needs_review": false,
+      "cwe_id": "CWE-540",
+      "owasp_id": "ASI-04",
+      "asi_categories": [
+        "ASI-04"
+      ],
+      "remediation": {
+        "description": "Create a .npmignore file and add patterns for *.map, *.pdb, .env, and other debug artifacts.",
+        "code_example": null,
+        "reference_url": null
+      },
+      "metadata": {
+        "pattern_type": "npmignore_missing",
+        "scanner": "Package Scanner"
+      },
+      "detected_at": "2026-04-06T23:25:16.695278",
+      "reason": "No .npmignore file found in npm project root. Without .npmignore, source maps, debug symbols, and environment files may be included in published packages."
+    },
+    {
+      "rule_id": "AGENT-110",
+      "title": "Debug Artifact Not Excluded from Distribution",
+      "description": "pyproject.toml does not exclude *.map files from distribution. Source maps may leak internal code structure in published packages.",
+      "severity": "low",
+      "category": "supply_chain_agentic",
+      "location": {
+        "file_path": "/tmp/MiroFish/backend/pyproject.toml",
+        "start_line": 1,
+        "end_line": 1,
+        "start_column": null,
+        "end_column": null,
+        "snippet": ""
+      },
+      "confidence": 0.6,
+      "tier": "WARN",
+      "suppressed": false,
+      "suppressed_reason": null,
+      "suppressed_by": null,
+      "needs_review": false,
+      "cwe_id": "CWE-540",
+      "owasp_id": "ASI-04",
+      "asi_categories": [
+        "ASI-04"
+      ],
+      "remediation": {
+        "description": "Add '*.map' to the exclude patterns in your build tool configuration (e.g., [tool.setuptools.packages.find] exclude or [tool.poetry] exclude).",
+        "code_example": null,
+        "reference_url": null
+      },
+      "metadata": {
+        "pattern_type": "debug_artifact_in_dist",
+        "scanner": "Package Scanner"
+      },
+      "detected_at": "2026-04-06T23:25:16.695274",
+      "reason": "pyproject.toml does not exclude *.map files from distribution. Source maps may leak internal code structure in published packages."
+    },
+    {
+      "rule_id": "AGENT-034",
+      "title": "Tool Function Without Input Validation",
+      "description": "A tool function accepts string or Any parameters without performing input validation in the function body. This enables tool misuse where attackers can pass malicious inputs to trigger unauthorized actions.\n",
+      "severity": "high",
+      "category": "tool_misuse",
+      "location": {
+        "file_path": "/tmp/MiroFish/backend/app/services/report_agent.py",
+        "start_line": 167,
+        "end_line": 167,
+        "start_column": null,
+        "end_column": null,
+        "snippet": "def log_tool_call("
+      },
+      "confidence": 0.54,
+      "tier": "INFO",
+      "suppressed": false,
+      "suppressed_reason": null,
+      "suppressed_by": null,
+      "needs_review": false,
+      "cwe_id": "CWE-20",
+      "owasp_id": "ASI-02",
+      "asi_categories": [
+        "ASI-02"
+      ],
+      "remediation": {
+        "description": "Add input validation at the start of tool functions. Use isinstance() checks, regex validation, or pydantic Field constraints to ensure inputs are safe before processing.\n",
+        "code_example": "# BAD: No validation\n@tool\ndef run_query(query: str) -> str:\n    return cursor.execute(query)\n\n# GOOD: With validation\n@tool\ndef run_query(query: str) -> str:\n    if not isinstance(query, str) or len(query) > 1000:\n        raise ValueError(\"Invalid query\")\n    if not re.match(r\"^SELECT \", query, re.IGNORECASE):\n        raise ValueError(\"Only SELECT queries allowed\")\n    return cursor.execute(query)\n",
+        "reference_url": "https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/"
+      },
+      "metadata": {
+        "taint_analysis": {
+          "dangerous_flows": [
+            {
+              "var": "tool_name",
+              "sink": "t",
+              "sink_type": "shell_exec",
+              "line": 185,
+              "path": [
+                "tool_name"
+              ],
+              "confidence": 0.9
+            }
+          ],
+          "sanitization_points": []
+        }
+      },
+      "detected_at": "2026-04-06T23:25:16.206027",
+      "reason": "A tool function accepts string or Any parameters without performing input validation in the function body. This enables tool misuse where attackers can pass malicious inputs to trigger unauthorized actions.\n"
+    },
+    {
+      "rule_id": "AGENT-034",
+      "title": "Tool Function Without Input Validation",
+      "description": "A tool function accepts string or Any parameters without performing input validation in the function body. This enables tool misuse where attackers can pass malicious inputs to trigger unauthorized actions.\n",
+      "severity": "high",
+      "category": "tool_misuse",
+      "location": {
+        "file_path": "/tmp/MiroFish/backend/app/services/report_agent.py",
+        "start_line": 189,
+        "end_line": 189,
+        "start_column": null,
+        "end_column": null,
+        "snippet": "def log_tool_result("
+      },
+      "confidence": 0.54,
+      "tier": "INFO",
+      "suppressed": false,
+      "suppressed_reason": null,
+      "suppressed_by": null,
+      "needs_review": false,
+      "cwe_id": "CWE-20",
+      "owasp_id": "ASI-02",
+      "asi_categories": [
+        "ASI-02"
+      ],
+      "remediation": {
+        "description": "Add input validation at the start of tool functions. Use isinstance() checks, regex validation, or pydantic Field constraints to ensure inputs are safe before processing.\n",
+        "code_example": "# BAD: No validation\n@tool\ndef run_query(query: str) -> str:\n    return cursor.execute(query)\n\n# GOOD: With validation\n@tool\ndef run_query(query: str) -> str:\n    if not isinstance(query, str) or len(query) > 1000:\n        raise ValueError(\"Invalid query\")\n    if not re.match(r\"^SELECT \", query, re.IGNORECASE):\n        raise ValueError(\"Only SELECT queries allowed\")\n    return cursor.execute(query)\n",
+        "reference_url": "https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/"
+      },
+      "metadata": {
+        "taint_analysis": {
+          "dangerous_flows": [
+            {
+              "var": "tool_name",
+              "sink": "t",
+              "sink_type": "shell_exec",
+              "line": 208,
+              "path": [
+                "tool_name"
+              ],
+              "confidence": 0.9
+            }
+          ],
+          "sanitization_points": []
+        }
+      },
+      "detected_at": "2026-04-06T23:25:16.206061",
+      "reason": "A tool function accepts string or Any parameters without performing input validation in the function body. This enables tool misuse where attackers can pass malicious inputs to trigger unauthorized actions.\n"
+    },
+    {
+      "rule_id": "AGENT-034",
+      "title": "Tool Function Without Input Validation",
+      "description": "A tool function accepts string or Any parameters without performing input validation in the function body. This enables tool misuse where attackers can pass malicious inputs to trigger unauthorized actions.\n",
+      "severity": "high",
+      "category": "tool_misuse",
+      "location": {
+        "file_path": "/tmp/MiroFish/backend/app/services/report_agent.py",
+        "start_line": 956,
+        "end_line": 956,
+        "start_column": null,
+        "end_column": null,
+        "snippet": "def _execute_tool(self, tool_name: str, parameters: Dict[str, Any], report_context: str = \"\") -> str:"
+      },
+      "confidence": 0.54,
+      "tier": "INFO",
+      "suppressed": false,
+      "suppressed_reason": null,
+      "suppressed_by": null,
+      "needs_review": false,
+      "cwe_id": "CWE-20",
+      "owasp_id": "ASI-02",
+      "asi_categories": [
+        "ASI-02"
+      ],
+      "remediation": {
+        "description": "Add input validation at the start of tool functions. Use isinstance() checks, regex validation, or pydantic Field constraints to ensure inputs are safe before processing.\n",
+        "code_example": "# BAD: No validation\n@tool\ndef run_query(query: str) -> str:\n    return cursor.execute(query)\n\n# GOOD: With validation\n@tool\ndef run_query(query: str) -> str:\n    if not isinstance(query, str) or len(query) > 1000:\n        raise ValueError(\"Invalid query\")\n    if not re.match(r\"^SELECT \", query, re.IGNORECASE):\n        raise ValueError(\"Only SELECT queries allowed\")\n    return cursor.execute(query)\n",
+        "reference_url": "https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/"
+      },
+      "metadata": {
+        "taint_analysis": {
+          "dangerous_flows": [
+            {
+              "var": "tool_name",
+              "sink": "t",
+              "sink_type": "shell_exec",
+              "line": 968,
+              "path": [
+                "tool_name"
+              ],
+              "confidence": 0.9
+            },
+            {
+              "var": "tool_name",
+              "sink": "t",
+              "sink_type": "shell_exec",
+              "line": 1061,
+              "path": [
+                "tool_name"
+              ],
+              "confidence": 0.9
+            },
+            {
+              "var": "parameters",
+              "sink": "t",
+              "sink_type": "shell_exec",
+              "line": 968,
+              "path": [
+                "parameters"
+              ],
+              "confidence": 0.9
+            }
+          ],
+          "sanitization_points": [
+            {
+              "var": "include_expired",
+              "type": "type_check",
+              "line": 986
+            },
+            {
+              "var": "result",
+              "type": "string_check",
+              "line": 1001
+            },
+            {
+              "var": "limit",
+              "type": "type_check",
+              "line": 999
+            },
+            {
+              "var": "max_agents",
+              "type": "type_check",
+              "line": 1012
+            },
+            {
+              "var": "nodes",
+              "type": "type_check",
+              "line": 1050
+            }
+          ]
+        }
+      },
+      "detected_at": "2026-04-06T23:25:16.206094",
+      "reason": "A tool function accepts string or Any parameters without performing input validation in the function body. This enables tool misuse where attackers can pass malicious inputs to trigger unauthorized actions.\n"
+    },
+    {
+      "rule_id": "AGENT-047",
+      "title": "Subprocess Execution Without Sandbox",
+      "description": "Agent executes subprocess (subprocess.run) without sandbox isolation. Subprocess execution with dynamic input can lead to command injection.",
+      "severity": "high",
+      "category": "tool_misuse",
+      "location": {
+        "file_path": "/tmp/MiroFish/backend/app/services/simulation_runner.py",
+        "start_line": 736,
+        "end_line": 736,
+        "start_column": null,
+        "end_column": null,
+        "snippet": "subprocess.run("
+      },
+      "confidence": 0.48,
+      "tier": "INFO",
+      "suppressed": false,
+      "suppressed_reason": null,
+      "suppressed_by": null,
+      "needs_review": false,
+      "cwe_id": "CWE-78",
+      "owasp_id": "ASI-02",
+      "asi_categories": [
+        "ASI-02"
+      ],
+      "remediation": {
+        "description": "Avoid shell=True. Use parameterized commands with shlex.quote(). Consider sandboxing subprocess execution with containers or restricted shells.",
+        "code_example": null,
+        "reference_url": null
+      },
+      "metadata": {},
+      "detected_at": "2026-04-06T23:25:16.629322",
+      "reason": "Agent executes subprocess (subprocess.run) without sandbox isolation. Subprocess execution with dynamic input can lead to command injection."
+    },
+    {
+      "rule_id": "AGENT-047",
+      "title": "Subprocess Execution Without Sandbox",
+      "description": "Agent executes subprocess (subprocess.run) without sandbox isolation. Subprocess execution with dynamic input can lead to command injection.",
+      "severity": "high",
+      "category": "tool_misuse",
+      "location": {
+        "file_path": "/tmp/MiroFish/backend/app/services/simulation_runner.py",
+        "start_line": 746,
+        "end_line": 746,
+        "start_column": null,
+        "end_column": null,
+        "snippet": "subprocess.run("
+      },
+      "confidence": 0.48,
+      "tier": "INFO",
+      "suppressed": false,
+      "suppressed_reason": null,
+      "suppressed_by": null,
+      "needs_review": false,
+      "cwe_id": "CWE-78",
+      "owasp_id": "ASI-02",
+      "asi_categories": [
+        "ASI-02"
+      ],
+      "remediation": {
+        "description": "Avoid shell=True. Use parameterized commands with shlex.quote(). Consider sandboxing subprocess execution with containers or restricted shells.",
+        "code_example": null,
+        "reference_url": null
+      },
+      "metadata": {},
+      "detected_at": "2026-04-06T23:25:16.629357",
+      "reason": "Agent executes subprocess (subprocess.run) without sandbox isolation. Subprocess execution with dynamic input can lead to command injection."
+    }
+  ]
+}

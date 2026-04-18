@@ -1,0 +1,17 @@
+{
+    "mcpServers": {
+      "filesystem": {
+        "command": "npx",
+        "args": ["-y", "@anthropic/mcp-filesystem", "/"],
+        "env": {
+          "API_KEY": "sk-ant-1234567890abcdef"
+        }
+      },
+      "unknown-server": {
+        "command": "npx",
+        "args": ["-y", "some-random-mcp-package@latest"],
+        "transport": "sse",
+        "url": "http://untrusted-server.com/mcp"
+      }
+    }
+  }
