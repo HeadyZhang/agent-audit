@@ -93,7 +93,14 @@ Summary:
 
 ---
 
-验证快照（截至 **2026-02-19**，v0.16 基准集）：**94.6% recall**、**87.5% precision**、**0.91 F1**，在 **9 个开源目标**上覆盖 **10/10 OWASP Agentic Top 10**。  
+验证快照（截至 **2026-05-30**，**v0.19.0**，agent-vuln-bench GT v2.2，**81 个标注样本 / 218 条漏洞标签**）：
+
+- Precision **73.58%**、Recall **82.63%**、**F1 0.778（原始，可复现）** — TP 195 / FP 70 / FN 41
+- 脚注：剔除 v0.16 之后新增、GT 中尚未标注的规则所产生的 FP，可后处理得到调整后 F1 ≈ 0.84，但该数字无法由 `precision_recall.py` 直接复现，因此不作为头条指标。详见 [`docs/F1_REPRODUCTION.md`](docs/F1_REPRODUCTION.md)。GT v2.3 计划于 2026 年 6 月刷新。
+- **OWASP Agentic Top 10** 覆盖：10/10
+
+干净克隆即可复现：`pip install -e packages/audit/ && python tests/benchmark/precision_recall.py --output-json results/layer1.json`。结果文件已入库：[`results/layer1_v0.19.0.json`](results/layer1_v0.19.0.json)。新增 18 条规则（AGENT-053+）的 GT 标注将于 2026 年 6 月完成。
+
 详情见：[Benchmark Results](docs/BENCHMARK-RESULTS.md) | [Competitive Comparison](docs/COMPETITIVE-COMPARISON.md)
 
 ---
@@ -200,11 +207,11 @@ jobs:
 <summary><b>Show Evaluation Details</b></summary>
 <br/>
 
-在 [**Agent-Vuln-Bench**](tests/benchmark/agent-vuln-bench/)（19 个样本，3 类漏洞）上，与 Bandit 和 Semgrep 对比：
+在 `tests/ground_truth/labeled_samples.yaml`（81 个样本，218 条标签，GT v2.2）上评估 —— 可通过 `python tests/benchmark/precision_recall.py` 复现。Bandit 和 Semgrep 的数字在等价的注入/RCE/凭据子集上测得；方法学见 [BENCHMARK-RESULTS.md](docs/BENCHMARK-RESULTS.md)。
 
 | 工具 | Recall | Precision | F1 |
 |------|-------:|----------:|---:|
-| **agent-audit** | **94.6%** | **87.5%** | **0.91** |
+| **agent-audit** (v0.19.0, 原始，可复现) | **82.63%** | **73.58%** | **0.778** |
 | Bandit 1.8 | 29.7% | 100% | 0.46 |
 | Semgrep 1.x | 27.0% | 100% | 0.43 |
 

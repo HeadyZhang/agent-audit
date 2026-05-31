@@ -4,11 +4,11 @@
 
 Agent Audit is a security scanner for AI agent code, MCP configurations, and DeFi contracts. It detects agent-specific vulnerabilities that traditional SAST tools miss, mapped to the OWASP Agentic Top 10 (2026) with 10/10 coverage.
 
-- **Version**: 0.18.2
+- **Version**: 0.19.0
 - **Python**: 3.9-3.12
 - **License**: MIT
 - **Entry point**: `agent-audit = "agent_audit.cli.main:cli"`
-- **Metrics**: 94.6% recall, 87.5% precision, F1=0.91, 1239+ tests
+- **Metrics** (v0.19.0, 2026-05-30, GT v2.2 / 81 samples / 218 labels): P 73.58% / R 82.63% / **F1 0.778 (raw, reproducible)** — TP 195 / FP 70 / FN 41. Test count: 1502 collected (1491 passing on dev env; pytest-asyncio plugin required for full pass). Reproduce: `python tests/benchmark/precision_recall.py`. A post-hoc adjusted F1 of 0.84 (excluding FPs from post-v0.16 rules not yet labeled in GT) is documented in `docs/F1_REPRODUCTION.md` but is not used as a headline figure because it isn't directly produced by the script.
 
 ## Repository Structure
 
