@@ -349,7 +349,13 @@ class RuleEngine:
         'mcp_json_suspicious_command': 'AGENT-120',
     }
 
-    # v0.3.0: MCP finding type to rule metadata
+    # v0.3.0: MCP finding type to rule metadata.
+    # TODO(reconciliation 2026-06): This dict currently has zero usages.
+    # All MCP-related findings are emitted directly by scanners
+    # (mcp_baseline.py, mcp_config_scanner.py) with hardcoded
+    # rule_id strings, bypassing the engine path. Kept for now in case
+    # a future contributor wires scanners through the engine; do not
+    # delete without first re-checking refs across packages/audit/.
     MCP_FINDING_RULES: Dict[str, Dict[str, Any]] = {
         'mcp_overly_broad_filesystem': {
             'id': 'AGENT-029',
