@@ -94,6 +94,7 @@ RULE_CWE_MAPPING: Dict[str, str] = {
     "AGENT-045": "CWE-269",   # CAP_SYS_ADMIN
     "AGENT-046": "CWE-522",   # System Credential Store Access
     "AGENT-047": "CWE-250",   # Subprocess Without Sandbox
+    "AGENT-048": "CWE-863",   # Extension Permission Boundary Violation (matches privilege_scanner.py:1059)
 
     # Supply chain (v0.9.0)
     "AGENT-049": "CWE-502",   # Deserialization of Untrusted Data

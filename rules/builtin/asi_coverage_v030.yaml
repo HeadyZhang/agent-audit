@@ -460,3 +460,46 @@ rules:
             db.save_config(config_dict)
       references:
         - "https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/"
+
+  # =============================================================================
+  # ASI-04: Extension Permission Boundary (v0.8.0, promoted to YAML 2026-06)
+  # =============================================================================
+
+  - id: AGENT-048
+    title: "Extension Permission Boundary Violation"
+    description: >
+      Extension/plugin code directly imports from core modules without
+      respecting permission boundaries. Extensions should use defined
+      APIs rather than direct imports to maintain security isolation.
+      Fires inside directories matching common extension naming patterns
+      (extensions/, plugins/, addons/, modules/, contrib/, third_party/,
+      vendor/) when imports cross the extension root. Emitted by
+      packages/audit/agent_audit/scanners/privilege_scanner.py
+      (_check_extension_patterns).
+    severity: high
+    category: supply_chain_agentic
+    owasp_agentic_id: "ASI-04"
+    cwe_id: "CWE-863"
+
+    detection:
+      type: scanner_emitted
+      scanner: privilege_scanner
+      pattern_types:
+        - extension_import_boundary
+
+    remediation:
+      description: >
+        Implement a permission manifest for extensions. Use defined
+        extension APIs instead of direct imports. Sandbox extension
+        execution to enforce isolation between extensions and core.
+      code_example: |
+        # BAD: Extension imports core internals directly
+        # extensions/my_ext/handler.py
+        from core.internals.auth import bypass_auth  # crosses boundary
+
+        # GOOD: Extension uses declared API surface
+        # extensions/my_ext/handler.py
+        from extension_api import authenticate
+      references:
+        - "https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/"
+        - "https://cwe.mitre.org/data/definitions/863.html"

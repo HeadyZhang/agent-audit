@@ -43,6 +43,7 @@ This document provides a comprehensive reference for all agent-audit security ru
 | [AGENT-040](#agent-040-insecure-tool-schema) | MEDIUM | CWE-20 | ASI-02 | Insecure MCP Tool Schema |
 | [AGENT-041](#agent-041-sql-injection) | CRITICAL | CWE-89 | ASI-02 | SQL Injection via String Interpolation |
 | [AGENT-042](#agent-042-excessive-mcp-servers) | MEDIUM | CWE-250 | ASI-03 | Excessive MCP Server Configuration |
+| [AGENT-048](#agent-048-extension-permission-boundary) | HIGH | CWE-863 | ASI-04 | Extension Permission Boundary Violation |
 | [AGENT-050](#agent-050-agentexecutor-risk) | HIGH | CWE-400 | ASI-01 | LangChain AgentExecutor Without Safety Parameters |
 | [AGENT-052](#agent-052-sensitive-logging) | HIGH | CWE-532 | ASI-09 | Sensitive Data Logged in Output |
 | [AGENT-053](#agent-053-self-modification) | CRITICAL | CWE-94 | ASI-10 | Agent Self-Modification Risk |
