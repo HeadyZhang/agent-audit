@@ -8,7 +8,7 @@ Agent Audit is a security scanner for AI agent code, MCP configurations, and DeF
 - **Python**: 3.9-3.12
 - **License**: MIT
 - **Entry point**: `agent-audit = "agent_audit.cli.main:cli"`
-- **Metrics** (v0.19.0, 2026-05-30, GT v2.2 / 81 samples / 218 labels): P 73.58% / R 82.63% / **F1 0.778 (raw, reproducible)** — TP 195 / FP 70 / FN 41. Test count: 1502 collected (1491 passing on dev env; pytest-asyncio plugin required for full pass). Reproduce: `python tests/benchmark/precision_recall.py`. A post-hoc adjusted F1 of 0.84 (excluding FPs from post-v0.16 rules not yet labeled in GT) is documented in `docs/F1_REPRODUCTION.md` but is not used as a headline figure because it isn't directly produced by the script.
+- **Metrics** (v0.19.0, 2026-05-30, GT v2.2 / 81 samples / 218 labels): P 73.58% / R 82.63% / **F1 0.778 (raw, reproducible)** — TP 195 / FP 70 / FN 41. Test count: 1542 collected (1541 passing on dev env, 1 skipped). Reproduce: `python tests/benchmark/precision_recall.py`. A post-hoc adjusted F1 of 0.84 (excluding FPs from post-v0.16 rules not yet labeled in GT) is documented in `docs/F1_REPRODUCTION.md` but is not used as a headline figure because it isn't directly produced by the script.
 
 ## Repository Structure
 
@@ -89,7 +89,7 @@ agent-security-suite/
 │   │   │   └── compat.py
 │   │   └── parsers/
 │   │       └── treesitter_parser.py
-│   ├── tests/                        # 1239+ tests
+│   ├── tests/                        # 1541+ tests
 │   │   ├── test_agent004_semantic.py
 │   │   ├── test_expanded_rules.py
 │   │   ├── test_privilege_rules.py
