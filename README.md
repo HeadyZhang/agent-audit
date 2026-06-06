@@ -92,7 +92,7 @@ Summary:
 
 ---
 
-Validation snapshot (as of **2026-05-30**, **v0.19.0**, agent-vuln-bench GT v2.2, **81 labeled samples / 218 vulnerability labels**):
+Validation snapshot (as of **2026-05-30**, **v0.19.0**, ground-truth dataset v2.2, **81 samples / 236 positive labels + 2 negative labels**):
 
 - Precision **73.58%**, Recall **82.63%**, **F1 0.778 (raw, reproducible)** — TP 195 / FP 70 / FN 41
 - Footnote: an adjusted F1 of 0.84 is computable post-hoc by excluding FPs from rules added after v0.16 that are not yet labeled in GT, but it is not directly reproducible from `precision_recall.py` and is therefore not used as a headline figure. See [`docs/F1_REPRODUCTION.md`](docs/F1_REPRODUCTION.md). GT v2.3 refresh planned June 2026.
@@ -226,7 +226,7 @@ jobs:
 <summary><b>Show Evaluation Details</b></summary>
 <br/>
 
-Evaluated on the labeled benchmark in `tests/ground_truth/labeled_samples.yaml` (81 samples, 218 labels, GT v2.2) — reproducible via `python tests/benchmark/precision_recall.py`. Bandit and Semgrep numbers below were measured on the equivalent injection/RCE/credential subset that those tools can express; see [BENCHMARK-RESULTS.md](docs/BENCHMARK-RESULTS.md) for methodology.
+Evaluated on the labeled benchmark in `tests/ground_truth/labeled_samples.yaml` (81 samples, 236 positive + 2 negative labels, GT v2.2) — reproducible via `python tests/benchmark/precision_recall.py`. Bandit and Semgrep numbers below were measured on the equivalent injection/RCE/credential subset that those tools can express; see [BENCHMARK-RESULTS.md](docs/BENCHMARK-RESULTS.md) for methodology.
 
 | Tool | Recall | Precision | F1 |
 |------|-------:|----------:|---:|

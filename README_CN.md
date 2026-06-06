@@ -93,7 +93,7 @@ Summary:
 
 ---
 
-验证快照（截至 **2026-05-30**，**v0.19.0**，agent-vuln-bench GT v2.2，**81 个标注样本 / 218 条漏洞标签**）：
+验证快照（截至 **2026-05-30**，**v0.19.0**，标注数据集 v2.2，**81 个样本 / 236 条阳性标签 + 2 条阴性标签**）：
 
 - Precision **73.58%**、Recall **82.63%**、**F1 0.778（原始，可复现）** — TP 195 / FP 70 / FN 41
 - 脚注：剔除 v0.16 之后新增、GT 中尚未标注的规则所产生的 FP，可后处理得到调整后 F1 ≈ 0.84，但该数字无法由 `precision_recall.py` 直接复现，因此不作为头条指标。详见 [`docs/F1_REPRODUCTION.md`](docs/F1_REPRODUCTION.md)。GT v2.3 计划于 2026 年 6 月刷新。
@@ -207,7 +207,7 @@ jobs:
 <summary><b>Show Evaluation Details</b></summary>
 <br/>
 
-在 `tests/ground_truth/labeled_samples.yaml`（81 个样本，218 条标签，GT v2.2）上评估 —— 可通过 `python tests/benchmark/precision_recall.py` 复现。Bandit 和 Semgrep 的数字在等价的注入/RCE/凭据子集上测得；方法学见 [BENCHMARK-RESULTS.md](docs/BENCHMARK-RESULTS.md)。
+在 `tests/ground_truth/labeled_samples.yaml`（81 个样本，236 条阳性 + 2 条阴性标签，GT v2.2）上评估 —— 可通过 `python tests/benchmark/precision_recall.py` 复现。Bandit 和 Semgrep 的数字在等价的注入/RCE/凭据子集上测得；方法学见 [BENCHMARK-RESULTS.md](docs/BENCHMARK-RESULTS.md)。
 
 | 工具 | Recall | Precision | F1 |
 |------|-------:|----------:|---:|

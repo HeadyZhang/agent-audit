@@ -14,7 +14,7 @@ The current **headline F1 = 0.778** (raw, reproducible) used in `README.md`, `RE
 | GT version | v2.2 (2026-02-04) |
 | Sample files | **81** |
 | Total labels | 238 (236 positive, 2 negative; 12 of the 81 files are safe-files with no vulns) |
-| Header reports | `total_vulnerabilities: 218` (drift from on-disk count) |
+| Header field | `total_vulnerabilities: 238` (matches on-disk count post-D-C reconciliation; was 218 pre-reconciliation) |
 | Fixtures scanned | `agent-security-suite/tests/fixtures/` |
 
 ## Reproduce
