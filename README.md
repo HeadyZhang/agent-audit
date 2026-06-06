@@ -7,7 +7,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![CI](https://github.com/HeadyZhang/agent-audit/actions/workflows/ci.yml/badge.svg)](https://github.com/HeadyZhang/agent-audit/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/HeadyZhang/agent-audit/graph/badge.svg?branch=master)](https://codecov.io/gh/HeadyZhang/agent-audit?branch=master)
-[![Tests](https://img.shields.io/badge/tests-1502%20passed-brightgreen)]()
+[![Tests](https://img.shields.io/badge/tests-1541%20passed-brightgreen)]()
 [![Docs](https://img.shields.io/badge/docs-github.io-blue)](https://headyzhang.github.io/agent-audit/)
 
 ---
@@ -384,7 +384,7 @@ allowed_hosts:
 git clone https://github.com/HeadyZhang/agent-audit
 cd agent-audit/packages/audit
 poetry install
-poetry run pytest ../../tests/ -v  # 1239 tests
+poetry run pytest ../../tests/ -v  # 1541 tests
 ```
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for full development setup and PR guidelines.
