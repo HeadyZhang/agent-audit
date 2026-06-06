@@ -1,16 +1,16 @@
 # Agent-Vuln-Bench Dataset Catalog
-# Version: 1.1 | Date: 2026-03-04
+# Version: 1.2 | Date: 2026-06-06
 
-version: "1.1"
+version: "1.2"
 date_created: "2026-02-04"
-date_updated: "2026-03-04"
+date_updated: "2026-06-06"
 benchmark_name: "Agent-Vuln-Bench"
 
 statistics:
   total_knowns: 12
   total_wilds: 9
   total_noise: 2
-  total_vulnerabilities: 45
+  total_vulnerabilities: 43   # Recounted from per-sample oracle.yaml files (2026-06-06)
   languages:
     - python
     - typescript
@@ -18,9 +18,10 @@ statistics:
     - yaml
     - markdown
   set_breakdown:
-    A: 20   # Injection & RCE vulnerabilities
-    B: 12   # MCP & Component vulnerabilities
-    C: 13   # Data & Auth vulnerabilities
+    A: 18   # Injection & RCE (non-noise samples only; per oracle.yaml taxonomy.set_class)
+    B: 11   # MCP & Components
+    C: 11   # Data & Auth
+    mixed: 3  # Noise samples (T12, T13)
 
 datasets:
   knowns:
