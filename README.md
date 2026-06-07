@@ -25,7 +25,7 @@ You likely need this before every merge if agent code can trigger tools, command
 
 **Agent Audit** catches these issues before deployment with an analysis core designed for agent workflows today: tool-boundary taint tracking, MCP configuration auditing, and semantic secret detection, with room to extend into learning-assisted detection over time.
 
-Think of it as **security linting for AI agents**, with 53 rules mapped to the [OWASP Agentic Top 10 (2026)](https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/).
+Think of it as **security linting for AI agents**, with 72 rules mapped to the [OWASP Agentic Top 10 (2026)](https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/).
 
 ---
 
@@ -269,7 +269,7 @@ Source Files (.py, .json, .yaml, .env, ...)
         +-- PrivilegeScanner -- Daemon / Sudoers / Sandbox / Credential Store
                  |
                  v
-            RuleEngine -- 53 Rules x OWASP Agentic Top 10 -- Findings
+            RuleEngine -- 72 Rules x OWASP Agentic Top 10 -- Findings
 ```
 
 **Key technical contributions:**
@@ -284,20 +284,20 @@ Source Files (.py, .json, .yaml, .env, ...)
 
 ## Threat Coverage
 
-53 detection rules covering all 10 categories of the [OWASP Agentic Top 10 (2026)](https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/):
+72 detection rules covering all 10 categories of the [OWASP Agentic Top 10 (2026)](https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/):
 
 | OWASP Category | Rules | Example Detections |
 |----------------|------:|-------------------|
-| ASI-01 Agent Goal Hijack | 6 | Prompt injection, tool description poisoning, argument poisoning |
-| ASI-02 Tool Misuse | 9 | `@tool` input to `subprocess` without validation |
-| ASI-03 Identity & Privilege | 4 | Daemon privilege escalation, >10 MCP servers |
-| ASI-04 Supply Chain | 7 | Unverified MCP source, tool shadowing, baseline drift (rug pull) |
-| ASI-05 Code Execution | 3 | `eval`/`exec` in tool without sandbox |
-| ASI-06 Memory Poisoning | 2 | Unsanitized input to vector store `upsert` |
+| ASI-01 Agent Goal Hijack | 7 | Prompt injection, tool description poisoning, argument poisoning |
+| ASI-02 Tool Misuse | 11 | `@tool` input to `subprocess` without validation, browser/subprocess sandbox |
+| ASI-03 Identity & Privilege | 12 | Daemon privilege escalation, sudoers NOPASSWD, sub-agent boundary, >10 MCP servers |
+| ASI-04 Supply Chain | 17 | Unverified MCP source, tool shadowing, baseline drift (rug pull), extension boundary, deserialization, OpenClaw skill obfuscation |
+| ASI-05 Code Execution | 5 | `eval`/`exec` in tool without sandbox, credential store access, skill sandbox override |
+| ASI-06 Memory Poisoning | 3 | Unsanitized input to vector store `upsert`, persistent session memory |
 | ASI-07 Inter-Agent Comm | 1 | Multi-agent over HTTP without TLS |
 | ASI-08 Cascading Failures | 3 | `AgentExecutor` without `max_iterations` |
-| ASI-09 Trust Exploitation | 6 | Critical ops without `human_in_the_loop` |
-| ASI-10 Rogue Agents | 3 | No kill switch, no behavior monitoring |
+| ASI-09 Trust Exploitation | 10 | Critical ops without `human_in_the_loop`, HITL bypass, trace suppression |
+| ASI-10 Rogue Agents | 3 | No kill switch, no behavior monitoring, self-modification |
 
 ## Real-World Validation
 

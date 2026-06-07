@@ -53,7 +53,7 @@ agent-security-suite/
 │   │   │   ├── skill_meta_scanner.py # 352 LOC — OpenClaw skill metadata
 │   │   │   └── __init__.py
 │   │   ├── rules/
-│   │   │   ├── engine.py            # RULE_CWE_MAPPING (109 rules), PATTERN_TYPE_TO_RULE_MAP (55+ patterns)
+│   │   │   ├── engine.py            # RULE_CWE_MAPPING (92 rules), PATTERN_TYPE_TO_RULE_MAP (60+ patterns)
 │   │   │   ├── loader.py            # YAML rule loader
 │   │   │   └── builtin/             # YAML rule definitions (mirrored from monorepo)
 │   │   │       ├── owasp_agentic_v2.yaml

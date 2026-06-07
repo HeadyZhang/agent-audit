@@ -26,7 +26,7 @@ AI Agent 不只是聊天机器人。它会执行代码、调用工具、接触�
 
 **Agent Audit** 在部署前拦截这些问题，当前分析核心专门面向 Agent 工作流：工具边界污点跟踪、MCP 配置审计、语义化密钥检测，并预留向学习辅助检测扩展的空间。
 
-可以把它理解成 **AI Agent 的安全 lint**，当前已有 40+ 规则，映射到 [OWASP Agentic Top 10 (2026)](https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/)。
+可以把它理解成 **AI Agent 的安全 lint**，当前已有 72 条规则，映射到 [OWASP Agentic Top 10 (2026)](https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/)。
 
 ---
 
@@ -263,20 +263,20 @@ Source Files (.py, .json, .yaml, .env, ...)
 
 ## 威胁覆盖
 
-40+ 规则覆盖 [OWASP Agentic Top 10 (2026)](https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/) 全部 10 类：
+72 条规则覆盖 [OWASP Agentic Top 10 (2026)](https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/) 全部 10 类：
 
 | OWASP 类别 | 规则数 | 示例检测 |
 |------------|------:|----------|
-| ASI-01 Agent Goal Hijack | 4 | `SystemMessage` 中 f-string 注入 |
-| ASI-02 Tool Misuse | 9 | `@tool` 输入未校验流向 `subprocess` |
-| ASI-03 Identity & Privilege | 4 | 守护进程提权、MCP 服务器数量 >10 |
-| ASI-04 Supply Chain | 5 | 未验证 MCP 源、`npx` 包未固定版本 |
-| ASI-05 Code Execution | 3 | 工具中无沙箱 `eval`/`exec` |
-| ASI-06 Memory Poisoning | 2 | 未净化输入写入向量库 `upsert` |
+| ASI-01 Agent Goal Hijack | 7 | Prompt 注入、工具描述投毒、参数投毒 |
+| ASI-02 Tool Misuse | 11 | `@tool` 输入流向 `subprocess`、浏览器/子进程沙箱 |
+| ASI-03 Identity & Privilege | 12 | 守护进程提权、sudoers NOPASSWD、子 Agent 权限边界、MCP 服务器数量 >10 |
+| ASI-04 Supply Chain | 17 | 未验证 MCP 源、工具影子、Baseline drift、扩展边界、反序列化、OpenClaw skill 混淆 |
+| ASI-05 Code Execution | 5 | 工具中无沙箱 `eval`/`exec`、凭据库访问、skill 沙箱绕过 |
+| ASI-06 Memory Poisoning | 3 | 向量库 `upsert` 未净化、持久会话内存 |
 | ASI-07 Inter-Agent Comm | 1 | 多 Agent 经 HTTP 通信且无 TLS |
 | ASI-08 Cascading Failures | 3 | `AgentExecutor` 缺少 `max_iterations` |
-| ASI-09 Trust Exploitation | 6 | 关键操作缺少 `human_in_the_loop` |
-| ASI-10 Rogue Agents | 3 | 无 kill switch、无行为监控 |
+| ASI-09 Trust Exploitation | 10 | 关键操作缺少 `human_in_the_loop`、HITL 旁路、痕迹抹除 |
+| ASI-10 Rogue Agents | 3 | 无 kill switch、无行为监控、自我修改 |
 
 ## 真实项目验证
 
