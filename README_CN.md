@@ -9,7 +9,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![CI](https://github.com/HeadyZhang/agent-audit/actions/workflows/ci.yml/badge.svg)](https://github.com/HeadyZhang/agent-audit/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/HeadyZhang/agent-audit/graph/badge.svg?branch=master)](https://codecov.io/gh/HeadyZhang/agent-audit?branch=master)
-[![Tests](https://img.shields.io/badge/tests-1502%20passed-brightgreen)]()
+[![Tests](https://img.shields.io/badge/tests-1541%20passed-brightgreen)]()
 
 ---
 
@@ -26,7 +26,7 @@ AI Agent 不只是聊天机器人。它会执行代码、调用工具、接触�
 
 **Agent Audit** 在部署前拦截这些问题，当前分析核心专门面向 Agent 工作流：工具边界污点跟踪、MCP 配置审计、语义化密钥检测，并预留向学习辅助检测扩展的空间。
 
-可以把它理解成 **AI Agent 的安全 lint**，当前已有 40+ 规则，映射到 [OWASP Agentic Top 10 (2026)](https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/)。
+可以把它理解成 **AI Agent 的安全 lint**，当前已有 72 条规则，映射到 [OWASP Agentic Top 10 (2026)](https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/)。
 
 ---
 
@@ -93,7 +93,7 @@ Summary:
 
 ---
 
-验证快照（截至 **2026-05-30**，**v0.19.0**，agent-vuln-bench GT v2.2，**81 个标注样本 / 218 条漏洞标签**）：
+验证快照（截至 **2026-05-30**，**v0.19.0**，标注数据集 v2.2，**81 个样本 / 236 条阳性标签 + 2 条阴性标签**）：
 
 - Precision **73.58%**、Recall **82.63%**、**F1 0.778（原始，可复现）** — TP 195 / FP 70 / FN 41
 - 脚注：剔除 v0.16 之后新增、GT 中尚未标注的规则所产生的 FP，可后处理得到调整后 F1 ≈ 0.84，但该数字无法由 `precision_recall.py` 直接复现，因此不作为头条指标。详见 [`docs/F1_REPRODUCTION.md`](docs/F1_REPRODUCTION.md)。GT v2.3 计划于 2026 年 6 月刷新。
@@ -207,7 +207,7 @@ jobs:
 <summary><b>Show Evaluation Details</b></summary>
 <br/>
 
-在 `tests/ground_truth/labeled_samples.yaml`（81 个样本，218 条标签，GT v2.2）上评估 —— 可通过 `python tests/benchmark/precision_recall.py` 复现。Bandit 和 Semgrep 的数字在等价的注入/RCE/凭据子集上测得；方法学见 [BENCHMARK-RESULTS.md](docs/BENCHMARK-RESULTS.md)。
+在 `tests/ground_truth/labeled_samples.yaml`（81 个样本，236 条阳性 + 2 条阴性标签，GT v2.2）上评估 —— 可通过 `python tests/benchmark/precision_recall.py` 复现。Bandit 和 Semgrep 的数字在等价的注入/RCE/凭据子集上测得；方法学见 [BENCHMARK-RESULTS.md](docs/BENCHMARK-RESULTS.md)。
 
 | 工具 | Recall | Precision | F1 |
 |------|-------:|----------:|---:|
@@ -263,20 +263,20 @@ Source Files (.py, .json, .yaml, .env, ...)
 
 ## 威胁覆盖
 
-40+ 规则覆盖 [OWASP Agentic Top 10 (2026)](https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/) 全部 10 类：
+72 条规则覆盖 [OWASP Agentic Top 10 (2026)](https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/) 全部 10 类：
 
 | OWASP 类别 | 规则数 | 示例检测 |
 |------------|------:|----------|
-| ASI-01 Agent Goal Hijack | 4 | `SystemMessage` 中 f-string 注入 |
-| ASI-02 Tool Misuse | 9 | `@tool` 输入未校验流向 `subprocess` |
-| ASI-03 Identity & Privilege | 4 | 守护进程提权、MCP 服务器数量 >10 |
-| ASI-04 Supply Chain | 5 | 未验证 MCP 源、`npx` 包未固定版本 |
-| ASI-05 Code Execution | 3 | 工具中无沙箱 `eval`/`exec` |
-| ASI-06 Memory Poisoning | 2 | 未净化输入写入向量库 `upsert` |
+| ASI-01 Agent Goal Hijack | 7 | Prompt 注入、工具描述投毒、参数投毒 |
+| ASI-02 Tool Misuse | 11 | `@tool` 输入流向 `subprocess`、浏览器/子进程沙箱 |
+| ASI-03 Identity & Privilege | 12 | 守护进程提权、sudoers NOPASSWD、子 Agent 权限边界、MCP 服务器数量 >10 |
+| ASI-04 Supply Chain | 17 | 未验证 MCP 源、工具影子、Baseline drift、扩展边界、反序列化、OpenClaw skill 混淆 |
+| ASI-05 Code Execution | 5 | 工具中无沙箱 `eval`/`exec`、凭据库访问、skill 沙箱绕过 |
+| ASI-06 Memory Poisoning | 3 | 向量库 `upsert` 未净化、持久会话内存 |
 | ASI-07 Inter-Agent Comm | 1 | 多 Agent 经 HTTP 通信且无 TLS |
 | ASI-08 Cascading Failures | 3 | `AgentExecutor` 缺少 `max_iterations` |
-| ASI-09 Trust Exploitation | 6 | 关键操作缺少 `human_in_the_loop` |
-| ASI-10 Rogue Agents | 3 | 无 kill switch、无行为监控 |
+| ASI-09 Trust Exploitation | 10 | 关键操作缺少 `human_in_the_loop`、HITL 旁路、痕迹抹除 |
+| ASI-10 Rogue Agents | 3 | 无 kill switch、无行为监控、自我修改 |
 
 ## 真实项目验证
 

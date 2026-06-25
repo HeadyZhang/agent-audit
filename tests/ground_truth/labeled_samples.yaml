@@ -1,11 +1,13 @@
 # Agent-Audit Ground Truth Dataset v2.2
-# Auto-generated and verified against scanner output
+# Auto-generated and verified against scanner output.
+# total_vulnerabilities reconciled 2026-06-06 to match per-sample
+# vuln record count (D-C decomposition: 236 positive + 2 negative = 238).
 # Updated: 2026-02-04
 
 version: "2.2"
 created: "2026-02-04"
 total_samples: 81  # 68 vulnerable + 13 benign
-total_vulnerabilities: 218
+total_vulnerabilities: 238  # 236 positive + 2 negative
 
 samples:
   - file: "asi-01-goal-hijack/bypass/base64_encoded.py"
