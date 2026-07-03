@@ -858,6 +858,14 @@ footer {
 </head>
 <body>
 
+<!-- ══════════ D-E E3 v0.16-frozen banner (reconciliation 2026-06) ══════════ -->
+<div style="background:#fff3cd;border-bottom:2px solid #ff9800;padding:12px 24px;text-align:center;font-size:14px;color:#5d4037;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;">
+  <strong>Heads up:</strong> this site reflects <strong>v0.16.0</strong> (March 2026).
+  Current is v0.19.0+ — see the
+  <a href="https://github.com/HeadyZhang/agent-audit/blob/master/README.md" style="color:#bf360c;text-decoration:underline;">README on GitHub</a>
+  for live numbers (rule count, F1, OWASP coverage). A full site refresh is planned.
+</div>
+
 <!-- ══════════ NAV ══════════ -->
 <nav>
   <div class="nav-inner">
@@ -912,12 +920,12 @@ footer {
         <div class="label">Detection Rules</div>
       </div>
       <div class="hero-stat">
-        <div class="val">94.6%</div>
-        <div class="label">Recall (AVB)</div>
+        <div class="val">82.63%</div>
+        <div class="label">Recall (v0.19.0, GT v2.2, 81 samples)</div>
       </div>
       <div class="hero-stat">
-        <div class="val">0.91</div>
-        <div class="label">F1 Score</div>
+        <div class="val">0.778</div>
+        <div class="label">F1 (raw, reproducible — see README)</div>
       </div>
       <div class="hero-stat">
         <div class="val">10/10</div>
@@ -1062,10 +1070,10 @@ footer {
           </thead>
           <tbody>
             <tr class="winner">
-              <td class="highlight">agent-audit</td>
-              <td class="highlight">94.6%</td>
-              <td class="highlight">87.5%</td>
-              <td class="highlight">0.91</td>
+              <td class="highlight">agent-audit (v0.19.0, raw, reproducible)</td>
+              <td class="highlight">82.63%</td>
+              <td class="highlight">73.58%</td>
+              <td class="highlight">0.778</td>
             </tr>
             <tr>
               <td>Bandit 1.8</td>

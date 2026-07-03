@@ -4,11 +4,11 @@
 
 Agent Audit is a security scanner for AI agent code, MCP configurations, and DeFi contracts. It detects agent-specific vulnerabilities that traditional SAST tools miss, mapped to the OWASP Agentic Top 10 (2026) with 10/10 coverage.
 
-- **Version**: 0.18.2
+- **Version**: 0.19.0
 - **Python**: 3.9-3.12
 - **License**: MIT
 - **Entry point**: `agent-audit = "agent_audit.cli.main:cli"`
-- **Metrics**: 94.6% recall, 87.5% precision, F1=0.91, 1239+ tests
+- **Metrics** (v0.19.0, 2026-05-30, GT v2.2 / 81 samples / 236 positive + 2 negative labels): P 73.58% / R 82.63% / **F1 0.778 (raw, reproducible)** — TP 195 / FP 70 / FN 41. Test count: 1542 collected (1541 passing on dev env, 1 skipped). Reproduce: `python tests/benchmark/precision_recall.py`. A post-hoc adjusted F1 of 0.84 (excluding FPs from post-v0.16 rules not yet labeled in GT) is documented in `docs/F1_REPRODUCTION.md` but is not used as a headline figure because it isn't directly produced by the script.
 
 ## Repository Structure
 
@@ -53,7 +53,7 @@ agent-security-suite/
 │   │   │   ├── skill_meta_scanner.py # 352 LOC — OpenClaw skill metadata
 │   │   │   └── __init__.py
 │   │   ├── rules/
-│   │   │   ├── engine.py            # RULE_CWE_MAPPING (109 rules), PATTERN_TYPE_TO_RULE_MAP (55+ patterns)
+│   │   │   ├── engine.py            # RULE_CWE_MAPPING (92 rules), PATTERN_TYPE_TO_RULE_MAP (60+ patterns)
 │   │   │   ├── loader.py            # YAML rule loader
 │   │   │   └── builtin/             # YAML rule definitions (mirrored from monorepo)
 │   │   │       ├── owasp_agentic_v2.yaml
@@ -89,7 +89,7 @@ agent-security-suite/
 │   │   │   └── compat.py
 │   │   └── parsers/
 │   │       └── treesitter_parser.py
-│   ├── tests/                        # 1239+ tests
+│   ├── tests/                        # 1541+ tests
 │   │   ├── test_agent004_semantic.py
 │   │   ├── test_expanded_rules.py
 │   │   ├── test_privilege_rules.py

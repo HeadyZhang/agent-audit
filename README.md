@@ -7,7 +7,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![CI](https://github.com/HeadyZhang/agent-audit/actions/workflows/ci.yml/badge.svg)](https://github.com/HeadyZhang/agent-audit/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/HeadyZhang/agent-audit/graph/badge.svg?branch=master)](https://codecov.io/gh/HeadyZhang/agent-audit?branch=master)
-[![Tests](https://img.shields.io/badge/tests-1239%20passed-brightgreen)]()
+[![Tests](https://img.shields.io/badge/tests-1541%20passed-brightgreen)]()
 [![Docs](https://img.shields.io/badge/docs-github.io-blue)](https://headyzhang.github.io/agent-audit/)
 
 ---
@@ -25,7 +25,7 @@ You likely need this before every merge if agent code can trigger tools, command
 
 **Agent Audit** catches these issues before deployment with an analysis core designed for agent workflows today: tool-boundary taint tracking, MCP configuration auditing, and semantic secret detection, with room to extend into learning-assisted detection over time.
 
-Think of it as **security linting for AI agents**, with 53 rules mapped to the [OWASP Agentic Top 10 (2026)](https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/).
+Think of it as **security linting for AI agents**, with 72 rules mapped to the [OWASP Agentic Top 10 (2026)](https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/).
 
 ---
 
@@ -92,7 +92,14 @@ Summary:
 
 ---
 
-Validation snapshot (as of **2026-02-19**, v0.16 benchmark set): **94.6% recall**, **87.5% precision**, **0.91 F1**, with **10/10 OWASP Agentic Top 10** coverage across **9 open-source targets**.  
+Validation snapshot (as of **2026-05-30**, **v0.19.0**, ground-truth dataset v2.2, **81 samples / 236 positive labels + 2 negative labels**):
+
+- Precision **73.58%**, Recall **82.63%**, **F1 0.778 (raw, reproducible)** — TP 195 / FP 70 / FN 41
+- Footnote: an adjusted F1 of 0.84 is computable post-hoc by excluding FPs from rules added after v0.16 that are not yet labeled in GT, but it is not directly reproducible from `precision_recall.py` and is therefore not used as a headline figure. See [`docs/F1_REPRODUCTION.md`](docs/F1_REPRODUCTION.md). GT v2.3 refresh planned June 2026.
+- **OWASP Agentic Top 10** coverage: 10/10
+
+Reproducible from a clean clone: `pip install -e packages/audit/ && python tests/benchmark/precision_recall.py --output-json results/layer1.json`. Result file checked in at [`results/layer1_v0.19.0.json`](results/layer1_v0.19.0.json). Ground-truth label refresh for the 18 new rules (AGENT-053+) lands June 2026.
+
 Details: [Benchmark Results](docs/BENCHMARK-RESULTS.md) | [Competitive Comparison](docs/COMPETITIVE-COMPARISON.md)
 
 ---
@@ -219,11 +226,11 @@ jobs:
 <summary><b>Show Evaluation Details</b></summary>
 <br/>
 
-Evaluated on [**Agent-Vuln-Bench**](tests/benchmark/agent-vuln-bench/) (19 samples across 3 vulnerability categories), compared against Bandit and Semgrep:
+Evaluated on the labeled benchmark in `tests/ground_truth/labeled_samples.yaml` (81 samples, 236 positive + 2 negative labels, GT v2.2) — reproducible via `python tests/benchmark/precision_recall.py`. Bandit and Semgrep numbers below were measured on the equivalent injection/RCE/credential subset that those tools can express; see [BENCHMARK-RESULTS.md](docs/BENCHMARK-RESULTS.md) for methodology.
 
 | Tool | Recall | Precision | F1 |
 |------|-------:|----------:|---:|
-| **agent-audit** | **94.6%** | **87.5%** | **0.91** |
+| **agent-audit** (v0.19.0, raw, reproducible) | **82.63%** | **73.58%** | **0.778** |
 | Bandit 1.8 | 29.7% | 100% | 0.46 |
 | Semgrep 1.x | 27.0% | 100% | 0.43 |
 
@@ -262,7 +269,7 @@ Source Files (.py, .json, .yaml, .env, ...)
         +-- PrivilegeScanner -- Daemon / Sudoers / Sandbox / Credential Store
                  |
                  v
-            RuleEngine -- 53 Rules x OWASP Agentic Top 10 -- Findings
+            RuleEngine -- 72 Rules x OWASP Agentic Top 10 -- Findings
 ```
 
 **Key technical contributions:**
@@ -277,20 +284,20 @@ Source Files (.py, .json, .yaml, .env, ...)
 
 ## Threat Coverage
 
-53 detection rules covering all 10 categories of the [OWASP Agentic Top 10 (2026)](https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/):
+72 detection rules covering all 10 categories of the [OWASP Agentic Top 10 (2026)](https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/):
 
 | OWASP Category | Rules | Example Detections |
 |----------------|------:|-------------------|
-| ASI-01 Agent Goal Hijack | 6 | Prompt injection, tool description poisoning, argument poisoning |
-| ASI-02 Tool Misuse | 9 | `@tool` input to `subprocess` without validation |
-| ASI-03 Identity & Privilege | 4 | Daemon privilege escalation, >10 MCP servers |
-| ASI-04 Supply Chain | 7 | Unverified MCP source, tool shadowing, baseline drift (rug pull) |
-| ASI-05 Code Execution | 3 | `eval`/`exec` in tool without sandbox |
-| ASI-06 Memory Poisoning | 2 | Unsanitized input to vector store `upsert` |
+| ASI-01 Agent Goal Hijack | 7 | Prompt injection, tool description poisoning, argument poisoning |
+| ASI-02 Tool Misuse | 11 | `@tool` input to `subprocess` without validation, browser/subprocess sandbox |
+| ASI-03 Identity & Privilege | 12 | Daemon privilege escalation, sudoers NOPASSWD, sub-agent boundary, >10 MCP servers |
+| ASI-04 Supply Chain | 17 | Unverified MCP source, tool shadowing, baseline drift (rug pull), extension boundary, deserialization, OpenClaw skill obfuscation |
+| ASI-05 Code Execution | 5 | `eval`/`exec` in tool without sandbox, credential store access, skill sandbox override |
+| ASI-06 Memory Poisoning | 3 | Unsanitized input to vector store `upsert`, persistent session memory |
 | ASI-07 Inter-Agent Comm | 1 | Multi-agent over HTTP without TLS |
 | ASI-08 Cascading Failures | 3 | `AgentExecutor` without `max_iterations` |
-| ASI-09 Trust Exploitation | 6 | Critical ops without `human_in_the_loop` |
-| ASI-10 Rogue Agents | 3 | No kill switch, no behavior monitoring |
+| ASI-09 Trust Exploitation | 10 | Critical ops without `human_in_the_loop`, HITL bypass, trace suppression |
+| ASI-10 Rogue Agents | 3 | No kill switch, no behavior monitoring, self-modification |
 
 ## Real-World Validation
 
@@ -377,7 +384,7 @@ allowed_hosts:
 git clone https://github.com/HeadyZhang/agent-audit
 cd agent-audit/packages/audit
 poetry install
-poetry run pytest ../../tests/ -v  # 1239 tests
+poetry run pytest ../../tests/ -v  # 1541 tests
 ```
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for full development setup and PR guidelines.

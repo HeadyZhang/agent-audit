@@ -94,6 +94,7 @@ RULE_CWE_MAPPING: Dict[str, str] = {
     "AGENT-045": "CWE-269",   # CAP_SYS_ADMIN
     "AGENT-046": "CWE-522",   # System Credential Store Access
     "AGENT-047": "CWE-250",   # Subprocess Without Sandbox
+    "AGENT-048": "CWE-863",   # Extension Permission Boundary Violation (matches privilege_scanner.py:1059)
 
     # Supply chain (v0.9.0)
     "AGENT-049": "CWE-502",   # Deserialization of Untrusted Data
@@ -349,7 +350,13 @@ class RuleEngine:
         'mcp_json_suspicious_command': 'AGENT-120',
     }
 
-    # v0.3.0: MCP finding type to rule metadata
+    # v0.3.0: MCP finding type to rule metadata.
+    # TODO(reconciliation 2026-06): This dict currently has zero usages.
+    # All MCP-related findings are emitted directly by scanners
+    # (mcp_baseline.py, mcp_config_scanner.py) with hardcoded
+    # rule_id strings, bypassing the engine path. Kept for now in case
+    # a future contributor wires scanners through the engine; do not
+    # delete without first re-checking refs across packages/audit/.
     MCP_FINDING_RULES: Dict[str, Dict[str, Any]] = {
         'mcp_overly_broad_filesystem': {
             'id': 'AGENT-029',

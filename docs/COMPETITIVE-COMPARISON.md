@@ -1,17 +1,31 @@
 # Competitive Comparison: agent-audit vs Bandit vs Semgrep
 
-Evaluated on [Agent-Vuln-Bench v1.0](../tests/benchmark/agent-vuln-bench/) — 19 samples across 3 vulnerability categories with oracle ground truth.
+> **⚠️ The original table below was measured on Agent-Vuln-Bench v1.0 (19 samples) on 2026-02-19 against v0.15.1/v0.16.0.** Those numbers are kept for the audit trail and remain the per-sample comparison record. For the **current** v0.19.0 benchmark on the broader 81-sample labeled GT v2.2, see the **Current Snapshot** block below and the [README](../README.md). Reproduce with: `python tests/benchmark/precision_recall.py`.
 
-## Overall Performance
+## Current Snapshot (v0.19.0, 2026-05-30, GT v2.2, 81 samples / 218 labels)
+
+| Tool | Recall | Precision | F1 |
+|------|-------:|----------:|---:|
+| **agent-audit** (v0.19.0, raw, reproducible) | **82.63%** | **73.58%** | **0.778** |
+| Bandit 1.8 (injection/RCE subset) | 29.7% | 100% | 0.458 |
+| Semgrep 1.x (injection/RCE subset) | 27.0% | 100% | 0.426 |
+
+The agent-audit row reports the raw F1 directly produced by `precision_recall.py` (TP 195 / FP 70 / FN 41). A post-hoc adjusted F1 of 0.84 — computed by excluding FPs from rules added after v0.16 that are not yet labeled in GT — is documented as a footnote in [`docs/F1_REPRODUCTION.md`](F1_REPRODUCTION.md) but is not used as a headline figure because it is not directly reproducible by the included script. The Bandit/Semgrep numbers are reproduced from the AVB-19 measurement below since those tools' rule sets have not materially changed since 2026-02; a re-measurement against the 81-sample GT is on the docket alongside the GT label refresh (target: June 2026).
+
+---
+
+## Historical: Agent-Vuln-Bench v1.0 (19 samples, 2026-02-19, v0.15.1/v0.16.0)
+
+Evaluated on [Agent-Vuln-Bench v1.0](../tests/benchmark/agent-vuln-bench/) — 19 samples across 3 vulnerability categories with oracle ground truth.
 
 | Metric | agent-audit | Bandit 1.8.6 | Semgrep 1.136.0 |
 |--------|------------|-------------|-----------------|
-| **Recall** | **94.6%** | 29.7% | 27.0% |
-| **Precision** | 87.5% | **100.0%** | **100.0%** |
-| **F1 Score** | **0.909** | 0.458 | 0.426 |
-| True Positives | **35** | 11 | 10 |
-| False Negatives | **2** | 26 | 27 |
-| False Positives | 5 | **0** | **0** |
+| Recall (historical AVB-19) | 94.6% | 29.7% | 27.0% |
+| Precision (historical AVB-19) | 87.5% | 100.0% | 100.0% |
+| F1 Score (historical AVB-19) | 0.909 | 0.458 | 0.426 |
+| True Positives | 35 | 11 | 10 |
+| False Negatives | 2 | 26 | 27 |
+| False Positives | 5 | 0 | 0 |
 | Scan time | 2.9s | 1.7s | 55.4s |
 
 ## Per-Set Recall

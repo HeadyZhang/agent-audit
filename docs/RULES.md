@@ -43,6 +43,13 @@ This document provides a comprehensive reference for all agent-audit security ru
 | [AGENT-040](#agent-040-insecure-tool-schema) | MEDIUM | CWE-20 | ASI-02 | Insecure MCP Tool Schema |
 | [AGENT-041](#agent-041-sql-injection) | CRITICAL | CWE-89 | ASI-02 | SQL Injection via String Interpolation |
 | [AGENT-042](#agent-042-excessive-mcp-servers) | MEDIUM | CWE-250 | ASI-03 | Excessive MCP Server Configuration |
+| [AGENT-043](#agent-043-daemon-privileges) | HIGH | CWE-269 | ASI-03 | Daemon Privilege Escalation |
+| [AGENT-044](#agent-044-sudoers-nopasswd) | HIGH | CWE-269 | ASI-03 | Sudoers NOPASSWD Configuration |
+| [AGENT-045](#agent-045-browser-sandbox) | HIGH | CWE-269 | ASI-02 | Browser Automation Without Sandbox |
+| [AGENT-046](#agent-046-credential-store) | HIGH | CWE-522 | ASI-05 | System Credential Store Access |
+| [AGENT-047](#agent-047-subprocess-no-sandbox) | HIGH | CWE-250 | ASI-02 | Subprocess Execution Without Sandbox |
+| [AGENT-048](#agent-048-extension-permission-boundary) | HIGH | CWE-863 | ASI-04 | Extension Permission Boundary Violation |
+| [AGENT-049](#agent-049-unsafe-deserialization) | HIGH | CWE-502 | ASI-04 | Deserialization of Untrusted Data |
 | [AGENT-050](#agent-050-agentexecutor-risk) | HIGH | CWE-400 | ASI-01 | LangChain AgentExecutor Without Safety Parameters |
 | [AGENT-052](#agent-052-sensitive-logging) | HIGH | CWE-532 | ASI-09 | Sensitive Data Logged in Output |
 | [AGENT-053](#agent-053-self-modification) | CRITICAL | CWE-94 | ASI-10 | Agent Self-Modification Risk |
@@ -50,6 +57,16 @@ This document provides a comprehensive reference for all agent-audit security ru
 | [AGENT-055](#agent-055-tool-shadowing) | HIGH | CWE-706 | ASI-04 | Cross-server Tool Shadowing |
 | [AGENT-056](#agent-056-tool-description-poisoning) | HIGH | CWE-74 | ASI-01 | Tool Description Poisoning |
 | [AGENT-057](#agent-057-tool-argument-poisoning) | HIGH | CWE-74 | ASI-01 | Tool Argument Poisoning |
+| [AGENT-058](#agent-058-skill-obfuscated-shell) | HIGH | CWE-506 | ASI-04 | OpenClaw Skill — Obfuscated Shell Commands |
+| [AGENT-059](#agent-059-skill-critical-file-mod) | HIGH | CWE-74 | ASI-01 | OpenClaw Skill — Critical File Modification Instructions |
+| [AGENT-060](#agent-060-skill-suspicious-network) | HIGH | CWE-918 | ASI-04 | OpenClaw Skill — Suspicious Network Endpoints |
+| [AGENT-061](#agent-061-skill-sandbox-override) | CRITICAL | CWE-250 | ASI-05 | OpenClaw Skill — Sandbox Override |
+| [AGENT-062](#agent-062-skill-fake-dependency) | HIGH | CWE-494 | ASI-04 | OpenClaw Skill — Fake Dependency Social Engineering |
+| [AGENT-063](#agent-063-skill-daemon-persistence) | HIGH | CWE-269 | ASI-03 | OpenClaw Skill — Daemon Persistence |
+| [AGENT-064](#agent-064-skill-auto-invoke) | HIGH | CWE-862 | ASI-09 | OpenClaw Skill — Auto-Invocation Without Consent |
+| [AGENT-083](#agent-083-sol-unsafe-delegatecall) | CRITICAL | CWE-829 | ASI-04 | Solidity — Unsafe `delegatecall` |
+| [AGENT-084](#agent-084-sol-tx-origin-auth) | HIGH | CWE-287 | ASI-03 | Solidity — `tx.origin` Authentication |
+| [AGENT-085](#agent-085-go-weak-rand) | MEDIUM | CWE-330 | ASI-04 | Go — Weak Random Number Generation |
 | [AGENT-110](#agent-110-source-map-leakage) | HIGH | CWE-540 | ASI-04 | Source Map / Debug Artifact in Package Distribution |
 | [AGENT-111](#agent-111-internal-config-exposed) | HIGH | CWE-200 | ASI-04 | Sensitive Internal Configuration Exposed |
 | [AGENT-112](#agent-112-subagent-no-boundary) | CRITICAL | CWE-250 | ASI-03 | Sub-Agent Spawn Without Permission Boundary |
