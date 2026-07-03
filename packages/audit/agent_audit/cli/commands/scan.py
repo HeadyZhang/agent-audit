@@ -1,5 +1,6 @@
 """Scan command implementation."""
 
+import os
 from pathlib import Path
 from typing import Optional, List
 
@@ -22,6 +23,29 @@ from agent_audit.config.ignore import (
 from agent_audit.cli.formatters.terminal import format_scan_results
 
 console = Console()
+
+
+def _count_files_by_extension(path: Path, extensions: set) -> int:
+    """Count files matching extensions, skipping standard noise directories.
+
+    Used to populate `scanned_files` for scanners (TypeScript, Solidity, Go)
+    that return findings directly without exposing per-file results to the
+    orchestrator. Skip-dirs mirror the convention from `profiles/defi/__init__.py`.
+    Does not honor `exclude_patterns` (orchestrator-level concern; counter is
+    an upper bound when excludes are in use, exact otherwise).
+    """
+    if path.is_file():
+        return 1 if path.suffix in extensions else 0
+    if not path.is_dir():
+        return 0
+    skip_dirs = {'node_modules', '.git', '__pycache__', '.venv', 'venv'}
+    count = 0
+    for root, dirs, files in os.walk(path):
+        dirs[:] = [d for d in dirs if d not in skip_dirs]
+        for fname in files:
+            if Path(fname).suffix in extensions:
+                count += 1
+    return count
 
 
 def run_scan(
@@ -261,6 +285,9 @@ def run_scan(
         ts_scanner = TypeScriptScanner(exclude_patterns=exclude_patterns)
         ts_findings = ts_scanner.scan_and_convert(path)
         all_findings.extend(ts_findings)
+        scanned_files += _count_files_by_extension(
+            path, {'.ts', '.tsx', '.js', '.jsx', '.mjs', '.mts'}
+        )
     except ImportError:
         pass  # TypeScript scanner not available (optional tree-sitter dep)
 
@@ -273,6 +300,7 @@ def run_scan(
         sol_scanner = SolidityScanner(exclude_patterns=exclude_patterns)
         sol_findings = sol_scanner.scan_and_convert(path)
         all_findings.extend(sol_findings)
+        scanned_files += _count_files_by_extension(path, {'.sol'})
     except ImportError:
         pass  # Solidity scanner not available
 
@@ -285,6 +313,7 @@ def run_scan(
         go_scanner = GoScanner(exclude_patterns=exclude_patterns)
         go_findings = go_scanner.scan_and_convert(path)
         all_findings.extend(go_findings)
+        scanned_files += _count_files_by_extension(path, {'.go'})
     except ImportError:
         pass  # Go scanner not available
 
