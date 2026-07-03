@@ -33,9 +33,11 @@ jobs:
           python tests/benchmark/precision_recall.py \
             --output-json results/layer1.json \
             --verbose
-        continue-on-error: true
+        # NOTE (2026-05-30): continue-on-error removed. This step now fails the
+        # job if precision_recall.py exits non-zero (F1 < 0.75 raw, see script).
 
       - name: Upload Layer 1 Results
+        if: always()  # upload artifacts even on failure for forensics
         uses: actions/upload-artifact@v4
         with:
           name: layer1-results
@@ -47,28 +49,35 @@ jobs:
           import json
           import sys
           p = 'results/layer1.json'
+          # Thresholds are set just below current measured v0.19.0 raw performance
+          # (P=73.6%, R=82.6%, F1=0.778). Goal: catch regressions, not gate at
+          # an aspirational number we don't currently meet. Raise these once GT
+          # label refresh for new rules (AGENT-053+) lands; target: June 2026.
+          MIN_PRECISION = 0.72
+          MIN_RECALL = 0.80
+          MIN_F1 = 0.75
           try:
               with open(p) as f:
                   r = json.load(f)
           except FileNotFoundError:
-              print('::warning::Layer 1 results not found (run may have failed)')
-              sys.exit(0)
+              print('::error::Layer 1 results not found — precision_recall.py did not produce results/layer1.json')
+              sys.exit(1)
           print(f'Precision: {r.get("precision", 0):.2%}')
           print(f'Recall: {r.get("recall", 0):.2%}')
           print(f'F1: {r.get("f1_score", 0):.2%}')
           print(f'TP: {r.get("true_positives", 0)} | FP: {r.get("false_positives", 0)} | FN: {r.get("false_negatives", 0)}')
-          warnings = []
-          if r.get('precision', 0) < 0.90:
-              warnings.append(f'Precision {r["precision"]:.2%} below 90% target')
-          if r.get('recall', 0) < 0.85:
-              warnings.append(f'Recall {r["recall"]:.2%} below 85% target')
-          if r.get('f1_score', 0) < 0.87:
-              warnings.append(f'F1 {r["f1_score"]:.2%} below 0.87 target')
-          if warnings:
-              for w in warnings:
-                  print(f'::warning::{w}')
-          else:
-              print('::notice::Layer 1 quality gate PASSED')
+          failures = []
+          if r.get('precision', 0) < MIN_PRECISION:
+              failures.append(f'Precision {r["precision"]:.2%} below {MIN_PRECISION:.0%} floor')
+          if r.get('recall', 0) < MIN_RECALL:
+              failures.append(f'Recall {r["recall"]:.2%} below {MIN_RECALL:.0%} floor')
+          if r.get('f1_score', 0) < MIN_F1:
+              failures.append(f'F1 {r["f1_score"]:.2%} below {MIN_F1:.0%} floor')
+          if failures:
+              for w in failures:
+                  print(f'::error::{w}')
+              sys.exit(1)
+          print('::notice::Layer 1 quality gate PASSED')
           EOF
 
   atlas-coverage:
