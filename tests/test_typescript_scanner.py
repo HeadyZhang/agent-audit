@@ -422,3 +422,144 @@ class TestScanAndConvert:
         findings = scanner.scan_and_convert(tmp_path)
         assert len(findings) >= 1
         assert any("eval" in f.description for f in findings)
+
+
+class TestEvalMemberCallDistinction:
+    """
+    AGENT-034 must distinguish the JS global ``eval(...)`` RCE sink from
+    unrelated member-method calls like Redis ``client.eval(luaScript, ...)``
+    (Redis EVAL Lua). Regression for FPs seen in x402-foundation/x402 scans.
+    """
+
+    def _has_eval_finding(self, scanner, path):
+        """Return AGENT-034 findings whose pattern is eval-exec (not exec/spawn)."""
+        return [
+            f
+            for f in scanner.scan_and_convert(path)
+            if f.rule_id == "AGENT-034"
+            and "code execution" in f.description.lower()
+        ]
+
+    # --- Must NOT trigger AGENT-034 (false-positive regressions) ----------
+
+    def test_redis_member_eval_not_flagged(self, scanner):
+        """`redisClient.eval(luaScript, ...)` is Redis EVAL Lua, not RCE."""
+        path = _write_ts_file("""
+            async function updateChannel(key: string) {
+                return await this.client.eval(UPDATE_CHANNEL_SCRIPT, {
+                    keys: [key],
+                });
+            }
+        """)
+        assert self._has_eval_finding(scanner, path) == []
+
+    def test_redis_evalsha_not_flagged(self, scanner):
+        """`redis.evalsha(sha, ...)` is Redis EVALSHA Lua, not RCE."""
+        path = _write_ts_file("""
+            async function run(sha: string) {
+                return await redis.evalsha(sha, 0);
+            }
+        """)
+        assert self._has_eval_finding(scanner, path) == []
+
+    def test_ioredis_member_eval_not_flagged(self, scanner):
+        """`ioredis.eval(...)` member call is Redis EVAL, not RCE."""
+        path = _write_ts_file("""
+            const ioredis = makeIoredis();
+            async function run(s: string) {
+                return await ioredis.eval(s, 0);
+            }
+        """)
+        assert self._has_eval_finding(scanner, path) == []
+
+    def test_arbitrary_member_eval_not_flagged(self, scanner):
+        """Any `someObj.eval(...)` member call is not the JS eval sink."""
+        path = _write_ts_file("""
+            function go(x: string) {
+                return someObj.eval(x);
+            }
+        """)
+        assert self._has_eval_finding(scanner, path) == []
+
+    def test_ts_interface_method_signature_not_flagged(self, scanner):
+        """TS interface method signatures `eval(args): Type;` aren't calls."""
+        path = _write_ts_file("""
+            export type RedisChannelStorageClient = {
+                get(key: string): Promise<string | null>;
+                eval(script: string, options: RedisEvalOptions): Promise<unknown>;
+            };
+        """)
+        assert self._has_eval_finding(scanner, path) == []
+
+    def test_class_method_eval_declaration_not_flagged(self, scanner):
+        """Class method declarations `async eval(args): Type {}` aren't calls."""
+        path = _write_ts_file("""
+            class MockRedis {
+                async eval(script: string, options: RedisEvalOptions): Promise<unknown> {
+                    return null;
+                }
+            }
+        """)
+        assert self._has_eval_finding(scanner, path) == []
+
+    def test_object_property_named_eval_not_flagged(self, scanner):
+        """Object property keys named ``eval:`` are not call expressions."""
+        path = _write_ts_file("""
+            const client = {
+                eval: (script: string, options: RedisEvalOptions) =>
+                    ensureClient().then(c => c.eval(script, options)),
+            };
+        """)
+        assert self._has_eval_finding(scanner, path) == []
+
+    # --- Must STILL trigger AGENT-034 (real RCE, no regressions) ----------
+
+    def test_bare_eval_with_user_input_still_flagged(self, scanner):
+        """Bare global `eval(userInput)` is a real RCE sink."""
+        path = _write_ts_file("""
+            function go(userInput: string) {
+                return eval(userInput);
+            }
+        """)
+        assert self._has_eval_finding(scanner, path) != []
+
+    def test_bare_eval_with_literal_still_flagged(self, scanner):
+        """Bare global `eval("some code")` is still flagged."""
+        path = _write_ts_file("""
+            function go() {
+                return eval("some code");
+            }
+        """)
+        assert self._has_eval_finding(scanner, path) != []
+
+    def test_window_eval_still_flagged(self, scanner):
+        """`window.eval(x)` is a real global RCE sink (browser)."""
+        path = _write_ts_file("""
+            function go(x: string) {
+                return window.eval(x);
+            }
+        """)
+        assert self._has_eval_finding(scanner, path) != []
+
+    def test_globalthis_eval_still_flagged(self, scanner):
+        """`globalThis.eval(x)` is a real global RCE sink."""
+        path = _write_ts_file("""
+            function go(x: string) {
+                return globalThis.eval(x);
+            }
+        """)
+        assert self._has_eval_finding(scanner, path) != []
+
+    def test_new_function_still_flagged(self, scanner):
+        """`new Function(userInput)()` is a real RCE sink."""
+        path = _write_ts_file("""
+            function go(userInput: string) {
+                return new Function(userInput)();
+            }
+        """)
+        eval_like = [
+            f
+            for f in scanner.scan_and_convert(path)
+            if f.rule_id == "AGENT-034"
+        ]
+        assert eval_like != []

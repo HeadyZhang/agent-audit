@@ -51,6 +51,10 @@ TS_DANGEROUS_CALLS: Dict[str, Tuple[str, str, float]] = {
     # Code execution
     "eval": ("AGENT-034", "ts_eval_exec", 0.95),
     "Function": ("AGENT-034", "ts_eval_exec", 0.90),
+    "window.eval": ("AGENT-034", "ts_eval_exec", 0.95),
+    "globalThis.eval": ("AGENT-034", "ts_eval_exec", 0.95),
+    "global.eval": ("AGENT-034", "ts_eval_exec", 0.95),
+    "self.eval": ("AGENT-034", "ts_eval_exec", 0.95),
     "vm.runInContext": ("AGENT-034", "ts_eval_exec", 0.90),
     "vm.runInNewContext": ("AGENT-034", "ts_eval_exec", 0.90),
     "vm.runInThisContext": ("AGENT-034", "ts_eval_exec", 0.90),
@@ -77,6 +81,14 @@ TS_DANGEROUS_CALLS: Dict[str, Tuple[str, str, float]] = {
     "http.request": ("AGENT-026", "ts_ssrf_fetch", 0.75),
     "https.request": ("AGENT-026", "ts_ssrf_fetch", 0.75),
 }
+
+# Dangerous-call names that must NOT match as member-expression suffixes.
+# Rationale: `eval` and `Function` are JS global identifiers; when seen as
+# `obj.eval(...)` or `obj.Function(...)` they're almost always unrelated
+# member methods (e.g., Redis EVAL Lua via redisClient.eval). Real global
+# eval through window/globalThis/global/self is enumerated explicitly in
+# TS_DANGEROUS_CALLS above.
+GLOBAL_ONLY_TS_CALLS: Set[str] = {"eval", "Function"}
 
 # SQL keywords used to identify SQL template strings
 SQL_KEYWORDS: Set[str] = {
@@ -372,13 +384,27 @@ class TypeScriptScanner(BaseScanner):
         # Direct match in dangerous calls table
         match_entry = TS_DANGEROUS_CALLS.get(call_name)
 
-        # Try qualified name matching (e.g., child_process.exec)
+        # Try qualified name matching (e.g., child_process.exec).
+        # Skip names in GLOBAL_ONLY_TS_CALLS so that, e.g.,
+        # `redisClient.eval(luaScript)` (Redis EVAL) does not get
+        # misidentified as the JS global `eval(...)` RCE sink.
         if match_entry is None:
-            # Check if the call name ends with a known dangerous suffix
             for dangerous_name, entry in TS_DANGEROUS_CALLS.items():
+                if dangerous_name in GLOBAL_ONLY_TS_CALLS:
+                    continue
                 if call_name.endswith(dangerous_name):
-                    match_entry = entry
-                    break
+                    # Require the boundary to be a dot, so that
+                    # `redisClient.evalsha` doesn't endswith-match `eval`-like
+                    # entries (it wouldn't here anyway, but the dot-boundary
+                    # rule is more robust). Allow exact match for
+                    # multi-token entries like `child_process.exec`.
+                    if call_name == dangerous_name:
+                        match_entry = entry
+                        break
+                    suffix_start = len(call_name) - len(dangerous_name)
+                    if suffix_start > 0 and call_name[suffix_start - 1] == ".":
+                        match_entry = entry
+                        break
 
         if match_entry is None:
             return findings
@@ -504,14 +530,28 @@ class TypeScriptScanner(BaseScanner):
         findings: List[TSFinding] = []
 
         # Patterns: (regex, rule_id, pattern_type, confidence, display_name)
+        # The eval pattern uses a negative lookbehind to exclude member-form
+        # calls like `redisClient.eval(...)` (Redis EVAL Lua), keeping only
+        # the bare global `eval(...)` form. Explicit global aliases
+        # (window/globalThis/global/self.eval) are matched separately below.
         patterns: List[Tuple[re.Pattern, str, str, float, str]] = [
-            # eval()
+            # Bare global eval()
             (
-                re.compile(r"\beval\s*\("),
+                re.compile(r"(?<![\w.$])eval\s*\("),
                 "AGENT-034",
                 "ts_eval_exec",
                 0.95,
                 "eval",
+            ),
+            # Explicit global-scope eval aliases
+            (
+                re.compile(
+                    r"\b(?:window|globalThis|global|self)\.eval\s*\("
+                ),
+                "AGENT-034",
+                "ts_eval_exec",
+                0.95,
+                "globalThis.eval",
             ),
             # new Function()
             (
@@ -559,13 +599,28 @@ class TypeScriptScanner(BaseScanner):
             ),
         ]
 
+        # TS method/function declaration shape:
+        # `name(args): ReturnType` — return type annotation after the
+        # closing paren. Used to skip interface/class declarations like
+        #   `eval(script: string, options: RedisEvalOptions): Promise<unknown>;`
+        # The fallback regex parser can't distinguish declarations from
+        # calls structurally, so we filter them here.
+        ts_decl_signature_re = re.compile(
+            r"\b(?:eval|Function)\s*\([^)]*\)\s*:"
+        )
+
         for line_num, line in enumerate(lines, start=1):
             stripped = line.strip()
             # Skip comments
             if stripped.startswith("//") or stripped.startswith("*"):
                 continue
 
+            # Skip TS method/function declarations: `eval(args): Type ...`
+            is_ts_decl = bool(ts_decl_signature_re.search(line))
+
             for pattern, rule_id, pattern_type, confidence, call_name in patterns:
+                if pattern_type == "ts_eval_exec" and is_ts_decl:
+                    continue
                 if pattern.search(line):
                     findings.append(
                         TSFinding(
