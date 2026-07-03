@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.19.2] - 2026-07-03
+
+### Fixed
+- **`scanned_files` counter under-reported** for TypeScript, Solidity, and Go scans. The counter was incremented only for Python / MCP-config / SKILL.md scanners; for any pure-TypeScript, pure-Solidity, or pure-Go target the counter reported 0 even when those scanners ran and produced real findings. Patched `cli/commands/scan.py` to increment per-file in the TypeScript, Solidity, and Go scanner blocks via a new `_count_files_by_extension` helper (orchestrator-level; no scanner internals touched). This is a visibility fix, not a new scanning capability — Solidity scanning has been working since AGENT-099 shipped in v0.13.x.
+- **TypeScript scanner false positive on Redis `client.eval(...)`**: `AGENT-034` was firing on member-form calls like `redisClient.eval(luaScript)` (Redis EVAL Lua), `redis.evalsha(sha, ...)`, and any `someObj.eval(...)` because suffix-name matching against `TS_DANGEROUS_CALLS` treated any qualified name ending in `eval`/`Function` as the JS global sink. Fix: excluded `eval`/`Function` from generic suffix matching, added explicit entries for real global aliases (`window.eval`, `globalThis.eval`, `global.eval`, `self.eval`), enforced a dot-boundary rule for qualified-name matches, tightened the regex fallback (`(?<![\w.$])eval\b` for the bare form), and skipped TS interface/class method declarations of shape `eval(args): Type`. +12 regression tests in `TestEvalMemberCallDistinction`. Regression source: x402-foundation/x402 scan.
+
 ## [0.19.1] - 2026-04-01
 
 ### Added
