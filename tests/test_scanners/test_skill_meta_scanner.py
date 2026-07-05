@@ -419,3 +419,75 @@ class TestEdgeCases:
         results = self.scanner.scan(skill)
         assert len(results) == 1
         assert any(f.rule_id == "AGENT-064" for f in results[0].security_findings)
+
+    def test_skill_file_no_metadata(self, tmp_path):
+        skill = tmp_path / "SKILL.md"
+        skill.write_text(textwrap.dedent("""\
+            ---
+            name:
+            description:
+            metadata:
+            ---
+        """))
+        results = self.scanner.scan(skill)
+        assert len(results) == 1
+        
+    def test_skill_file_metadata_str(self, tmp_path):
+        """
+        metadata parsed json string 
+        https://github.com/openclaw/skills/blob/7f4194d3d605f01c213558e905c617b6f359d806/skills/neo-ava/sparker/SKILL.md
+        https://github.com/openclaw/skills/blob/7f4194d3d605f01c213558e905c617b6f359d806/skills/pipi6688/passive-income-claw/SKILL.md
+        https://github.com/openclaw/skills/blob/7f4194d3d605f01c213558e905c617b6f359d806/skills/waydelyle/swarmvault/SKILL.md
+        https://github.com/openclaw/skills/blob/7f4194d3d605f01c213558e905c617b6f359d806/skills/alexander-panov/finam/SKILL.md
+        https://github.com/openclaw/skills/blob/7f4194d3d605f01c213558e905c617b6f359d806/skills/wanng-ide/arxiv-gamedevbench-evaluating-agentic-capabili/SKILL.md
+        https://github.com/openclaw/skills/blob/7f4194d3d605f01c213558e905c617b6f359d806/skills/bankofbotsandy/bankofbots/SKILL.md
+        https://github.com/openclaw/skills/blob/7f4194d3d605f01c213558e905c617b6f359d806/skills/tmchow/image-sprout/SKILL.md
+        https://github.com/openclaw/skills/blob/7f4194d3d605f01c213558e905c617b6f359d806/skills/cyberforexblockchain/nexus-data-transform/SKILL.md
+        https://github.com/openclaw/skills/blob/7f4194d3d605f01c213558e905c617b6f359d806/skills/marcelo-rowship/rwagenthub2/SKILL.md
+        https://github.com/openclaw/skills/blob/7f4194d3d605f01c213558e905c617b6f359d806/skills/qianjunye/us3-uploader-encrypted/SKILL.md
+        https://github.com/openclaw/skills/blob/7f4194d3d605f01c213558e905c617b6f359d806/skills/yorch233/paper-highlight/SKILL.md
+        https://github.com/openclaw/skills/blob/7f4194d3d605f01c213558e905c617b6f359d806/skills/aghareza/taskwarrior/SKILL.md
+        https://github.com/openclaw/skills/blob/7f4194d3d605f01c213558e905c617b6f359d806/skills/adahubble/cf-workers-logs/SKILL.md
+        https://github.com/openclaw/skills/blob/7f4194d3d605f01c213558e905c617b6f359d806/skills/lilisidu1210-ui/baijiahao-publish/SKILL.md
+        https://github.com/openclaw/skills/blob/7f4194d3d605f01c213558e905c617b6f359d806/skills/lilei0311/macos-suite-readonly/SKILL.md
+        https://github.com/openclaw/skills/blob/7f4194d3d605f01c213558e905c617b6f359d806/skills/tmoody1973/crate-music-research/SKILL.md
+        https://github.com/openclaw/skills/blob/7f4194d3d605f01c213558e905c617b6f359d806/skills/zhouyi531/openclaw-role-builder/SKILL.md
+        https://github.com/openclaw/skills/blob/7f4194d3d605f01c213558e905c617b6f359d806/skills/donigwapo/slack-member-fetch/SKILL.md
+        https://github.com/openclaw/skills/blob/7f4194d3d605f01c213558e905c617b6f359d806/skills/jerrrr/anyshare-mcp/SKILL.md
+        https://github.com/openclaw/skills/blob/7f4194d3d605f01c213558e905c617b6f359d806/skills/jinwangmok/disk-usage/SKILL.md
+        https://github.com/openclaw/skills/blob/7f4194d3d605f01c213558e905c617b6f359d806/skills/madridblues/zetto-network/SKILL.md
+        https://github.com/openclaw/skills/blob/7f4194d3d605f01c213558e905c617b6f359d806/skills/bossandy123/yintai-tasks-runner/SKILL.md
+        """
+        skill = tmp_path / "SKILL.md"
+        skill.write_text(textwrap.dedent("""\
+---
+name: image-sprout
+description: >
+  Generate and iterate on images using Image Sprout projects. Creates consistent
+  outputs from reference images, style guides, and subject guides. Use when an
+  agent or user needs repeatable image generation with saved context.
+user-invocable: true
+metadata: '{"openclaw":{"requires":{"bins":["image-sprout"]},"homepage":"https://github.com/tmchow/image-sprout"}}'
+---
+        """))
+        results = self.scanner.scan(skill)
+        assert len(results) == 1
+
+    def test_skill_file_metadata_list(self, tmp_path):
+        """
+        error metadata format: list 
+        https://github.com/openclaw/skills/blob/7f4194d3d605f01c213558e905c617b6f359d806/skills/tjlzw/iaskaster/SKILL.md
+        """
+        skill = tmp_path / "SKILL.md"
+        skill.write_text(textwrap.dedent("""\
+---
+name: iaskaster
+description: xxx
+metadata:
+  - trigger: "余额查询|账户余额|剩余额度"
+    action: "node $IASKASTER/index.js --tool iaskaster_balance '{}'"
+  - trigger: "充值|充值链接"
+    action: "node $IASKASTER/index.js --tool iaskaster_recharge '{}'"
+---"""))
+        results = self.scanner.scan(skill)
+        assert len(results) == 1
