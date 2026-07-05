@@ -3480,19 +3480,8 @@ class PythonASTVisitor(ast.NodeVisitor):
         if simple_name not in sql_functions:
             return None
 
-        # v0.4.0: Additional check - caller object should look like a database cursor
-        # e.g., cursor.execute, conn.execute, db.execute, session.execute
-        caller_hints = {
-            'cursor', 'conn', 'connection', 'db', 'database', 'session',
-            'engine', 'query', 'sql', 'sqlite', 'mysql', 'postgres', 'psycopg',
-        }
-        caller_name = func_name.rsplit('.', 1)[0] if '.' in func_name else ''
-        caller_lower = caller_name.lower()
-
-        # Skip if caller doesn't look like a database object
-        if caller_lower and not any(hint in caller_lower for hint in caller_hints):
-            # Also allow if the variable name contains 'sql' or 'query' hints
-            pass  # Continue checking the query content
+        if not self._looks_like_sql_receiver(func_name):
+            return None
 
         # Check if first argument is an f-string (JoinedStr)
         if not node.args:
@@ -3608,6 +3597,9 @@ class PythonASTVisitor(ast.NodeVisitor):
         if simple_name not in ('execute', 'executemany', 'executescript'):
             return None
 
+        if not self._looks_like_sql_receiver(func_name):
+            return None
+
         # Check if first argument is a variable from function params
         if isinstance(first_arg, ast.Name):
             var_name = first_arg.id
@@ -3635,6 +3627,32 @@ class PythonASTVisitor(ast.NodeVisitor):
                 }
 
         return None
+
+    def _looks_like_sql_receiver(self, func_name: str) -> bool:
+        """Return true when an execute-style call is likely a database sink."""
+        if '.' not in func_name:
+            return False
+
+        caller_name = func_name.rsplit('.', 1)[0].lower()
+        caller_tokens = {
+            token
+            for token in re.split(r'[^a-z0-9]+', caller_name)
+            if token
+        }
+        exact_hints = {
+            'cur', 'cursor', 'conn', 'connection', 'db', 'database',
+            'session', 'engine', 'query', 'sql',
+        }
+        if caller_tokens & exact_hints:
+            return True
+
+        return any(
+            hint in caller_name
+            for hint in (
+                'cursor', 'connection', 'database', 'sqlite', 'mysql',
+                'postgres', 'psycopg', 'asyncpg', 'aiosqlite', 'sqlalchemy',
+            )
+        )
 
     def _check_orm_raw_sql(
         self,

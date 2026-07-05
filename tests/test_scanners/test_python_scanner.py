@@ -194,3 +194,85 @@ class TestPythonScanner:
         )
         assert cmd_param is not None
         assert cmd_param.type == 'str'
+
+    def test_agent_execute_param_is_not_sql_tainted_param(self, scanner, tmp_path):
+        """AGENT-041 should not treat generic agent .execute() calls as SQL sinks."""
+        code = """
+class Agent:
+    def execute(self, task):
+        return task
+
+
+def delegate_task(target_agent, task):
+    return target_agent.execute(task)
+"""
+        test_file = tmp_path / "agent_execute.py"
+        test_file.write_text(code)
+
+        results = scanner.scan(test_file)
+        patterns = results[0].dangerous_patterns if results else []
+
+        sql_patterns = [
+            p for p in patterns
+            if p.get('type') == 'sql_tainted_param'
+        ]
+        assert sql_patterns == []
+
+    def test_cursor_execute_param_still_triggers_sql_tainted_param(self, scanner, tmp_path):
+        """AGENT-041 should still flag tainted parameters passed to DB cursors."""
+        code = """
+def search_users(cursor, query):
+    return cursor.execute(query)
+"""
+        test_file = tmp_path / "cursor_execute.py"
+        test_file.write_text(code)
+
+        results = scanner.scan(test_file)
+        patterns = results[0].dangerous_patterns if results else []
+
+        sql_patterns = [
+            p for p in patterns
+            if p.get('type') == 'sql_tainted_param'
+        ]
+        assert len(sql_patterns) == 1
+
+    def test_agent_execute_fstring_is_not_sql_sink(self, scanner, tmp_path):
+        """AGENT-041 should not treat generic agent f-string execute calls as SQL sinks."""
+        code = """
+class Agent:
+    def execute(self, task):
+        return task
+
+
+def delegate_task(target_agent, task):
+    return target_agent.execute(f"SELECT {task}")
+"""
+        test_file = tmp_path / "agent_execute_fstring.py"
+        test_file.write_text(code)
+
+        results = scanner.scan(test_file)
+        patterns = results[0].dangerous_patterns if results else []
+
+        sql_patterns = [
+            p for p in patterns
+            if p.get('type') == 'sql_fstring_injection'
+        ]
+        assert sql_patterns == []
+
+    def test_cursor_execute_fstring_still_triggers_sql_sink(self, scanner, tmp_path):
+        """AGENT-041 should still flag f-string SQL passed to DB cursors."""
+        code = """
+def search_users(cursor, user_id):
+    return cursor.execute(f"SELECT * FROM users WHERE id = {user_id}")
+"""
+        test_file = tmp_path / "cursor_execute_fstring.py"
+        test_file.write_text(code)
+
+        results = scanner.scan(test_file)
+        patterns = results[0].dangerous_patterns if results else []
+
+        sql_patterns = [
+            p for p in patterns
+            if p.get('type') == 'sql_fstring_injection'
+        ]
+        assert len(sql_patterns) == 1
