@@ -63,6 +63,10 @@ TS_DANGEROUS_CALLS: Dict[str, Tuple[str, str, float]] = {
     "child_process.execSync": ("AGENT-034", "ts_child_process_exec", 0.90),
     "child_process.spawn": ("AGENT-034", "ts_child_process_exec", 0.85),
     "child_process.spawnSync": ("AGENT-034", "ts_child_process_exec", 0.85),
+    "exec": ("AGENT-034", "ts_child_process_exec", 0.90),
+    "execSync": ("AGENT-034", "ts_child_process_exec", 0.90),
+    "spawn": ("AGENT-034", "ts_child_process_exec", 0.85),
+    "spawnSync": ("AGENT-034", "ts_child_process_exec", 0.85),
     "execa": ("AGENT-034", "ts_child_process_exec", 0.85),
     "execaSync": ("AGENT-034", "ts_child_process_exec", 0.85),
     # SQL (only when template string used - checked separately)

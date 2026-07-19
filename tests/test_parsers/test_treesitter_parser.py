@@ -1,12 +1,10 @@
 """Tests for tree-sitter parser module."""
 
 import pytest
+import agent_audit.parsers.treesitter_parser as treesitter_parser
 from agent_audit.parsers.treesitter_parser import (
     TreeSitterParser,
     ValueType,
-    Assignment,
-    FunctionCall,
-    StringLiteral,
 )
 
 
@@ -36,6 +34,97 @@ class TestTreeSitterParser:
         """Test default language is Python when not specified."""
         parser = TreeSitterParser("x = 1")
         assert parser.language == 'python'
+
+    def test_typescript_language_accessor_activates_tree_sitter(self, monkeypatch):
+        """TypeScript modules exposing language_typescript() should initialize."""
+        capsule = object()
+
+        class FakeLanguage:
+            def __init__(self, value):
+                assert value is capsule
+
+        class FakeParser:
+            def __init__(self, language):
+                assert isinstance(language, FakeLanguage)
+
+            def parse(self, source):
+                assert source == b"const value: string = input;"
+                return object()
+
+        class FakeTypeScriptModule:
+            @staticmethod
+            def language_typescript():
+                return capsule
+
+        class FakeTreeSitter:
+            Language = FakeLanguage
+            Parser = FakeParser
+
+        monkeypatch.setattr(treesitter_parser, "_TREE_SITTER_AVAILABLE", True)
+        monkeypatch.setattr(
+            treesitter_parser,
+            "_tree_sitter_typescript",
+            FakeTypeScriptModule(),
+        )
+        monkeypatch.setattr(
+            treesitter_parser,
+            "tree_sitter",
+            FakeTreeSitter,
+            raising=False,
+        )
+
+        parser = TreeSitterParser(
+            "const value: string = input;",
+            language="typescript",
+        )
+
+        assert parser.is_tree_sitter_available
+
+    def test_unknown_language_accessor_warns_and_falls_back(self, monkeypatch, caplog):
+        """Unsupported language module APIs should produce a visible warning."""
+        monkeypatch.setattr(treesitter_parser, "_TREE_SITTER_AVAILABLE", True)
+        monkeypatch.setattr(treesitter_parser, "_tree_sitter_typescript", object())
+
+        with caplog.at_level("WARNING"):
+            parser = TreeSitterParser("const value = input;", language="typescript")
+
+        assert not parser.is_tree_sitter_available
+        assert "does not expose a known language accessor" in caplog.text
+
+    def test_tree_sitter_init_failure_warns_and_falls_back(self, monkeypatch, caplog):
+        """Initialization errors should be visible while preserving fallback."""
+        class FakeLanguage:
+            pass
+
+        class FakeParser:
+            def __init__(self, language):
+                raise RuntimeError("parser unavailable")
+
+        class FakeJavaScriptModule:
+            LANGUAGE = FakeLanguage()
+
+        class FakeTreeSitter:
+            Language = FakeLanguage
+            Parser = FakeParser
+
+        monkeypatch.setattr(treesitter_parser, "_TREE_SITTER_AVAILABLE", True)
+        monkeypatch.setattr(
+            treesitter_parser,
+            "_tree_sitter_javascript",
+            FakeJavaScriptModule(),
+        )
+        monkeypatch.setattr(
+            treesitter_parser,
+            "tree_sitter",
+            FakeTreeSitter,
+            raising=False,
+        )
+
+        with caplog.at_level("WARNING"):
+            parser = TreeSitterParser("const value = input;", language="javascript")
+
+        assert not parser.is_tree_sitter_available
+        assert "parser unavailable" in caplog.text
 
 
 class TestPythonAssignments:
