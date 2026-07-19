@@ -188,7 +188,6 @@ class TreeSitterParser:
                 return
 
             # Language packages expose different accessor APIs.
-            wrap_language = False
             if hasattr(parser_module, 'LANGUAGE'):
                 lang = parser_module.LANGUAGE
             elif hasattr(parser_module, 'language'):
@@ -198,7 +197,6 @@ class TreeSitterParser:
                 and hasattr(parser_module, 'language_typescript')
             ):
                 lang = parser_module.language_typescript()
-                wrap_language = True
             else:
                 logger.warning(
                     "tree-sitter language module for %s does not expose a known "
@@ -207,7 +205,7 @@ class TreeSitterParser:
                 )
                 return
 
-            if wrap_language and not isinstance(lang, tree_sitter.Language):
+            if not isinstance(lang, tree_sitter.Language):
                 lang = tree_sitter.Language(lang)
 
             parser = tree_sitter.Parser(lang)

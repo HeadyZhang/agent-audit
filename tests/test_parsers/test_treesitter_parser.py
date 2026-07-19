@@ -80,6 +80,61 @@ class TestTreeSitterParser:
 
         assert parser.is_tree_sitter_available
 
+    @pytest.mark.parametrize(
+        ("language", "module_name", "source"),
+        [
+            ("python", "_tree_sitter_python", "value = input"),
+            ("javascript", "_tree_sitter_javascript", "const value = input;"),
+        ],
+    )
+    def test_standard_language_accessor_wraps_capsule(
+        self,
+        monkeypatch,
+        language,
+        module_name,
+        source,
+    ):
+        """Standard language() accessors may return tree-sitter capsules."""
+        capsule = object()
+
+        class FakeLanguage:
+            def __init__(self, value):
+                assert value is capsule
+
+        class FakeParser:
+            def __init__(self, wrapped_language):
+                assert isinstance(wrapped_language, FakeLanguage)
+
+            def parse(self, encoded_source):
+                assert encoded_source == source.encode("utf-8")
+                return object()
+
+        class FakeLanguageModule:
+            @staticmethod
+            def language():
+                return capsule
+
+        class FakeTreeSitter:
+            Language = FakeLanguage
+            Parser = FakeParser
+
+        monkeypatch.setattr(treesitter_parser, "_TREE_SITTER_AVAILABLE", True)
+        monkeypatch.setattr(
+            treesitter_parser,
+            module_name,
+            FakeLanguageModule(),
+        )
+        monkeypatch.setattr(
+            treesitter_parser,
+            "tree_sitter",
+            FakeTreeSitter,
+            raising=False,
+        )
+
+        parser = TreeSitterParser(source, language=language)
+
+        assert parser.is_tree_sitter_available
+
     def test_unknown_language_accessor_warns_and_falls_back(self, monkeypatch, caplog):
         """Unsupported language module APIs should produce a visible warning."""
         monkeypatch.setattr(treesitter_parser, "_TREE_SITTER_AVAILABLE", True)
