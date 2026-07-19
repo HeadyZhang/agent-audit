@@ -187,13 +187,26 @@ class TreeSitterParser:
             if parser_module is None:
                 return
 
-            # tree-sitter-python 0.23+ uses LANGUAGE attribute
+            # Language packages expose different accessor APIs.
             if hasattr(parser_module, 'LANGUAGE'):
                 lang = parser_module.LANGUAGE
             elif hasattr(parser_module, 'language'):
                 lang = parser_module.language()
+            elif (
+                self.language == 'typescript'
+                and hasattr(parser_module, 'language_typescript')
+            ):
+                lang = parser_module.language_typescript()
             else:
+                logger.warning(
+                    "tree-sitter language module for %s does not expose a known "
+                    "language accessor; using regex fallback",
+                    self.language,
+                )
                 return
+
+            if not isinstance(lang, tree_sitter.Language):
+                lang = tree_sitter.Language(lang)
 
             parser = tree_sitter.Parser(lang)
             self._tree = parser.parse(self.source.encode('utf-8'))
@@ -201,7 +214,7 @@ class TreeSitterParser:
             logger.debug(f"Using tree-sitter for {self.language}")
 
         except Exception as e:
-            logger.debug(f"tree-sitter init failed: {e}, using regex fallback")
+            logger.warning(f"tree-sitter init failed: {e}, using regex fallback")
             self._use_tree_sitter = False
 
     @property
@@ -435,8 +448,11 @@ class TreeSitterParser:
 
     def _walk_js_calls(self, node: Any, calls: List[FunctionCall]) -> None:
         """Walk JS/TS AST for function calls."""
-        if node.type == 'call_expression':
-            func_node = node.child_by_field_name('function')
+        if node.type in ('call_expression', 'new_expression'):
+            func_node = (
+                node.child_by_field_name('function')
+                or node.child_by_field_name('constructor')
+            )
             args_node = node.child_by_field_name('arguments')
 
             if func_node:
