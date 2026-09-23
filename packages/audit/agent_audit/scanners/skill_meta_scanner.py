@@ -167,12 +167,14 @@ class SkillMetaScanner(BaseScanner):
 
     def _get_openclaw_meta(self, frontmatter: Dict[str, Any]) -> Dict[str, Any]:
         """Extract openclaw metadata from nested or flat structure."""
-        nested = (
-            frontmatter.get("metadata", {}).get("openclaw", {})
-        )
-        if nested:
-            return nested
-        return frontmatter
+        if not isinstance(frontmatter, dict):
+            return {}
+        nested = frontmatter
+        for key in ("metadata", "openclaw"):
+            nested = nested.get(key, None)
+            if not isinstance(nested, dict):
+                return frontmatter
+        return nested
 
     def _check_daemon_persistence(
         self,
