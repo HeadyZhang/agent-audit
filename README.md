@@ -1,3 +1,5 @@
+[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/headyzhang-agent-audit-badge.png)](https://mseep.ai/app/headyzhang-agent-audit)
+
 # [Agent Audit](https://headyzhang.github.io/agent-audit/)
 
 **Find security vulnerabilities in your AI agent code before they reach production.**
